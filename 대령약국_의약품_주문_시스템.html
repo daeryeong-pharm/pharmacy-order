@@ -1,0 +1,4845 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes" />
+<meta name="theme-color" content="#c9763d" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="대령약국" />
+<meta name="format-detection" content="telephone=no" />
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23c9763d'/><text x='50' y='68' font-family='sans-serif' font-size='52' font-weight='bold' text-anchor='middle' fill='white'>대</text></svg>" />
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23c9763d'/><text x='50' y='68' font-family='sans-serif' font-size='52' font-weight='bold' text-anchor='middle' fill='white'>대</text></svg>" />
+<title>대령약국 의약품 주문 시스템</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script>
+/* ============ iOS Safari 호환 안전망 (반드시 가장 먼저) ============ */
+// 1) 전역 에러 핸들러 — 아이폰 사파리에서 화면이 비어 보이는 대신 원인을 표시
+(function () {
+  function showFatal(msg, detail) {
+    try {
+      var box = document.getElementById('iosFatalBox');
+      if (!box) {
+        box = document.createElement('div');
+        box.id = 'iosFatalBox';
+        box.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#fff;color:#222;font:14px -apple-system,sans-serif;padding:20px;overflow:auto;';
+        document.documentElement.appendChild(box);
+      }
+      box.innerHTML =
+        '<div style="max-width:560px;margin:40px auto;border:1px solid #e8e4d8;border-radius:12px;padding:20px;background:#faf9f5;">' +
+        '<div style="font-size:18px;font-weight:700;color:#c0392b;margin-bottom:10px;">⚠️ 앱 실행 오류</div>' +
+        '<div style="margin-bottom:12px;color:#2d2a26;">' + (msg || '알 수 없는 오류') + '</div>' +
+        (detail ? '<pre style="background:#fff;border:1px solid #eee;border-radius:6px;padding:10px;font-size:11px;white-space:pre-wrap;word-break:break-all;color:#555;">' + detail + '</pre>' : '') +
+        '<div style="margin-top:14px;font-size:12px;color:#6b6357;line-height:1.6;">' +
+        '<b>아이폰 사용자 체크리스트</b><br>' +
+        '① <b>Safari로 접속</b>했는지 확인 (카카오톡 인앱브라우저 ❌)<br>' +
+        '② <b>비공개 모드(Private)</b>를 끄고 일반 탭으로 다시 시도<br>' +
+        '③ Safari 설정 → 개인정보 보호 → "모든 쿠키 차단" <b>해제</b><br>' +
+        '④ Safari 설정 → 고급 → "JavaScript" <b>켜기</b><br>' +
+        '⑤ HTML 파일은 <b>Google Drive 미리보기</b> 또는 <b>https:// 호스팅</b>으로 열기 (file:// 직접 열기 ❌)' +
+        '</div>' +
+        '<button onclick="location.reload()" style="margin-top:14px;padding:10px 16px;background:#c9763d;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🔄 새로고침</button>' +
+        '</div>';
+      box.style.display = 'block';
+    } catch (e) {
+      // 마지막 수단 - alert
+      try { alert('앱 실행 오류: ' + msg); } catch(_) {}
+    }
+  }
+  window.__showFatal = showFatal;
+  // 부팅이 끝나면 치명적 오류 표시 중단 (사소한 런타임 오류로 전체 화면 가리지 않도록)
+  window.__bootDone = false;
+  window.addEventListener('error', function (ev) {
+    if (window.__bootDone) return; // 부팅 완료 후에는 콘솔만
+    var m = (ev && ev.message) ? ev.message : '스크립트 오류';
+    var d = (ev && ev.error && ev.error.stack) ? ev.error.stack : (ev && ev.filename ? ev.filename + ':' + ev.lineno : '');
+    showFatal(m, d);
+  });
+  window.addEventListener('unhandledrejection', function (ev) {
+    if (window.__bootDone) return;
+    var r = ev && ev.reason;
+    var m = r && r.message ? r.message : (typeof r === 'string' ? r : 'Promise 오류');
+    showFatal(m, r && r.stack ? r.stack : '');
+  });
+})();
+
+// 2) localStorage 안전 래퍼 — 사파리 비공개 모드에서 setItem 시 QuotaExceededError 방지
+(function () {
+  var memStore = {};
+  var lsAvailable = false;
+  try {
+    var k = '__dr_test_' + Date.now();
+    window.localStorage.setItem(k, '1');
+    window.localStorage.removeItem(k);
+    lsAvailable = true;
+  } catch (e) {
+    lsAvailable = false;
+  }
+  window.__lsAvailable = lsAvailable;
+  window.safeLS = {
+    getItem: function (k) {
+      try { return lsAvailable ? window.localStorage.getItem(k) : (k in memStore ? memStore[k] : null); }
+      catch (e) { return (k in memStore) ? memStore[k] : null; }
+    },
+    setItem: function (k, v) {
+      try { if (lsAvailable) window.localStorage.setItem(k, v); memStore[k] = v; }
+      catch (e) { memStore[k] = v; }
+    },
+    removeItem: function (k) {
+      try { if (lsAvailable) window.localStorage.removeItem(k); }
+      catch (e) {}
+      try { delete memStore[k]; } catch (e) {}
+    }
+  };
+  // localStorage 자체를 safeLS로 부드럽게 대체 — 기존 코드에서 localStorage.xxx 호출도 안전하게
+  try {
+    var origLS = window.localStorage;
+    var proxyLS = {
+      getItem: window.safeLS.getItem,
+      setItem: window.safeLS.setItem,
+      removeItem: window.safeLS.removeItem,
+      clear: function () { try { if (lsAvailable) origLS.clear(); } catch(e){} memStore = {}; },
+      key: function (i) { try { return lsAvailable ? origLS.key(i) : Object.keys(memStore)[i]; } catch(e){ return null; } },
+      get length() { try { return lsAvailable ? origLS.length : Object.keys(memStore).length; } catch(e){ return 0; } }
+    };
+    // localStorage 속성을 직접 못 바꾸는 환경(사파리)이 많아서, 전역 변수만 덮어씀
+    try { Object.defineProperty(window, 'localStorage', { value: proxyLS, configurable: true }); }
+    catch (e) { /* 사파리 등에서 막힐 수 있음 — safeLS를 코드에서 직접 사용 */ }
+  } catch (e) {}
+})();
+
+/* ============ 카카오톡/라인/페북 등 인앱 브라우저 호환 ============ */
+(function () {
+  var ua = (navigator.userAgent || '').toLowerCase();
+  var isKakao = ua.indexOf('kakaotalk') !== -1;
+  var isLine = ua.indexOf(' line/') !== -1 || ua.indexOf('line/') !== -1;
+  var isFB = ua.indexOf('fban') !== -1 || ua.indexOf('fbav') !== -1;
+  var isInsta = ua.indexOf('instagram') !== -1;
+  var isNaver = ua.indexOf('naver(inapp') !== -1 || ua.indexOf('naverapp') !== -1;
+  var isBand = ua.indexOf('band/') !== -1;
+  var isInApp = isKakao || isLine || isFB || isInsta || isNaver || isBand;
+  var isIOS = /iphone|ipad|ipod/.test(ua);
+  var isAndroid = ua.indexOf('android') !== -1;
+
+  window.__inAppInfo = { isInApp: isInApp, isKakao: isKakao, isLine: isLine, isFB: isFB, isInsta: isInsta, isNaver: isNaver, isBand: isBand, isIOS: isIOS, isAndroid: isAndroid };
+
+  if (!isInApp) return; // 일반 브라우저는 패스
+
+  // 인앱 브라우저에서 외부 브라우저로 즉시 이동 시도 (가장 확실한 해결법)
+  function openInExternalBrowser() {
+    var url = location.href;
+    try {
+      if (isKakao) {
+        // 카카오톡 → 외부 기본 브라우저로 강제 오픈
+        location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url);
+        return;
+      }
+      if (isLine) {
+        // 라인 → URL 끝에 ?openExternalBrowser=1
+        var sep = url.indexOf('?') > -1 ? '&' : '?';
+        location.href = url + sep + 'openExternalBrowser=1';
+        return;
+      }
+      if (isAndroid) {
+        // 안드로이드 인앱 → Chrome intent
+        var u = url.replace(/^https?:\/\//, '');
+        location.href = 'intent://' + u + '#Intent;scheme=https;package=com.android.chrome;end';
+        return;
+      }
+      if (isIOS) {
+        // iOS는 인앱 브라우저에서 외부 사파리 강제 오픈이 거의 불가 → 안내만
+        alert('이 앱은 카카오톡/페이스북 인앱 브라우저에서는 정상 동작하지 않습니다.\n\n오른쪽 위 메뉴(•••) → "Safari에서 열기"를 눌러주세요.');
+        return;
+      }
+    } catch (e) {
+      alert('외부 브라우저로 열기 실패. 수동으로 Safari/Chrome에 URL을 붙여넣어 주세요.');
+    }
+  }
+  window.__openInExternalBrowser = openInExternalBrowser;
+
+  // 자동 시도 (안드로이드 카카오톡은 즉시 외부 오픈 가능)
+  if (isAndroid && (isKakao || isLine)) {
+    setTimeout(openInExternalBrowser, 200);
+  }
+
+  // 화면에 큰 안내 배너 노출 (DOM 준비 후)
+  function injectBanner() {
+    if (document.getElementById('inAppGuard')) return;
+    var inAppName = isKakao ? '카카오톡' : isLine ? '라인' : isFB ? '페이스북' : isInsta ? '인스타그램' : isNaver ? '네이버' : isBand ? '밴드' : '인앱';
+    var box = document.createElement('div');
+    box.id = 'inAppGuard';
+    box.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(45,42,38,0.96);color:#fff;display:flex;align-items:center;justify-content:center;padding:20px;font:14px -apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;';
+    var iosGuide = isIOS
+      ? '<ol style="text-align:left;font-size:13.5px;line-height:1.85;padding-left:20px;margin:0 0 16px;color:#f3e7d6;">'
+        + '<li>화면 <b>오른쪽 위 메뉴(•••)</b> 또는 하단 <b>공유 아이콘(↗)</b> 탭</li>'
+        + '<li>「<b>Safari에서 열기</b>」 또는 「<b>다른 브라우저에서 열기</b>」 선택</li>'
+        + '<li>Safari로 열린 후 즐겨찾기/홈 화면에 추가하면 다음부터 빠르게 접속됩니다</li>'
+        + '</ol>'
+      : '<div style="text-align:left;font-size:13.5px;line-height:1.7;color:#f3e7d6;margin-bottom:14px;">'
+        + '아래 버튼을 누르면 기본 브라우저(Chrome/Samsung Internet)에서 자동으로 열립니다.'
+        + '</div>';
+    var btnLabel = isIOS ? '🔗 URL 복사하기' : '🌐 외부 브라우저로 열기';
+    box.innerHTML =
+      '<div style="max-width:420px;width:100%;background:#3a3630;border:1px solid #5a5248;border-radius:14px;padding:24px 22px;box-shadow:0 8px 32px rgba(0,0,0,0.35);">'
+      + '<div style="font-size:32px;text-align:center;margin-bottom:8px;">⚠️</div>'
+      + '<div style="font-size:17px;font-weight:700;text-align:center;margin-bottom:6px;color:#ffd9a8;">' + inAppName + ' 브라우저에서는<br>정상 동작하지 않습니다</div>'
+      + '<div style="font-size:12.5px;text-align:center;color:#c9b89c;margin-bottom:18px;line-height:1.6;">실시간 동기화·로그인 저장 기능이 차단됩니다.<br>외부 브라우저(Safari/Chrome)로 열어주세요.</div>'
+      + iosGuide
+      + '<button id="inAppOpenBtn" style="width:100%;padding:14px;background:#c9763d;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px;">' + btnLabel + '</button>'
+      + '<button id="inAppDismissBtn" style="width:100%;padding:10px;background:transparent;color:#998f80;border:1px solid #5a5248;border-radius:8px;font-size:12px;cursor:pointer;">그래도 여기서 계속 사용 (제한 모드)</button>'
+      + '<div id="inAppCopyMsg" style="display:none;margin-top:10px;text-align:center;font-size:12px;color:#7fdbb6;">✅ URL이 복사되었습니다. Safari를 열어 주소창에 붙여넣으세요.</div>'
+      + '</div>';
+    document.body ? document.body.appendChild(box) : document.documentElement.appendChild(box);
+
+    document.getElementById('inAppOpenBtn').onclick = function () {
+      if (isIOS) {
+        // iOS는 강제 외부오픈이 거의 불가 → URL 클립보드 복사로 대체
+        var url = location.href;
+        var ok = false;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(function () {
+              document.getElementById('inAppCopyMsg').style.display = 'block';
+            }).catch(function () { fallbackCopy(url); });
+            ok = true;
+          }
+        } catch (e) {}
+        if (!ok) fallbackCopy(url);
+      } else {
+        openInExternalBrowser();
+      }
+    };
+    document.getElementById('inAppDismissBtn').onclick = function () {
+      box.remove();
+    };
+  }
+  function fallbackCopy(text) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) {
+        var m = document.getElementById('inAppCopyMsg');
+        if (m) m.style.display = 'block';
+      } else {
+        prompt('아래 주소를 복사해서 Safari에 붙여넣으세요:', text);
+      }
+    } catch (e) {
+      prompt('아래 주소를 복사해서 Safari에 붙여넣으세요:', text);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', injectBanner);
+  } else {
+    injectBanner();
+  }
+})();
+</script>
+<style>
+:root {
+  --bg: #faf9f5;
+  --bg-alt: #f3f1ea;
+  --card: #ffffff;
+  --border: #e8e4d8;
+  --border-strong: #d8d2c0;
+  --text: #2d2a26;
+  --text-soft: #6b6357;
+  --text-muted: #998f80;
+  --accent: #c9763d;
+  --accent-hover: #b3662f;
+  --accent-soft: #f6e9dd;
+  --warn: #d4a017;
+  --warn-bg: #fdf6dc;
+  --danger: #c0392b;
+  --danger-bg: #fbeae7;
+  --ok: #4a7c59;
+  --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --app-h: 100vh;
+}
+html, body { height: 100%; height: 100dvh; }
+body {
+  font-family: 'Noto Sans KR', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+/* ================= 로그인 ================= */
+.login-overlay {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.login-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 40px 36px;
+  width: 380px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.login-logo {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.login-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 28px;
+}
+.login-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--bg);
+  color: var(--text);
+  margin-bottom: 12px;
+}
+.login-input:focus { outline: none; border-color: var(--accent); background: #fff; }
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+.login-btn:hover { background: var(--accent-hover); }
+.recent-users {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.recent-users-list {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 8px;
+}
+.recent-user-chip {
+  background: var(--bg-alt);
+  padding: 4px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+}
+.recent-user-chip:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+/* ================= 헤더 ================= */
+.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; height: var(--app-h, 100dvh); overflow: hidden; }
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 10px 20px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+.user-badge {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-alt);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+.user-avatar {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600;
+}
+.logout-btn {
+  background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px;
+  padding: 4px 8px; border-radius: 4px;
+}
+.logout-btn:hover { color: var(--danger); background: var(--danger-bg); }
+
+.header-center {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-soft);
+  letter-spacing: 0.5px;
+}
+
+.header-right { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
+.clock-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #2d2a26 0%, #3a3630 100%);
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.05);
+  min-width: 108px;
+}
+.digital-clock {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', 'D2Coding', monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: #ffe4c4;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  text-shadow: 0 0 10px rgba(255, 180, 100, 0.35);
+  letter-spacing: 0.5px;
+}
+.digital-clock .dc-hm {
+  font-size: 22px;
+  color: #ffd9a8;
+}
+.digital-clock .dc-sec {
+  font-size: 13px;
+  color: #c9763d;
+  font-weight: 600;
+  min-width: 22px;
+  text-align: right;
+  opacity: 0.95;
+}
+.digital-clock .dc-sec.tick { animation: secPulse 1s ease-out; }
+@keyframes secPulse {
+  0% { opacity: 0.55; }
+  20% { opacity: 1; }
+  100% { opacity: 0.95; }
+}
+.digital-date {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 10.5px;
+  color: rgba(255, 220, 180, 0.7);
+  font-weight: 500;
+  margin-top: 3px;
+  letter-spacing: 0.3px;
+}
+
+/* ================= 탭 ================= */
+.tabs {
+  display: flex;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+.tab {
+  padding: 10px 18px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  font-weight: 500;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* 새로고침 탭 (특별 스타일 - 버튼처럼) */
+.tab.refresh-tab {
+  margin-left: auto;
+  margin-right: 8px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 6px;
+  padding: 6px 14px;
+  align-self: center;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+.tab.refresh-tab:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.tab.refresh-tab.refreshing {
+  background: var(--warn);
+  color: white;
+  pointer-events: none;
+}
+.refresh-icon {
+  display: inline-block;
+  margin-right: 4px;
+}
+.refresh-icon.spinning {
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 토스트 알림 */
+.toast {
+  position: fixed;
+  bottom: calc(80px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--text);
+  color: white;
+  padding: 12px 22px;
+  border-radius: 28px;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 3000;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+  opacity: 0;
+  transition: opacity 0.25s, transform 0.25s;
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: 90vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.toast.success { background: var(--ok); }
+.toast.error { background: var(--danger); }
+
+/* ================= 실시간 대시보드 ================= */
+.dashboard {
+  background: linear-gradient(to right, var(--accent-soft), var(--bg-alt));
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+  flex-shrink: 0;
+}
+.dash-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.dash-scroll::-webkit-scrollbar { display: none; }
+.dash-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 7px 12px;
+  min-width: 82px;
+  flex-shrink: 0;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+.dash-card.primary { border-color: var(--accent); background: var(--accent); color: white; }
+.dash-card.warn { border-color: var(--warn); }
+.dash-card.danger { border-color: var(--danger); }
+.dash-card.top { min-width: 130px; }
+.dash-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+.dash-card.primary .dash-label { color: rgba(255,255,255,0.9); }
+.dash-val {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.dash-val.small { font-size: 12px; font-weight: 600; }
+.dash-card.warn .dash-val { color: var(--warn); }
+.dash-card.danger .dash-val { color: var(--danger); }
+.dash-card.top .dash-val {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+/* ================= 검색 / 필터 ================= */
+.list-filters {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.search-input {
+  flex: 1;
+  min-width: 180px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  background: var(--bg);
+}
+.search-input:focus { outline: none; border-color: var(--accent); background: white; }
+.filter-select {
+  padding: 8px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  background: white;
+  cursor: pointer;
+}
+.filter-clear {
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--bg-alt);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text-soft);
+}
+.filter-clear:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.col-filter-toggle {
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+.col-filter-toggle[aria-expanded="true"] {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.col-filters {
+  display: grid;
+  /* 의약품명 필터 폭 2배 + 나머지 축소 (리스트 컬럼 비율과 일치) */
+  grid-template-columns: 6fr 1fr 1fr 1fr 1fr 1fr;
+  gap: 6px;
+  padding: 8px 12px 10px;
+  background: var(--bg-alt);
+  border-bottom: 1px solid var(--border);
+}
+.col-filters[hidden] { display: none; }
+.col-filter-cell { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.col-filter-cell label {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding-left: 2px;
+}
+.col-filter-cell input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 12px;
+  background: white;
+  min-width: 0;
+}
+.col-filter-cell input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.col-filter-cell input:not(:placeholder-shown) { background: #fffbf5; border-color: var(--accent); }
+.filter-active-badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  background: var(--accent);
+  color: white;
+  border-radius: 8px;
+  font-size: 10px;
+}
+
+/* ================= 자동완성 ================= */
+.autocomplete-dropdown {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 8px;
+  right: 8px;
+  background: white;
+  border: 1px solid var(--border-strong);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+  max-height: 260px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  z-index: 50;
+}
+.autocomplete-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  gap: 8px;
+}
+.autocomplete-item:hover,
+.autocomplete-item.active { background: var(--accent-soft); }
+.autocomplete-item:last-child { border-bottom: none; }
+.autocomplete-name { font-weight: 500; color: var(--text); }
+.autocomplete-spec { font-size: 11px; color: var(--text-soft); margin-left: 6px; }
+.autocomplete-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  padding: 2px 7px;
+  background: var(--bg-alt);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.autocomplete-hint {
+  padding: 5px 14px;
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg-alt);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ================= 수정 모달 ================= */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 16px;
+}
+.modal {
+  background: white;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 16px 56px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+  max-height: 92dvh;
+}
+.modal-head {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 15px;
+}
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0 4px;
+}
+.modal-body {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+.modal-body label {
+  font-size: 11px;
+  color: var(--text-soft);
+  font-weight: 600;
+  margin-top: 10px;
+  margin-bottom: 2px;
+}
+.modal-body label:first-child { margin-top: 0; }
+.modal-input {
+  padding: 11px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 14px;
+  background: var(--bg);
+}
+.modal-input:focus { outline: none; border-color: var(--accent); background: white; }
+.modal-meta {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: var(--bg-alt);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.modal-foot {
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.modal-btn {
+  padding: 11px 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  border-color: var(--accent);
+}
+.modal-btn.danger {
+  background: white;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.modal-btn:hover { opacity: 0.9; }
+
+/* 리스트 행 탭 가능 표시 */
+.a4-row.clickable { cursor: pointer; transition: background 0.1s; }
+.a4-row.clickable.mine { box-shadow: inset 3px 0 0 var(--accent); }
+.a4-row.clickable:hover { background: var(--accent-soft); }
+.a4-row.clickable:active { background: var(--bg-alt); }
+.a4-row.locked { cursor: not-allowed; opacity: 0.92; }
+.a4-row.locked:hover { background: var(--bg-alt); }
+.edit-mark { font-size: 10px; margin-left: 4px; opacity: 0.85; }
+
+/* ================= 메인 영역 ================= */
+.app-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+  width: 100%;
+}
+.main { flex: 1; overflow: hidden; min-width: 0; display: flex; flex-direction: column; }
+.tab-panel { display: none; height: 100%; }
+.tab-panel.active { display: flex; flex-direction: column; }
+
+/* ===== 채팅 도크 (PC: 오른쪽 고정 사이드바, 모바일: 하단 고정 패널) ===== */
+.chat-dock {
+  width: 360px;
+  flex-shrink: 0;
+  background: var(--card);
+  border-left: 1px solid var(--border-strong);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  box-shadow: -2px 0 8px rgba(0,0,0,0.03);
+}
+.chat-dock .chat-panel {
+  border-right: none;
+  height: 100%;
+  width: 100%;
+}
+.chat-dock-toggle { display: none; }
+
+/* ===== 리스트 패널 단독 사용 시 (workspace 제거 후) ===== */
+.list-panel { width: 100%; height: 100%; }
+
+.chat-panel {
+  display: flex; flex-direction: column;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  height: 100%;
+}
+.chat-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.online-indicator {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--text-muted); font-weight: 400;
+}
+.dot {
+  width: 6px; height: 6px; background: var(--ok); border-radius: 50%;
+}
+.chat-messages {
+  flex: 1; overflow-y: auto; padding: 12px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.message {
+  display: flex; gap: 8px;
+}
+.msg-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: white;
+  flex-shrink: 0;
+}
+.msg-body { flex: 1; min-width: 0; }
+.msg-head { display: flex; gap: 6px; align-items: baseline; margin-bottom: 2px; }
+.msg-name { font-size: 12px; font-weight: 600; color: var(--text); }
+.msg-time { font-size: 10px; color: var(--text-muted); }
+.msg-text {
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg-alt);
+  padding: 8px 10px;
+  border-radius: 0 8px 8px 8px;
+  word-break: break-word;
+}
+.msg-self .msg-text { background: var(--accent-soft); }
+.msg-system {
+  text-align: center; font-size: 11px; color: var(--text-muted);
+  padding: 4px 0;
+}
+
+.parsed-tag {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--text-soft);
+}
+
+.chat-input-area {
+  border-top: 1px solid var(--border);
+  padding: 10px 12px;
+  background: var(--card);
+}
+.input-help {
+  font-size: 10px; color: var(--text-muted); margin-bottom: 6px;
+}
+/* 채팅 입력 시 2층재고 매칭 실시간 힌트 */
+.floor2-hint {
+  background: linear-gradient(90deg, #fee2e2 0%, #fecaca 100%);
+  border: 1.5px solid #dc2626;
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #7f1d1d;
+  line-height: 1.35;
+  box-shadow: 0 1px 4px rgba(220,38,38,0.15);
+  animation: floor2HintPulse 1.6s ease-in-out infinite;
+}
+.floor2-hint b { color: #991b1b; }
+@keyframes floor2HintPulse {
+  0%, 100% { border-color: #dc2626; }
+  50%      { border-color: #ef4444; box-shadow: 0 0 0 2px rgba(220,38,38,0.18), 0 1px 4px rgba(220,38,38,0.25); }
+}
+.chat-input-row { display: flex; gap: 6px; }
+.chat-input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--bg);
+  resize: none;
+  min-height: 38px;
+  max-height: 100px;
+}
+.chat-input:focus { outline: none; border-color: var(--accent); background: #fff; }
+.send-btn {
+  background: var(--accent);
+  color: white; border: none;
+  padding: 0 14px; border-radius: 6px;
+  cursor: pointer; font-size: 13px; font-weight: 500;
+}
+.send-btn:hover { background: var(--accent-hover); }
+.send-btn:disabled { background: var(--border-strong); cursor: not-allowed; }
+
+/* ===== A4 리스트 ===== */
+.list-panel {
+  background: var(--bg-alt);
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ===== PDF 내보내기 렌더링 모드 (전역, 어떤 탭이 활성이든 A4 페이지를 캡처 가능하게) ===== */
+body.pdf-rendering .tab-panel { display: none !important; }
+body.pdf-rendering #panel-work { display: flex !important; flex-direction: column !important; }
+/* html2canvas가 잘리지 않도록 상위 컨테이너 overflow 해제 */
+body.pdf-rendering .main,
+body.pdf-rendering .app-body,
+body.pdf-rendering .list-panel { overflow: visible !important; }
+/* 캡처 중에는 채팅 도크·대시보드·툴바가 스크린샷에 방해되지 않도록 숨김(캡처 대상은 #a4Page뿐이지만 혹시 모를 리플로우 영향 차단) */
+body.pdf-rendering .chat-dock,
+body.pdf-rendering .list-toolbar,
+body.pdf-rendering .list-filters,
+body.pdf-rendering .col-filters { visibility: hidden !important; height: 0 !important; padding: 0 !important; margin: 0 !important; border: 0 !important; overflow: hidden !important; }
+/* A4 페이지는 고정 사이즈로 강제 */
+body.pdf-rendering .a4-page {
+  width: 794px !important;
+  min-height: 1123px !important;
+  padding: 30px 28px !important;
+  box-shadow: none !important;
+  background: #fff !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+.list-toolbar {
+  width: 100%; max-width: 800px;
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--card);
+  padding: 8px 14px; border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+}
+.toolbar-stats { display: flex; gap: 14px; color: var(--text-soft); }
+.stat-num { font-weight: 600; color: var(--text); }
+.stat-num.warn { color: var(--warn); }
+.stat-num.danger { color: var(--danger); }
+.toolbar-actions { display: flex; gap: 6px; }
+.tool-btn {
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--text-soft);
+  font-family: inherit;
+}
+.tool-btn:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+.a4-page {
+  background: white;
+  width: 794px;
+  min-height: 1123px;
+  padding: 30px 28px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+}
+.a4-header {
+  text-align: center;
+  border-bottom: 2px solid var(--text);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+.a4-title {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 18px; font-weight: 700;
+}
+.a4-meta {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--text-soft);
+  margin-top: 4px;
+}
+.a4-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 12px;
+  flex: 1;
+}
+.a4-col { display: flex; flex-direction: column; }
+.a4-row {
+  display: grid;
+  /* 번호 | 의약품명(대폭 확장) | 규격(축소) | 갯수 | 비고(축소) | 작성자(축소) | 시간(축소) */
+  grid-template-columns: 20px minmax(0,2.6fr) 44px 38px minmax(0,0.5fr) 48px 38px;
+  align-items: center;
+  border-bottom: 1px dotted #ccc;
+  padding: 5px 3px;
+  font-size: 11px;
+  min-height: 28px;
+  gap: 3px;
+}
+.a4-row.head {
+  background: #f0ede4;
+  font-weight: 700;
+  border-bottom: 1.5px solid var(--text);
+  font-size: 11px;
+}
+/* ▣ 주문중복 행: 노란 배경 + 왼쪽 3px 노란 스트라이프 (html2canvas 친화적 background-image 방식) */
+.a4-row.duplicate {
+  background-color: var(--warn-bg);
+  background-image: linear-gradient(90deg, var(--warn) 0, var(--warn) 3px, transparent 3px);
+  background-repeat: no-repeat;
+}
+.a4-row.clickable.mine.duplicate {
+  /* 본인 항목이면서 주문중복: 왼쪽 파랑(3px)+노랑(3px) 이중 스트라이프 */
+  background-color: var(--warn-bg);
+  background-image: linear-gradient(90deg, var(--accent) 0, var(--accent) 3px, var(--warn) 3px, var(--warn) 6px, transparent 6px);
+  background-repeat: no-repeat;
+  box-shadow: none;
+}
+.a4-row.suspicious { background: var(--danger-bg); }
+
+/* ▣ 주문중복 표시: 의약품명 뒤에 작은 위첨자 (자리 거의 안차지) */
+.dup-sup {
+  font-size: 8.5px;
+  font-weight: 700;
+  color: #b45309;            /* 어두운 주황 */
+  background: rgba(245,158,11,0.18);
+  padding: 0 3px;
+  border-radius: 2px;
+  margin-left: 3px;
+  vertical-align: super;
+  line-height: 1;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+
+/* ▣ 2층재고 표시: 시인성 극대화 (빨강+흰글씨, 굵게, 펄스 애니메이션) */
+.floor2-badge {
+  display: inline-block;
+  background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  padding: 2px 7px;
+  border-radius: 4px;
+  line-height: 1.25;
+  vertical-align: middle;
+  margin-right: 5px;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+  box-shadow: 0 1px 3px rgba(220,38,38,0.35);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.15);
+  animation: floor2Pulse 1.8s ease-in-out infinite;
+}
+@keyframes floor2Pulse {
+  0%, 100% { box-shadow: 0 1px 3px rgba(220,38,38,0.35); }
+  50%      { box-shadow: 0 0 0 3px rgba(220,38,38,0.25), 0 1px 3px rgba(220,38,38,0.5); }
+}
+/* 2층재고 소진 (남은 0 이하): 더 강한 검붉은 톤으로 "없음" 강조 */
+.floor2-badge.empty {
+  background: linear-gradient(90deg, #7f1d1d 0%, #991b1b 100%);
+  animation: floor2PulseEmpty 1.2s ease-in-out infinite;
+}
+@keyframes floor2PulseEmpty {
+  0%, 100% { box-shadow: 0 1px 3px rgba(127,29,29,0.5); }
+  50%      { box-shadow: 0 0 0 4px rgba(127,29,29,0.3), 0 1px 4px rgba(127,29,29,0.6); }
+}
+/* 2층재고 행: 옅은 빨강 배경 + 왼쪽 굵은 빨강 스트라이프 (html2canvas 친화적 background-image 방식) */
+.a4-row.floor2-stock {
+  background-color: #fff1f2;                    /* 옅은 레드 */
+  background-image: linear-gradient(90deg, #dc2626 0, #dc2626 5px, transparent 5px);
+  background-repeat: no-repeat;
+  box-shadow: none;
+}
+.a4-row.floor2-stock.duplicate {
+  /* 2층재고 + 주문중복 동시: 왼쪽 빨강(5px) + 노랑(5px) 이중 스트라이프, 배경은 옅은 레드 유지 */
+  background-color: #fff1f2;
+  background-image: linear-gradient(90deg, #dc2626 0, #dc2626 5px, var(--warn) 5px, var(--warn) 10px, transparent 10px);
+  background-repeat: no-repeat;
+  box-shadow: none;
+}
+.a4-row.clickable.mine.floor2-stock {
+  background-color: #fff1f2;
+  background-image: linear-gradient(90deg, var(--accent) 0, var(--accent) 3px, #dc2626 3px, #dc2626 8px, transparent 8px);
+  background-repeat: no-repeat;
+  box-shadow: none;
+}
+.a4-row.clickable.mine.floor2-stock.duplicate {
+  background-color: #fff1f2;
+  background-image: linear-gradient(90deg, var(--accent) 0, var(--accent) 3px, #dc2626 3px, #dc2626 8px, var(--warn) 8px, var(--warn) 13px, transparent 13px);
+  background-repeat: no-repeat;
+  box-shadow: none;
+}
+.row-num { color: var(--text-muted); font-size: 10px; text-align: center; }
+/* 긴 의약품명도 리스트에서 모두 보이도록 줄바꿈 허용 */
+.row-name {
+  font-weight: 500;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.25;
+}
+.row-spec { color: var(--text-soft); font-size: 10px; }
+.row-qty { font-weight: 600; text-align: right; padding-right: 4px; }
+/* 헤더 정렬 (데스크톱 기본: 갯수 오른쪽, 작성자·시간 가운데) */
+.a4-row.head .h-qty { text-align: right; padding-right: 4px; }
+.a4-row.head .h-author,
+.a4-row.head .h-time { text-align: center; }
+.row-note {
+  font-size: 10px; color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
+}
+.flag {
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.flag.dup { background: var(--warn); color: white; }
+.flag.sus { background: var(--danger); color: white; }
+.row-author {
+  font-size: 10px;
+  color: var(--text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.row-time {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.a4-footer {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ===== 내보내기 탭 ===== */
+.export-panel {
+  width: 100%; padding: 30px;
+  display: flex; flex-direction: column; gap: 20px;
+  align-items: center;
+}
+.export-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  width: 100%;
+  max-width: 600px;
+}
+.export-card h3 {
+  font-size: 15px; margin-bottom: 8px; font-weight: 600;
+}
+.export-card p {
+  font-size: 12px; color: var(--text-soft); margin-bottom: 14px;
+}
+.export-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.export-btn {
+  background: var(--accent); color: white;
+  border: none; padding: 10px 16px; border-radius: 6px;
+  cursor: pointer; font-size: 13px; font-weight: 500;
+  font-family: inherit;
+}
+.export-btn:hover { background: var(--accent-hover); }
+.export-btn.outline {
+  background: var(--card); color: var(--text);
+  border: 1px solid var(--border-strong);
+}
+.export-btn.outline:hover { background: var(--bg-alt); }
+
+/* ===== 기록 탭 ===== */
+.history-panel {
+  width: 100%; padding: 24px; overflow-y: auto;
+}
+.history-list {
+  max-width: 800px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.history-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.hist-info { display: flex; flex-direction: column; gap: 2px; }
+.hist-date { font-size: 14px; font-weight: 600; }
+.hist-meta { font-size: 11px; color: var(--text-muted); }
+.hist-actions { display: flex; gap: 6px; }
+.hist-btn {
+  background: var(--bg-alt);
+  border: 1px solid var(--border-strong);
+  padding: 5px 12px; border-radius: 4px;
+  font-size: 12px; cursor: pointer;
+  font-family: inherit; color: var(--text-soft);
+}
+.hist-btn:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.hist-btn.danger:hover { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
+
+/* ===== 설정 탭 ===== */
+.settings-panel {
+  width: 100%; padding: 30px; overflow-y: auto;
+}
+.settings-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 22px;
+  max-width: 600px; margin: 0 auto 16px;
+}
+.settings-card h3 { font-size: 14px; margin-bottom: 12px; }
+.settings-card p { font-size: 12px; color: var(--text-soft); margin-bottom: 8px; }
+.settings-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.settings-row:last-child { border-bottom: none; }
+
+/* ===== 2층 재고 관리 UI ===== */
+.floor2-admin-controls {
+  display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 6px;
+  margin-bottom: 10px;
+}
+.floor2-admin-controls input,
+.floor2-admin-controls select {
+  padding: 6px 8px; font-size: 12px;
+  border: 1px solid var(--border-strong); border-radius: 6px;
+  background: var(--bg-alt);
+}
+.floor2-admin-table {
+  max-height: 360px; overflow-y: auto;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg-alt);
+}
+.floor2-row {
+  display: grid;
+  grid-template-columns: minmax(0,2fr) 52px 52px 52px 62px 110px;
+  gap: 4px; padding: 6px 8px;
+  font-size: 11.5px; align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.floor2-row.head {
+  background: #f0ede4; font-weight: 700; font-size: 10.5px;
+  position: sticky; top: 0; z-index: 1;
+}
+.floor2-row:last-child { border-bottom: none; }
+.floor2-row .f2-name { overflow-wrap: anywhere; word-break: break-word; line-height: 1.25; }
+.floor2-row .f2-cat { font-size: 9px; color: var(--text-muted); margin-left: 4px; }
+.floor2-row .f2-num { text-align: center; font-variant-numeric: tabular-nums; }
+.floor2-row .f2-current { font-weight: 800; font-size: 13px; color: #166534; text-align: center; }
+.floor2-row .f2-current.low { color: #991b1b; background: #fee2e2; border-radius: 4px; }
+.floor2-row .f2-current.mid { color: #b45309; }
+.floor2-row .f2-actions { display: flex; gap: 3px; flex-wrap: wrap; }
+.f2-btn {
+  padding: 3px 6px; font-size: 10.5px; font-weight: 600;
+  border: 1px solid var(--border-strong); border-radius: 4px;
+  background: var(--card); cursor: pointer;
+  min-height: 26px;
+}
+.f2-btn.plus { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+.f2-btn.minus { background: #fef2f2; color: #7f1d1d; border-color: #fecaca; }
+.f2-btn:hover { opacity: 0.85; }
+.floor2-admin-empty { padding: 18px; text-align: center; color: var(--text-muted); font-size: 12px; }
+
+/* ===== Firebase 설정 오버레이 ===== */
+.fb-overlay {
+  position: fixed; inset: 0;
+  background: rgba(45, 42, 38, 0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+.fb-card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 28px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+}
+.fb-card h2 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+.fb-card p { font-size: 13px; color: var(--text-soft); margin-bottom: 14px; line-height: 1.6; }
+.fb-card details {
+  background: var(--bg-alt);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+.fb-card details summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--accent);
+  padding: 2px 0;
+}
+.fb-card details ol { margin: 10px 0 4px 18px; line-height: 1.8; color: var(--text-soft); }
+.fb-card details ol li code {
+  background: var(--card);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.fb-textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-size: 11px;
+  background: var(--bg);
+  resize: vertical;
+  margin-bottom: 12px;
+}
+.fb-textarea:focus { outline: none; border-color: var(--accent); background: white; }
+.fb-btn-row { display: flex; gap: 8px; }
+.fb-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+}
+.fb-btn.primary { background: var(--accent); color: white; }
+.fb-btn.primary:hover { background: var(--accent-hover); }
+.fb-btn.secondary { background: var(--bg-alt); color: var(--text-soft); border: 1px solid var(--border-strong); }
+.fb-btn.secondary:hover { background: var(--border); }
+.fb-error {
+  background: var(--danger-bg);
+  color: var(--danger);
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-bottom: 12px;
+  display: none;
+}
+.fb-warning {
+  background: var(--warn-bg);
+  color: #7a5c02;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+/* 연결 상태 인디케이터 */
+.conn-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  background: var(--bg-alt);
+  color: var(--text-muted);
+}
+.conn-status .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+.conn-status.online { color: var(--ok); background: #e8f0ea; }
+.conn-status.online .dot { background: var(--ok); }
+.conn-status.offline { color: var(--text-muted); }
+.conn-status.offline .dot { background: var(--text-muted); }
+.conn-status.local { color: var(--accent); background: var(--accent-soft); }
+.conn-status.local .dot { background: var(--accent); }
+
+.online-users {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+/* 스크롤바 */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-alt); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* 작은 화면 대응 */
+@media (max-width: 1100px) {
+  .chat-dock { width: 320px; }
+  .a4-page { width: 700px; }
+}
+@media (max-width: 900px) and (min-width: 769px) {
+  .chat-dock { width: 280px; }
+}
+
+/* ============= 태블릿/모바일 (≤768px) ============= */
+@media (max-width: 768px) {
+  body { font-size: 14px; }
+  html, body { height: 100dvh; height: var(--app-h, 100dvh); }
+  .app {
+    height: 100vh;
+    height: 100dvh;
+    height: var(--app-h, 100dvh);
+    max-height: var(--app-h, 100dvh);
+  }
+  .main { flex: 1 1 auto; min-height: 0; }
+
+  /* 대시보드 모바일 */
+  .dashboard { padding: 6px 8px; }
+  .dash-card { padding: 5px 9px; min-width: 70px; border-radius: 8px; }
+  .dash-card.top { min-width: 110px; }
+  .dash-label { font-size: 9px; }
+  .dash-val { font-size: 17px; }
+  .dash-val.small { font-size: 11px; }
+  .dash-card.top .dash-val { font-size: 11px; max-width: 100px; }
+
+  /* 검색/필터 모바일 */
+  .list-filters {
+    padding: 8px;
+    gap: 6px;
+  }
+  .search-input {
+    font-size: 16px;  /* iOS 자동 줌 방지 */
+    min-width: 100%;
+    padding: 10px 12px;
+  }
+  .col-filter-toggle { font-size: 13px; padding: 9px 10px; min-height: 40px; }
+  .col-filters {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px 6px;
+    padding: 8px;
+  }
+  .col-filter-cell input {
+    font-size: 16px;  /* iOS 자동 줌 방지 */
+    padding: 8px 8px;
+    min-height: 38px;
+  }
+  .col-filter-cell label { font-size: 11px; }
+  .filter-select {
+    flex: 1;
+    font-size: 13px;
+    padding: 9px 6px;
+    min-height: 40px;
+  }
+  .filter-clear {
+    font-size: 13px;
+    padding: 9px 12px;
+    min-height: 40px;
+  }
+
+  /* 자동완성 모바일 - 더 큰 터치 영역 */
+  .autocomplete-item {
+    padding: 12px 14px;
+    font-size: 15px;
+    min-height: 48px;
+  }
+  .autocomplete-count { font-size: 11px; padding: 3px 8px; }
+
+  /* 모달 모바일 - 풀폭 */
+  .modal-backdrop { padding: 8px; align-items: flex-end; }
+  .modal {
+    max-width: 100%;
+    border-radius: 14px 14px 0 0;
+    max-height: 88vh;
+    max-height: 88dvh;
+  }
+  .modal-head { padding: 14px 16px; font-size: 16px; }
+  .modal-input { font-size: 16px; min-height: 46px; }  /* iOS 자동 줌 방지 */
+  .modal-btn {
+    flex: 1;
+    min-height: 48px;
+    font-size: 15px;
+    padding: 12px;
+  }
+
+  /* 헤더 */
+  .header {
+    padding: 8px 12px;
+    padding-top: calc(8px + env(safe-area-inset-top));
+    grid-template-columns: auto 1fr auto;
+    gap: 6px;
+  }
+  .header-center { font-size: 11px; letter-spacing: 0.3px; }
+  .user-badge { padding: 4px 8px; font-size: 12px; gap: 6px; }
+  .user-avatar { width: 22px; height: 22px; font-size: 10px; }
+  .logout-btn { display: none; }
+  .clock-block { padding: 4px 9px; min-width: 92px; }
+  .digital-clock .dc-hm { font-size: 18px; }
+  .digital-clock .dc-sec { font-size: 11px; min-width: 18px; }
+  .digital-date { font-size: 9.5px; margin-top: 2px; }
+
+  /* 탭 */
+  .tabs { padding: 0 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { padding: 12px 14px; font-size: 13px; white-space: nowrap; flex-shrink: 0; }
+  .tab.refresh-tab {
+    margin-left: 4px;
+    margin-right: 4px;
+    padding: 8px 12px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  /* 모바일: 메인 + 채팅도크를 세로 스택으로 배치 */
+  .app-body {
+    flex-direction: column;
+  }
+  .main {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .chat-dock {
+    width: 100%;
+    height: 42vh;
+    min-height: 220px;
+    max-height: 55vh;
+    border-left: none;
+    border-top: 2px solid var(--accent);
+    flex-shrink: 0;
+    transition: height 0.22s ease, min-height 0.22s ease;
+  }
+  .chat-dock.collapsed {
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    overflow: hidden;
+  }
+  .chat-dock.collapsed .chat-panel { display: none; }
+  .chat-dock-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: -18px;
+    right: 14px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    border: 2px solid var(--card);
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 20;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  }
+  .chat-dock.collapsed .chat-dock-toggle {
+    top: 6px;
+  }
+
+  /* 채팅 */
+  .chat-panel {
+    padding-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .chat-messages {
+    padding: 10px 12px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .chat-input { font-size: 16px; min-height: 44px; } /* iOS 자동 줌 방지 */
+  .chat-input-area {
+    padding: 10px 12px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    position: relative;
+    z-index: 20;
+  }
+  .send-btn { padding: 0 18px; min-height: 44px; }
+  .input-help { font-size: 11px; }
+
+  /* 리스트 영역 */
+  .list-panel {
+    padding: 10px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+  .list-toolbar {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+  .toolbar-stats {
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+  }
+  .toolbar-actions { justify-content: stretch; gap: 4px; }
+  .tool-btn { flex: 1; padding: 8px 4px; font-size: 12px; min-height: 36px; }
+
+  /* A4 페이지 - 모바일에서는 1단으로 압축 */
+  .a4-page {
+    width: 100%;
+    min-height: auto;
+    padding: 14px 10px;
+    border-radius: 6px;
+  }
+  .a4-title { font-size: 15px; }
+  .a4-meta { font-size: 10px; }
+  .a4-grid {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+  }
+  .a4-row {
+    /* 모바일: 의약품명 약 2배 확장, 규격/비고/작성자/시간 축소 */
+    grid-template-columns: 14px minmax(0,4fr) minmax(0,0.6fr) minmax(0,0.7fr) minmax(0,0.5fr) minmax(0,0.55fr) minmax(0,0.55fr);
+    font-size: 10.5px;
+    padding: 6px 1px;
+    gap: 2px;
+    min-height: 30px;
+  }
+  /* 모바일: 이름 외의 셀은 한 줄 고정 ellipsis */
+  .a4-row > div {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  /* 모바일: 의약품명은 최대 2줄까지 줄바꿈 허용 (긴 이름도 보이게) */
+  .a4-row > .row-name {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    text-overflow: clip;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  /* 비고 표시 (한 줄) */
+  .a4-row > .row-note {
+    display: flex; font-size: 9.5px; color: var(--text-soft);
+    justify-content: flex-start; gap: 2px; align-items: center;
+  }
+  .a4-row > .row-note > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .a4-row > .row-note .flag { font-size: 8px; padding: 0 3px; flex-shrink: 0; }
+  /* 모바일: 주문중복 위첨자 더 작게 */
+  .a4-row .dup-sup { font-size: 7.5px; padding: 0 2px; margin-left: 2px; }
+  /* 모바일: 2층재고 배지 — 시인성 유지하되 컴팩트 */
+  .a4-row .floor2-badge { font-size: 8.5px; padding: 1px 5px; margin-right: 3px; letter-spacing: 0; }
+  .row-num { font-size: 10px; }
+  .row-name { font-size: 11px; }
+  .row-spec { font-size: 10px; text-align: center; }
+  /* 모바일: 갯수 가운데 정렬 */
+  .a4-row > .row-qty { text-align: center; padding-right: 0; font-size: 10px; }
+  /* 모바일: 작성자·시간 가운데 */
+  .row-author { font-size: 9px; text-align: center; }
+  .row-time { font-size: 9px; text-align: center; }
+  /* 모바일: 헤더 각 셀 정렬을 값 셀과 동일하게 */
+  .a4-row.head .h-name { text-align: left; }
+  .a4-row.head .h-spec,
+  .a4-row.head .h-qty,
+  .a4-row.head .h-author,
+  .a4-row.head .h-time { text-align: center; }
+  .a4-row.head .h-note { text-align: left; }
+  .a4-footer { font-size: 10px; }
+
+  /* PDF 내보낼 때만 데스크톱 사이즈로 */
+  body.pdf-rendering .a4-page {
+    width: 794px !important;
+    min-height: 1123px !important;
+    padding: 30px 28px !important;
+  }
+  body.pdf-rendering .a4-grid {
+    grid-template-columns: 1fr 1fr !important;
+    column-gap: 12px !important;
+  }
+  body.pdf-rendering .a4-row {
+    /* PDF도 의약품명 폭 대폭 확장 (규격/비고/작성자/시간 축소) */
+    grid-template-columns: 20px minmax(0,2.6fr) 44px 38px minmax(0,0.5fr) 48px 38px !important;
+    font-size: 11px !important;
+    padding: 5px 3px !important;
+    min-height: 28px !important;
+  }
+  /* PDF에서도 긴 의약품명 줄바꿈 허용 */
+  body.pdf-rendering .row-name {
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    -webkit-line-clamp: unset !important;
+    display: block !important;
+    line-height: 1.25 !important;
+  }
+  body.pdf-rendering .a4-row > .row-note { display: flex !important; }
+  body.pdf-rendering .a4-row.head > div:nth-child(5) { display: block !important; }
+
+  /* ▣ PDF 내보낼 때 1번칼럼/2번칼럼 하이라이트 완벽 일치 보정 (html2canvas 호환) */
+  /* 애니메이션/shadow 제거 → 두 칼럼 모두 정지 상태의 동일 외관으로 렌더링 */
+  body.pdf-rendering .floor2-badge,
+  body.pdf-rendering .floor2-badge.empty {
+    animation: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    background: #dc2626 !important;                 /* solid, 그라디언트 제거 */
+    color: #fff !important;
+    font-size: 9.5px !important;
+    padding: 1.5px 5px !important;
+    border-radius: 3px !important;
+    letter-spacing: 0 !important;
+  }
+  body.pdf-rendering .floor2-badge.empty {
+    background: #7f1d1d !important;
+  }
+  /* 주문중복 위첨자도 PDF에서 동일 렌더링 보장 */
+  body.pdf-rendering .dup-sup {
+    background: #fde68a !important;
+    color: #92400e !important;
+    font-size: 8px !important;
+    padding: 0 3px !important;
+  }
+  /* 행 하이라이트: inset box-shadow 제거 확실히 보장 (html2canvas는 inset shadow를 칼럼별로 다르게 렌더) */
+  body.pdf-rendering .a4-row.duplicate,
+  body.pdf-rendering .a4-row.clickable.mine.duplicate,
+  body.pdf-rendering .a4-row.floor2-stock,
+  body.pdf-rendering .a4-row.floor2-stock.duplicate,
+  body.pdf-rendering .a4-row.clickable.mine.floor2-stock,
+  body.pdf-rendering .a4-row.clickable.mine.floor2-stock.duplicate {
+    box-shadow: none !important;
+    background-repeat: no-repeat !important;
+  }
+
+  /* 내보내기 탭 */
+  .export-panel { padding: 14px; padding-bottom: 80px; gap: 14px; }
+  .export-card { padding: 18px 16px; }
+  .export-card h3 { font-size: 14px; }
+  .export-btns { flex-direction: column; gap: 8px; }
+  .export-btn { width: 100%; padding: 13px; min-height: 46px; }
+
+  /* 기록 탭 */
+  .history-panel { padding: 12px; padding-bottom: 80px; }
+  .history-item { flex-direction: column; align-items: stretch; gap: 12px; padding: 14px; }
+  .hist-actions { justify-content: stretch; gap: 4px; }
+  .hist-btn { flex: 1; padding: 10px 4px; font-size: 12px; min-height: 38px; }
+
+  /* 설정 탭 */
+  .settings-panel { padding: 14px; padding-bottom: 80px; }
+  .settings-card { padding: 18px 16px; }
+  .settings-row { flex-wrap: wrap; gap: 8px; }
+
+  /* 로그인 */
+  .login-card {
+    width: calc(100% - 28px);
+    max-width: 380px;
+    padding: 32px 24px;
+  }
+  .login-logo { font-size: 18px; }
+  .login-input { font-size: 16px; min-height: 48px; }
+  .login-btn { min-height: 48px; font-size: 15px; }
+}
+
+/* 매우 작은 화면 (≤380px) */
+@media (max-width: 380px) {
+  .header-center { font-size: 10px; }
+  .a4-row { grid-template-columns: 20px 1fr 50px 42px; font-size: 11px; }
+  .a4-row.head { font-size: 10px; }
+  .tab { padding: 12px 10px; font-size: 12px; }
+}
+
+/* 가로 모드 모바일 */
+@media (max-height: 480px) and (orientation: landscape) {
+  .header { padding: 4px 12px; }
+  .clock-block { padding: 3px 8px; min-width: 80px; }
+  .digital-clock .dc-hm { font-size: 15px; }
+  .tab { padding: 6px 14px; }
+}
+
+/* 인쇄 스타일 */
+@media print {
+  .header, .tabs, .chat-panel, .list-toolbar, .mobile-view-toggle { display: none !important; }
+  .list-panel { padding: 0; background: white; }
+  .a4-page { box-shadow: none; width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ Firebase 설정 ============ -->
+<div class="fb-overlay" id="fbSetup" style="display:none;">
+  <div class="fb-card">
+    <h2>🔄 실시간 동기화 설정 (운영자 전용)</h2>
+    <p>이 앱은 이미 Firebase에 연결되어 있습니다. 다른 Firebase 프로젝트로 바꾸고 싶을 때만 이 화면을 사용하세요. 직원분들은 이 화면을 볼 일이 없습니다.</p>
+    <details>
+      <summary>📖 Firebase 설정 방법 (클릭해서 펼치기)</summary>
+      <ol>
+        <li><code>https://console.firebase.google.com</code> 접속 → 구글 로그인</li>
+        <li><b>"프로젝트 추가"</b> → 이름 입력 (예: <code>daeryeong-pharm</code>) → 만들기 (Analytics 끔)</li>
+        <li>좌측 메뉴 <b>"빌드 → Realtime Database"</b> 클릭 → <b>"데이터베이스 만들기"</b></li>
+        <li>위치: <b>asia-southeast1 (싱가포르)</b> 선택 → 보안 규칙: <b>"테스트 모드"</b> 선택</li>
+        <li>좌측 톱니바퀴 ⚙️ → <b>"프로젝트 설정"</b> → 하단 <b>"내 앱"</b> 섹션에서 웹 아이콘 <b>&lt;/&gt;</b> 클릭</li>
+        <li>앱 닉네임 입력 (예: <code>대령약국</code>) → <b>"앱 등록"</b></li>
+        <li>화면에 표시되는 <code>const firebaseConfig = { ... };</code> 부분 전체를 복사</li>
+        <li>아래 칸에 붙여넣기 → <b>연결</b> 버튼 클릭</li>
+      </ol>
+    </details>
+    <div class="fb-warning">⚠️ 테스트 모드는 30일 후 자동으로 잠깁니다. 약국 직원만 URL을 공유하시고, 30일 안에 보안 규칙을 강화하세요. (요청 시 도와드립니다)</div>
+    <div class="fb-error" id="fbError"></div>
+    <textarea class="fb-textarea" id="fbConfigInput" placeholder="const firebaseConfig = {
+  apiKey: &quot;...&quot;,
+  authDomain: &quot;....firebaseapp.com&quot;,
+  databaseURL: &quot;https://....firebaseio.com&quot;,
+  projectId: &quot;...&quot;,
+  storageBucket: &quot;....appspot.com&quot;,
+  messagingSenderId: &quot;...&quot;,
+  appId: &quot;...&quot;
+};"></textarea>
+    <div class="fb-btn-row">
+      <button class="fb-btn primary" onclick="saveFirebaseConfig()">연결</button>
+      <button class="fb-btn secondary" onclick="skipFirebase()">건너뛰기 (오프라인 사용)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 로그인 ============ -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">대령약국 의약품 주문 시스템</div>
+    <div class="login-sub" id="loginSubLabel">접속 ID를 선택하세요</div>
+
+    <!-- Firebase Auth 로그인 (기본) -->
+    <div id="authLoginBlock">
+      <select class="login-input" id="authEmailSelect" style="margin-bottom:8px;">
+        <option value="">— 이름 선택 —</option>
+      </select>
+      <input type="password" class="login-input" id="authPwInput" placeholder="비밀번호" autocomplete="current-password" />
+      <button class="login-btn" id="authLoginBtn">🔐 로그인</button>
+      <div id="authError" style="display:none;color:#c0392b;font-size:12px;margin-top:8px;text-align:left;background:#fbeae7;border:1px solid #f5c6c0;border-radius:6px;padding:8px 10px;"></div>
+      <div style="margin-top:10px;font-size:11px;color:#998f80;">
+        ⓘ 비밀번호를 잊으셨으면 약국장(백승준)님께 초기화 요청
+      </div>
+    </div>
+
+    <!-- 로컬 모드 폴백 (Firebase Auth 불가 시) -->
+    <div id="localLoginBlock" style="display:none;">
+      <div style="font-size:12px;color:#d4a017;background:#fdf6dc;border:1px solid #d4a017;border-radius:6px;padding:8px 10px;margin-bottom:10px;">
+        ⚠️ 오프라인 모드 — 이름 입력 후 임시 사용 가능 (본인 인증 없음)
+      </div>
+      <input type="text" class="login-input" id="loginInput" placeholder="예: 백승준" />
+      <button class="login-btn" id="loginBtn">입장 (로컬 모드)</button>
+    </div>
+
+    <div class="recent-users" id="recentUsersBlock" style="display:none;">
+      최근 접속자
+      <div class="recent-users-list" id="recentUsersList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 메인 앱 ============ -->
+<div class="app" id="app" style="display:none;">
+
+  <!-- 헤더 -->
+  <header class="header">
+    <div class="header-left">
+      <div class="user-badge">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <span id="userName">-</span>
+      </div>
+      <button class="logout-btn" id="logoutBtn">로그아웃</button>
+    </div>
+    <div class="header-center">대령약국 의약품 주문 시스템</div>
+    <div class="header-right">
+      <div class="clock-block">
+        <div class="digital-clock" id="digitalTime">
+          <span class="dc-hm">--:--</span><span class="dc-sec">--</span>
+        </div>
+        <div class="digital-date" id="digitalDate">-</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 실시간 대시보드 (항상 상단 고정) -->
+  <div class="dashboard" id="dashboard">
+    <div class="dash-scroll">
+      <div class="dash-card primary"><div class="dash-label">오늘 주문</div><div class="dash-val" id="dashTotal">0</div></div>
+      <div class="dash-card"><div class="dash-label">활동 직원</div><div class="dash-val" id="dashActive">0</div></div>
+      <div class="dash-card warn"><div class="dash-label">주문중복</div><div class="dash-val" id="dashDup">0</div></div>
+      <div class="dash-card danger"><div class="dash-label">2층재고</div><div class="dash-val" id="dashFloor2">0</div></div>
+      <div class="dash-card top"><div class="dash-label">최다 약품</div><div class="dash-val" id="dashTop">-</div></div>
+      <div class="dash-card top"><div class="dash-label">최다 작성자</div><div class="dash-val" id="dashTopAuthor">-</div></div>
+      <div class="dash-card danger"><div class="dash-label">급송 주문</div><div class="dash-val" id="dashRush">0</div></div>
+      <div class="dash-card"><div class="dash-label">최근 입력</div><div class="dash-val small" id="dashLast">-</div></div>
+    </div>
+  </div>
+
+  <!-- 탭 -->
+  <nav class="tabs">
+    <div class="tab active" data-tab="work">주문 리스트</div>
+    <div class="tab" data-tab="export">내보내기</div>
+    <div class="tab" data-tab="history">날짜별 기록</div>
+    <div class="tab" data-tab="settings">설정</div>
+    <div class="tab refresh-tab" data-tab="refresh" title="채팅과 리스트를 즉시 동기화"><span class="refresh-icon">🔄</span>새로고침</div>
+  </nav>
+
+  <!-- 앱 본문: 메인(탭 내용) + 채팅 도크(항상 표시) -->
+  <div class="app-body">
+  <div class="main">
+
+    <!-- 작업 탭 (이제 리스트만 포함) -->
+    <div class="tab-panel active" id="panel-work">
+        <!-- A4 리스트 -->
+        <div class="list-panel">
+          <!-- 검색 / 필터 바 -->
+          <div class="list-filters">
+            <input type="search" class="search-input" id="searchInput" placeholder="🔍 전체 통합 검색" />
+            <select class="filter-select" id="filterStatus">
+              <option value="all">전체</option>
+              <option value="normal">정상만</option>
+              <option value="duplicate">주문중복만</option>
+              <option value="floor2">2층재고만</option>
+            </select>
+            <select class="filter-select" id="filterAuthor">
+              <option value="">모든 작성자</option>
+            </select>
+            <button class="col-filter-toggle" id="colFilterToggle" type="button" aria-expanded="false">🎯 컬럼별</button>
+            <button class="filter-clear" id="filterClear">초기화</button>
+          </div>
+          <!-- 컬럼별 찾기 패널 -->
+          <div class="col-filters" id="colFilters" hidden>
+            <div class="col-filter-cell"><label>의약품명</label><input type="search" id="cf_name" placeholder="이름 검색" /></div>
+            <div class="col-filter-cell"><label>규격</label><input type="search" id="cf_spec" placeholder="예: 500정" /></div>
+            <div class="col-filter-cell"><label>갯수</label><input type="search" id="cf_qty" placeholder="예: 1개" /></div>
+            <div class="col-filter-cell"><label>비고</label><input type="search" id="cf_note" placeholder="예: 급송" /></div>
+            <div class="col-filter-cell"><label>작성자</label><input type="search" id="cf_author" placeholder="이름" /></div>
+            <div class="col-filter-cell"><label>시간</label><input type="search" id="cf_time" placeholder="예: 14 또는 14:30" /></div>
+          </div>
+          <div class="list-toolbar">
+            <div class="toolbar-stats">
+              <span>총 <span class="stat-num" id="totalNum">0</span>건</span>
+              <span>주문중복 <span class="stat-num warn" id="dupNum">0</span></span>
+              <span>2층재고 <span class="stat-num danger" id="floor2Num" style="color:#dc2626;font-weight:700;">0</span></span>
+              <span id="pageInfo">1 / 1 페이지</span>
+            </div>
+            <div class="toolbar-actions">
+              <button class="tool-btn" id="prevPage">◀</button>
+              <button class="tool-btn" id="nextPage">▶</button>
+              <button class="tool-btn" id="quickPdf">PDF</button>
+              <button class="tool-btn" id="quickXlsx">Excel</button>
+              <button class="tool-btn" id="closeDay">📋 마감</button>
+            </div>
+          </div>
+          <div class="a4-page" id="a4Page">
+            <div class="a4-header">
+              <div class="a4-title">대령약국 의약품 주문 리스트</div>
+              <div class="a4-meta">
+                <span id="a4Date">-</span>
+                <span id="a4PageNum">페이지 1</span>
+              </div>
+            </div>
+            <div class="a4-grid" id="a4Grid"></div>
+            <div class="a4-footer">대전 충남대병원 앞 충대대령약국 · 의약품 주문 시스템</div>
+          </div>
+        </div>
+    </div>
+
+    <!-- 내보내기 탭 -->
+    <div class="tab-panel" id="panel-export">
+      <div class="export-panel">
+        <div class="export-card">
+          <h3>오늘의 주문 리스트 내보내기</h3>
+          <p>현재 작성된 의약품 리스트를 PDF 또는 Excel 파일로 저장합니다.</p>
+          <div class="export-btns">
+            <button class="export-btn" onclick="exportPDF()">📄 PDF로 내보내기</button>
+            <button class="export-btn outline" onclick="exportExcel()">📊 Excel로 내보내기</button>
+            <button class="export-btn outline" onclick="window.print()">🖨️ 바로 인쇄</button>
+          </div>
+        </div>
+        <div class="export-card">
+          <h3>특정 날짜 리스트 내보내기</h3>
+          <p>날짜를 선택해서 해당일 주문 리스트를 추출합니다.</p>
+          <div class="export-btns">
+            <input type="date" id="exportDate" style="padding:10px;border:1px solid var(--border-strong);border-radius:6px;font-family:inherit;" />
+            <button class="export-btn" onclick="exportDatePDF()">PDF</button>
+            <button class="export-btn outline" onclick="exportDateExcel()">Excel</button>
+          </div>
+        </div>
+        <div class="export-card">
+          <h3>전체 기록 백업</h3>
+          <p>모든 날짜의 의약품 기록을 JSON 파일로 백업합니다.</p>
+          <div class="export-btns">
+            <button class="export-btn outline" onclick="exportBackup()">전체 백업 다운로드</button>
+            <label class="export-btn outline" style="cursor:pointer;">
+              백업 복원
+              <input type="file" id="restoreFile" accept=".json" style="display:none;" />
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 기록 탭 -->
+    <div class="tab-panel" id="panel-history">
+      <div class="history-panel">
+        <div class="history-list" id="historyList"></div>
+      </div>
+    </div>
+
+    <!-- 설정 탭 -->
+    <div class="tab-panel" id="panel-settings">
+      <div class="settings-panel">
+        <div class="settings-card">
+          <h3>앱 정보</h3>
+          <div class="settings-row"><span>앱 이름</span><span>대령약국 의약품 주문 시스템</span></div>
+          <div class="settings-row"><span>버전</span><span>v2.0.0 (실시간 동기화)</span></div>
+          <div class="settings-row"><span>운영</span><span>대전 충남대병원 앞 충대대령약국</span></div>
+        </div>
+        <div class="settings-card">
+          <h3>실시간 동기화 (Firebase)</h3>
+          <div class="settings-row">
+            <span>현재 상태</span>
+            <span id="settingsFbStatus">확인 중...</span>
+          </div>
+          <div class="settings-row">
+            <span>프로젝트</span>
+            <span id="settingsFbProject" style="font-size:11px;color:var(--text-muted);">-</span>
+          </div>
+          <div class="settings-row">
+            <span>접속자</span>
+            <span id="settingsFbUsers" style="font-size:11px;color:var(--text-muted);">-</span>
+          </div>
+          <div class="settings-row" style="margin-top:8px;">
+            <button class="hist-btn" onclick="openFirebaseSetup()">설정 변경</button>
+            <button class="hist-btn danger" onclick="disconnectFirebase()">연결 해제</button>
+          </div>
+        </div>
+        <div class="settings-card">
+          <h3>계정 / 비밀번호</h3>
+          <div class="settings-row">
+            <span>로그인 상태</span>
+            <span id="settingsAuthStatus" style="font-size:11px;color:var(--text-muted);">-</span>
+          </div>
+          <div class="settings-row" style="margin-top:8px;">
+            <button class="hist-btn" onclick="changePassword()">🔑 비밀번호 변경</button>
+          </div>
+        </div>
+        <div class="settings-card">
+          <h3>데이터 관리</h3>
+          <p>주의: 아래 작업은 되돌릴 수 없습니다.</p>
+          <div class="settings-row">
+            <span>오늘 리스트 초기화</span>
+            <button class="hist-btn danger" onclick="clearToday()">초기화</button>
+          </div>
+          <div class="settings-row">
+            <span>전체 데이터 삭제</span>
+            <button class="hist-btn danger" onclick="clearAll()">전체 삭제</button>
+          </div>
+        </div>
+        <div class="settings-card">
+          <h3>📦 2층 재고 관리 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(실시간)</span></h3>
+          <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+            현재재고 = 기본재고 + 수동보정(입고·조정) − 주문감소(자동). 입고(📥) 시 플러스, 손실·수기조정은 마이너스를 입력하세요.
+          </p>
+          <div class="floor2-admin-controls">
+            <input type="search" id="floor2Search" placeholder="🔍 약품명으로 찾기" />
+            <select id="floor2FilterCat">
+              <option value="">전체 카테고리</option>
+              <option value="안약">안약</option>
+              <option value="연고/로션">연고/로션</option>
+              <option value="흡입제">흡입제</option>
+              <option value="기타">기타</option>
+            </select>
+            <select id="floor2FilterStatus">
+              <option value="">전체 상태</option>
+              <option value="low">소진·부족(≤0)</option>
+              <option value="used">주문감소 있음</option>
+              <option value="adjusted">보정 있음</option>
+            </select>
+          </div>
+          <div id="floor2AdminTable" class="floor2-admin-table"></div>
+          <div class="settings-row" style="margin-top:10px;">
+            <button class="hist-btn" onclick="openFloor2Adjustments()">📋 전체 보정 이력 보기</button>
+            <button class="hist-btn" onclick="exportFloor2Report()">📊 재고 리포트(xlsx)</button>
+          </div>
+        </div>
+        <div class="settings-card">
+          <h3>업데이트 및 데이터 안내</h3>
+          <p>이 앱은 단일 HTML 파일로 동작합니다. 기능 추가/개선 시 새 파일로 교체해도 Firebase 설정과 데이터는 유지됩니다.</p>
+          <p style="margin-top:8px;"><b>데이터 저장 위치:</b></p>
+          <p>• Firebase 연결 시: Google Firebase 클라우드 (실시간 동기화)<br>• 미연결 시: 브라우저 localStorage (로컬만)</p>
+          <p style="margin-top:8px;color:var(--ok);">🔒 Firebase 보안 규칙 적용 완료 — 로그인한 약국 구성원만 읽기/쓰기 가능.</p>
+          <p style="margin-top:8px;color:var(--text-muted);font-size:11px;">💊 <b>2층재고</b>는 기본재고·주문감소·수동보정 공식으로 실시간 계산되어 모든 직원 기기에 동기화됩니다.</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.main -->
+
+  <!-- ================= 채팅 도크 (PC·모바일 모두 항상 표시) ================= -->
+  <aside class="chat-dock" id="chatDock">
+    <button class="chat-dock-toggle" id="chatDockToggle" type="button" title="채팅 펼치기/접기">💬</button>
+    <div class="chat-panel">
+      <div class="chat-header">
+        <span>실시간 채팅 <span class="online-users" id="onlineUsersText"></span></span>
+        <span style="display:flex;gap:6px;align-items:center;">
+          <span class="conn-status local" id="connStatus"><span class="dot"></span><span id="connStatusText">로컬</span></span>
+          <span class="online-indicator"><span class="dot"></span><span id="todayCount">오늘 0건</span></span>
+        </span>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-area">
+        <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
+        <div class="floor2-hint" id="floor2Hint" style="display:none;"></div>
+        <div class="input-help">형식: <b>의약품명 규격 갯수 비고</b> &nbsp; (공백 1칸=다음칸 · <b>공백 2칸=빈칸 건너뛰기</b> · 또는 <code>-</code> <code>,</code>) &nbsp; <span style="color:var(--text-muted);">※ 용량·제형은 <b>붙여서</b> 의약품명에 포함 (예: 타이레놀정500미리, 립스타플러스10/10)</span></div>
+        <div class="chat-input-row">
+          <textarea class="chat-input" id="chatInput" placeholder="예: 타이레놀정500미리 500정 1개 급송"></textarea>
+          <button class="send-btn" id="sendBtn">전송</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  </div><!-- /.app-body -->
+</div>
+
+<!-- 2층 재고 보정 이력 모달 (Undo 기능) -->
+<div class="modal-backdrop" id="floor2HistModal" style="display:none;" onclick="if(event.target===this)closeFloor2HistModal()">
+  <div class="modal" style="max-width:640px; width:94%;">
+    <div class="modal-head">
+      <span>📋 2층 재고 보정 이력</span>
+      <button class="modal-close" onclick="closeFloor2HistModal()">✕</button>
+    </div>
+    <div class="modal-body" style="max-height:60vh; overflow-y:auto;">
+      <div id="floor2HistList" style="display:flex; flex-direction:column; gap:6px;"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn" onclick="closeFloor2HistModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 수정/삭제 모달 -->
+<div class="modal-backdrop" id="editModal" style="display:none;" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <span>📝 항목 수정</span>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <label>의약품명</label>
+      <input type="text" id="editName" class="modal-input" />
+      <label>규격</label>
+      <input type="text" id="editSpec" class="modal-input" />
+      <label>갯수</label>
+      <input type="text" id="editQty" class="modal-input" />
+      <label>비고</label>
+      <input type="text" id="editNote" class="modal-input" />
+      <div class="modal-meta" id="editMeta"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn danger" onclick="deleteEditItem()">🗑️ 삭제</button>
+      <button class="modal-btn" onclick="saveEdit()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ 운영자 사전 설정 Firebase ============
+// 약사님(운영자)이 미리 박아둔 Firebase 설정.
+// 직원들은 설정 화면을 볼 필요 없이 URL 접속 → 이름 입력만 하면 자동 연결됨.
+// 변경하려면 아래 객체를 수정하거나, 앱 안 [설정] 탭에서 "설정 변경"으로 덮어쓰기 가능.
+const EMBEDDED_FB_CONFIG = {
+  apiKey: "AIzaSyDvQUeL7ma6iM647cemnBzZW9KSdlPvBUk",
+  authDomain: "daeryeong-pharm-a542e.firebaseapp.com",
+  databaseURL: "https://daeryeong-pharm-a542e-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "daeryeong-pharm-a542e",
+  storageBucket: "daeryeong-pharm-a542e.firebasestorage.app",
+  messagingSenderId: "838305314469",
+  appId: "1:838305314469:web:fb5f186ece30a00b5fff4c"
+};
+
+/* ============ 직원 UID ↔ 이름·이메일 매핑 (운영자 전용 수정) ============ */
+// Firebase Console → Authentication 에서 만든 계정의 UID
+// 직원이 추가/퇴사하면 이 표만 수정하면 됨
+const UID_NAME_MAP = {
+  'bhgORSzZ23dlNUfZmDPBe3IsnPN2': { name: '백승준', email: 'a@daeryeong.local', role: '약국장' },
+  'sSZqMZOeorNxPsnsDd1VFISgDKI3': { name: '윤소망', email: 'b@daeryeong.local', role: '약사' },
+  'wWeu4ox6mrMtQdSNt8K7LZsQkQV2': { name: '윤장훈', email: 'c@daeryeong.local', role: '약사' },
+  'vz9lSHjM07Wr1cHdZy5ZuzPD0sI3': { name: '노동훈', email: 'd@daeryeong.local', role: '약사' },
+  'CHuIlfsViNcU6EKUeaegB6m0vgr2': { name: '빈나라', email: 'e@daeryeong.local', role: '직원' },
+  '0ix1dVNs8YgvbXA95SfQaWYi4MX2': { name: '박혜미', email: 'f@daeryeong.local', role: '직원' },
+  'LYwdQYPMrDgnv1F5PRYJa2HbAC32': { name: '김종희', email: 'g@daeryeong.local', role: '직원' },
+  'WuJKmvOzmKWzCi6tPJT0cfIU62G2': { name: '이지예', email: 'h@daeryeong.local', role: '직원' },
+  'n7Jfx3k15BNN9IPLatzsYV0Fcx93': { name: '배연경', email: 'i@daeryeong.local', role: '직원' },
+  'Ver4y0bDyZYZtXULq1Gd19bSkp62': { name: '허석',   email: 'j@daeryeong.local', role: '약사' },
+  'umhmSXpFUkQ2RdOVTCyg1TvRGk03': { name: '고예은', email: 'k@daeryeong.local', role: '약사' },
+};
+// 역방향 인덱스 (이메일/이름 → UID)
+const EMAIL_UID_MAP = {};
+const NAME_UID_MAP = {};
+Object.entries(UID_NAME_MAP).forEach(([uid, info]) => {
+  EMAIL_UID_MAP[info.email.toLowerCase()] = uid;
+  NAME_UID_MAP[info.name] = uid;
+});
+
+/* ============ 2층 재고 조정 권한자 (이 명단만 입고/조정 버튼 사용 가능) ============ */
+const FLOOR2_AUTHORIZED_USERS = ['백승준', '빈나라', '김종희', '임선영'];
+function canAdjustFloor2() {
+  const me = (currentUser || '').trim();
+  if (!me) return false;
+  return FLOOR2_AUTHORIZED_USERS.includes(me);
+}
+
+let fbAuth = null;
+let currentAuthUid = null; // Firebase Auth UID (없으면 로컬 모드)
+
+// ============ 데이터 모델 ============
+const STORAGE = {
+  USER: 'dr_pharm_currentUser',
+  USERS: 'dr_pharm_recentUsers',
+  DATA: 'dr_pharm_data', // { 'YYYY-MM-DD': { messages: [], items: [] } }
+  FB_CONFIG: 'dr_pharm_fb_config',
+  FB_SKIPPED: 'dr_pharm_fb_skipped',
+};
+
+let currentUser = null;
+let currentDate = todayStr();
+let allData = {};
+let currentPage = 0;
+const ITEMS_PER_PAGE = 60; // 2 col x 30 row
+
+// Firebase 상태
+let fbApp = null;
+let fbDb = null;
+let fbConnected = false;
+let fbConfig = null;
+let fbCurrentDateRef = null; // 현재 날짜 리스너
+let fbPresenceRef = null;
+let fbOnlineUsers = [];
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function nowTime() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function loadData() {
+  try { allData = JSON.parse(safeLS.getItem(STORAGE.DATA) || '{}'); }
+  catch(e) { allData = {}; }
+  if (!allData[currentDate]) allData[currentDate] = { messages: [], items: [] };
+}
+function saveData() {
+  try {
+    safeLS.setItem(STORAGE.DATA, JSON.stringify(allData));
+  } catch (e) {
+    // iOS 사파리 비공개 모드 등에서 저장 실패 — Firebase로는 계속 동작
+    console.warn('로컬 저장 실패 (Firebase로 동기화됨):', e && e.message);
+  }
+}
+
+function getDayData(date) {
+  return allData[date] || { messages: [], items: [] };
+}
+
+// ============ Firebase 초기화 ============
+function tryInitFirebase() {
+  // Firebase SDK 자체가 로드 실패한 경우 (iOS 컨텐츠 차단기, 회사 방화벽 등)
+  if (typeof firebase === 'undefined' || !firebase.initializeApp) {
+    console.warn('Firebase SDK 로드 실패 — 로컬 모드로만 동작합니다.');
+    return false;
+  }
+  // 우선순위: 사용자 직접 설정(localStorage) > 운영자 사전 박힘(EMBEDDED)
+  let cfg = null;
+  const stored = safeLS.getItem(STORAGE.FB_CONFIG);
+  if (stored) {
+    try { cfg = JSON.parse(stored); } catch (e) { cfg = null; }
+  }
+  if (!cfg && EMBEDDED_FB_CONFIG && EMBEDDED_FB_CONFIG.apiKey && EMBEDDED_FB_CONFIG.databaseURL) {
+    cfg = EMBEDDED_FB_CONFIG;
+  }
+  if (!cfg) return false;
+  try {
+    fbConfig = cfg;
+    if (firebase.apps.length) firebase.app().delete();
+    fbApp = firebase.initializeApp(fbConfig);
+    fbDb = firebase.database();
+    // Auth 초기화 (선택 — 구버전 SDK 실패 시에도 DB는 사용)
+    try {
+      if (firebase.auth) {
+        fbAuth = firebase.auth();
+        fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){});
+      }
+    } catch (e) { fbAuth = null; }
+    // 연결 상태 감시
+    fbDb.ref('.info/connected').on('value', snap => {
+      fbConnected = snap.val() === true;
+      updateConnectionUI();
+    });
+    return true;
+  } catch (e) {
+    console.error('Firebase 초기화 실패:', e);
+    fbApp = null; fbDb = null; fbConfig = null;
+    return false;
+  }
+}
+
+function parseFirebaseConfigInput(text) {
+  text = text.trim();
+  if (!text) return null;
+  // 1. JSON 시도
+  try { return JSON.parse(text); } catch (e) {}
+  // 2. "const firebaseConfig = { ... };" 형태에서 객체 추출
+  const m = text.match(/\{[\s\S]*\}/);
+  if (!m) return null;
+  try {
+    const obj = new Function('return (' + m[0] + ')')();
+    if (obj && typeof obj === 'object') return obj;
+  } catch (e) {}
+  return null;
+}
+
+function saveFirebaseConfig() {
+  const input = document.getElementById('fbConfigInput').value;
+  const err = document.getElementById('fbError');
+  err.style.display = 'none';
+  const cfg = parseFirebaseConfigInput(input);
+  if (!cfg) {
+    err.textContent = '❌ 설정 형식을 인식할 수 없습니다. firebaseConfig 객체 전체를 복사해서 붙여넣어 주세요.';
+    err.style.display = 'block';
+    return;
+  }
+  if (!cfg.databaseURL) {
+    err.textContent = '❌ databaseURL이 없습니다. Realtime Database를 먼저 생성하셨나요?';
+    err.style.display = 'block';
+    return;
+  }
+  if (!cfg.apiKey || !cfg.projectId) {
+    err.textContent = '❌ apiKey 또는 projectId가 없습니다. 설정 전체를 다시 복사해 주세요.';
+    err.style.display = 'block';
+    return;
+  }
+  // 연결 테스트
+  try {
+    if (firebase.apps.length) firebase.app().delete();
+    const testApp = firebase.initializeApp(cfg);
+    const testDb = firebase.database();
+    testDb.ref('.info/serverTimeOffset').once('value').then(() => {
+      // 성공
+      safeLS.setItem(STORAGE.FB_CONFIG, JSON.stringify(cfg));
+      safeLS.removeItem(STORAGE.FB_SKIPPED);
+      document.getElementById('fbSetup').style.display = 'none';
+      fbConfig = cfg;
+      fbApp = testApp;
+      fbDb = testDb;
+      fbDb.ref('.info/connected').on('value', snap => {
+        fbConnected = snap.val() === true;
+        updateConnectionUI();
+      });
+      if (currentUser) {
+        setupFirebaseForUser();
+      } else {
+        showLogin();
+      }
+      alert('✅ Firebase 연결 성공! 이제 다른 기기와 실시간 동기화됩니다.');
+    }).catch(e => {
+      err.textContent = '❌ 연결 실패: ' + e.message + '\n\nRealtime Database가 생성되었고, 보안 규칙이 "테스트 모드"인지 확인하세요.';
+      err.style.display = 'block';
+      if (firebase.apps.length) firebase.app().delete();
+    });
+  } catch (e) {
+    err.textContent = '❌ 초기화 오류: ' + e.message;
+    err.style.display = 'block';
+  }
+}
+
+function skipFirebase() {
+  safeLS.setItem(STORAGE.FB_SKIPPED, '1');
+  document.getElementById('fbSetup').style.display = 'none';
+  if (!currentUser) showLogin();
+}
+
+function openFirebaseSetup() {
+  document.getElementById('fbSetup').style.display = 'flex';
+  const currentCfg = safeLS.getItem(STORAGE.FB_CONFIG);
+  if (currentCfg) {
+    try {
+      document.getElementById('fbConfigInput').value = JSON.stringify(JSON.parse(currentCfg), null, 2);
+    } catch (e) {}
+  }
+}
+
+function disconnectFirebase() {
+  if (!confirm('Firebase 연결을 해제할까요? 로컬 저장 모드로 전환됩니다.\n(데이터는 Firebase에 남아있어서 나중에 재연결하면 복원됩니다)')) return;
+  detachFirebaseListeners();
+  if (firebase.apps.length) firebase.app().delete();
+  fbApp = null; fbDb = null; fbConfig = null; fbConnected = false;
+  fbOnlineUsers = [];
+  safeLS.removeItem(STORAGE.FB_CONFIG);
+  updateConnectionUI();
+  updateSettingsFirebaseInfo();
+}
+
+// ============ Firebase 리스너 ============
+function setupFirebaseForUser() {
+  if (!fbDb || !currentUser) return;
+  setupFirebaseListeners(currentDate);
+  setupFirebasePresence();
+  loadAllDatesFromFirebase();
+  // 2층 재고 보정 실시간 동기화
+  if (typeof setupFloor2AdjustmentsListener === 'function') {
+    setupFloor2AdjustmentsListener();
+  }
+}
+
+function detachFirebaseListeners() {
+  if (fbCurrentDateRef) {
+    fbCurrentDateRef.off();
+    fbCurrentDateRef = null;
+  }
+  if (fbPresenceRef) {
+    try { fbPresenceRef.remove(); } catch (e) {}
+    fbPresenceRef = null;
+  }
+  if (fbDb) {
+    try { fbDb.ref('presence').off(); } catch (e) {}
+  }
+  if (typeof fbFloor2Ref !== 'undefined' && fbFloor2Ref) {
+    try { fbFloor2Ref.off(); } catch (e) {}
+    fbFloor2Ref = null;
+  }
+}
+
+function setupFirebaseListeners(date) {
+  if (!fbDb) return;
+  if (fbCurrentDateRef) fbCurrentDateRef.off();
+  fbCurrentDateRef = fbDb.ref(`days/${date}`);
+  fbCurrentDateRef.on('value', snap => {
+    const val = snap.val() || {};
+    const msgs = val.messages ? Object.entries(val.messages).map(([k,v]) => ({id:k,...v})) : [];
+    const items = val.items ? Object.entries(val.items).map(([k,v]) => ({id:k,...v})) : [];
+    msgs.sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
+    items.sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
+    allData[date] = { messages: msgs, items };
+    if (date === currentDate) renderAll();
+  });
+}
+
+function setupFirebasePresence() {
+  if (!fbDb || !currentUser) return;
+  fbPresenceRef = fbDb.ref(`presence/${encodeURIComponent(currentUser)}`);
+  fbPresenceRef.set({
+    name: currentUser,
+    lastSeen: firebase.database.ServerValue.TIMESTAMP
+  });
+  fbPresenceRef.onDisconnect().remove();
+  // 5분마다 갱신
+  setInterval(() => {
+    if (fbPresenceRef && fbConnected) {
+      fbPresenceRef.update({ lastSeen: firebase.database.ServerValue.TIMESTAMP });
+    }
+  }, 300000);
+  // 접속자 목록
+  fbDb.ref('presence').on('value', snap => {
+    const users = [];
+    snap.forEach(c => {
+      const v = c.val();
+      if (v && v.name) users.push(v.name);
+    });
+    fbOnlineUsers = users;
+    updateConnectionUI();
+    updateSettingsFirebaseInfo();
+  });
+}
+
+function loadAllDatesFromFirebase() {
+  if (!fbDb) return;
+  fbDb.ref('days').once('value').then(snap => {
+    snap.forEach(dayChild => {
+      const dStr = dayChild.key;
+      if (dStr === currentDate) return; // 현재 날짜는 이미 리스너가 있음
+      const v = dayChild.val() || {};
+      const msgs = v.messages ? Object.entries(v.messages).map(([k,x]) => ({id:k,...x})) : [];
+      const items = v.items ? Object.entries(v.items).map(([k,x]) => ({id:k,...x})) : [];
+      msgs.sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
+      items.sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
+      allData[dStr] = { messages: msgs, items };
+    });
+  });
+}
+
+function updateConnectionUI() {
+  const el = document.getElementById('connStatus');
+  const text = document.getElementById('connStatusText');
+  const onlineText = document.getElementById('onlineUsersText');
+  if (!el) return;
+  el.classList.remove('online','offline','local');
+  if (!fbDb) {
+    el.classList.add('local');
+    text.textContent = '로컬';
+    onlineText.textContent = '';
+  } else if (fbConnected) {
+    el.classList.add('online');
+    text.textContent = `${fbOnlineUsers.length}명 접속`;
+    onlineText.textContent = fbOnlineUsers.length > 0 ? '· ' + fbOnlineUsers.slice(0,4).join(', ') + (fbOnlineUsers.length > 4 ? ` 외 ${fbOnlineUsers.length-4}명` : '') : '';
+  } else {
+    el.classList.add('offline');
+    text.textContent = '오프라인';
+    onlineText.textContent = '';
+  }
+}
+
+function updateSettingsFirebaseInfo() {
+  // Auth 상태 표시
+  const authEl = document.getElementById('settingsAuthStatus');
+  if (authEl) {
+    if (currentAuthUid && UID_NAME_MAP[currentAuthUid]) {
+      const info = UID_NAME_MAP[currentAuthUid];
+      authEl.innerHTML = `<span style="color:var(--ok)">🔐 ${info.name} (${info.role})</span><br><span style="font-size:10px;">${info.email}</span>`;
+    } else if (currentUser) {
+      authEl.innerHTML = `<span style="color:var(--warn)">⚠️ 로컬 모드 (${currentUser})</span>`;
+    } else {
+      authEl.textContent = '-';
+    }
+  }
+  const status = document.getElementById('settingsFbStatus');
+  const proj = document.getElementById('settingsFbProject');
+  const users = document.getElementById('settingsFbUsers');
+  if (!status) return;
+  if (!fbDb) {
+    status.innerHTML = '<span style="color:var(--text-muted)">미연결 (로컬 저장)</span>';
+    proj.textContent = '-';
+    users.textContent = '-';
+  } else if (fbConnected) {
+    status.innerHTML = '<span style="color:var(--ok)">● 연결됨</span>';
+    proj.textContent = (fbConfig && fbConfig.projectId) || '-';
+    users.textContent = fbOnlineUsers.length > 0 ? fbOnlineUsers.join(', ') : '아무도 없음';
+  } else {
+    status.innerHTML = '<span style="color:var(--warn)">연결 중...</span>';
+    proj.textContent = (fbConfig && fbConfig.projectId) || '-';
+    users.textContent = '-';
+  }
+}
+
+// ============ 로그인 ============
+function showLogin() {
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+
+  const authBlock = document.getElementById('authLoginBlock');
+  const localBlock = document.getElementById('localLoginBlock');
+  const subLabel = document.getElementById('loginSubLabel');
+
+  // Auth 사용 가능: 드롭다운에 직원 이름 채우기
+  if (fbAuth) {
+    authBlock.style.display = 'block';
+    localBlock.style.display = 'none';
+    subLabel.textContent = '본인 이름을 선택하고 비밀번호 입력';
+    const sel = document.getElementById('authEmailSelect');
+    if (sel.options.length <= 1) {
+      // 한 번만 채움
+      Object.values(UID_NAME_MAP).forEach(info => {
+        const opt = document.createElement('option');
+        opt.value = info.email;
+        opt.textContent = `${info.name} (${info.role})`;
+        sel.appendChild(opt);
+      });
+    }
+    // 마지막 로그인 이메일 자동 선택
+    const lastEmail = safeLS.getItem('dr_pharm_last_email');
+    if (lastEmail) sel.value = lastEmail;
+    document.getElementById('authError').style.display = 'none';
+    document.getElementById('authPwInput').value = '';
+  } else {
+    // Firebase Auth 불가 → 로컬 모드
+    authBlock.style.display = 'none';
+    localBlock.style.display = 'block';
+    subLabel.textContent = '오프라인 — 이름 입력';
+  }
+
+  let recents = [];
+  try { recents = JSON.parse(safeLS.getItem(STORAGE.USERS) || '[]'); } catch (e) { recents = []; }
+  if (recents.length) {
+    document.getElementById('recentUsersBlock').style.display = 'block';
+    document.getElementById('recentUsersList').innerHTML = recents.map(n =>
+      `<span class="recent-user-chip" data-name="${escapeHtml(n)}">${escapeHtml(n)}</span>`
+    ).join('');
+    document.querySelectorAll('.recent-user-chip').forEach(c => {
+      c.addEventListener('click', () => {
+        // Auth 모드면 드롭다운에 매칭, 로컬이면 직접 입력
+        if (fbAuth) {
+          const uid = NAME_UID_MAP[c.dataset.name];
+          if (uid) {
+            document.getElementById('authEmailSelect').value = UID_NAME_MAP[uid].email;
+            document.getElementById('authPwInput').focus();
+          }
+        } else {
+          login(c.dataset.name);
+        }
+      });
+    });
+  }
+}
+
+// Firebase Auth 로그인
+async function authLogin() {
+  const errEl = document.getElementById('authError');
+  errEl.style.display = 'none';
+  const email = (document.getElementById('authEmailSelect').value || '').trim();
+  const pw = document.getElementById('authPwInput').value;
+  if (!email) { errEl.textContent = '이름을 선택하세요.'; errEl.style.display = 'block'; return; }
+  if (!pw)    { errEl.textContent = '비밀번호를 입력하세요.'; errEl.style.display = 'block'; return; }
+  if (!fbAuth) { errEl.textContent = 'Firebase 인증을 사용할 수 없습니다.'; errEl.style.display = 'block'; return; }
+  try {
+    const cred = await fbAuth.signInWithEmailAndPassword(email, pw);
+    const uid = cred.user.uid;
+    const info = UID_NAME_MAP[uid];
+    if (!info) {
+      errEl.textContent = '⚠️ 등록되지 않은 계정입니다. 약국장에게 문의하세요.\n(UID: ' + uid + ')';
+      errEl.style.display = 'block';
+      try { await fbAuth.signOut(); } catch (e) {}
+      return;
+    }
+    currentAuthUid = uid;
+    safeLS.setItem('dr_pharm_last_email', email);
+    login(info.name);
+  } catch (e) {
+    let msg = e && e.message ? e.message : '로그인 실패';
+    if (e && e.code) {
+      if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') msg = '❌ 비밀번호가 일치하지 않습니다.';
+      else if (e.code === 'auth/user-not-found') msg = '❌ 등록되지 않은 계정입니다.';
+      else if (e.code === 'auth/too-many-requests') msg = '⚠️ 로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.';
+      else if (e.code === 'auth/network-request-failed') msg = '🌐 네트워크 연결 실패. 인터넷을 확인하세요.';
+      else msg = `❌ ${msg} (${e.code})`;
+    }
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+  }
+}
+
+function login(name) {
+  name = (name || '').trim();
+  if (!name) { alert('이름을 입력해 주세요.'); return; }
+  currentUser = name;
+  try { safeLS.setItem(STORAGE.USER, name); } catch (e) {}
+  let recents = [];
+  try { recents = JSON.parse(safeLS.getItem(STORAGE.USERS) || '[]'); } catch (e) { recents = []; }
+  recents = [name, ...recents.filter(n => n !== name)].slice(0, 10);
+  try { safeLS.setItem(STORAGE.USERS, JSON.stringify(recents)); } catch (e) {}
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('userName').textContent = name + (currentAuthUid ? ' 🔐' : ' ⚠️');
+  document.getElementById('userAvatar').textContent = name.slice(-2);
+  document.getElementById('userAvatar').style.background = colorFromName(name);
+  loadData();
+  if (fbDb) {
+    setupFirebaseForUser();
+  }
+  addSystemMessage(`${name}님이 입장하셨습니다`);
+  updateConnectionUI();
+  renderAll();
+}
+
+async function logout() {
+  if (fbDb && currentUser) {
+    addSystemMessage(`${currentUser}님이 퇴장하셨습니다`);
+    detachFirebaseListeners();
+  }
+  if (fbAuth && currentAuthUid) {
+    try { await fbAuth.signOut(); } catch (e) {}
+  }
+  currentAuthUid = null;
+  currentUser = null;
+  safeLS.removeItem(STORAGE.USER);
+  const li = document.getElementById('loginInput');
+  if (li) li.value = '';
+  showLogin();
+}
+
+// 비밀번호 변경
+async function changePassword() {
+  if (!fbAuth || !fbAuth.currentUser) {
+    alert('Firebase 인증으로 로그인된 상태가 아닙니다.');
+    return;
+  }
+  const cur = prompt('현재 비밀번호:');
+  if (!cur) return;
+  const newPw = prompt('새 비밀번호 (6자 이상):');
+  if (!newPw || newPw.length < 6) { alert('새 비밀번호는 6자 이상이어야 합니다.'); return; }
+  const newPw2 = prompt('새 비밀번호 확인:');
+  if (newPw !== newPw2) { alert('새 비밀번호가 일치하지 않습니다.'); return; }
+  try {
+    const user = fbAuth.currentUser;
+    const cred = firebase.auth.EmailAuthProvider.credential(user.email, cur);
+    await user.reauthenticateWithCredential(cred);
+    await user.updatePassword(newPw);
+    alert('✅ 비밀번호가 변경되었습니다.');
+  } catch (e) {
+    alert('❌ 변경 실패: ' + (e && e.message ? e.message : ''));
+  }
+}
+
+// Auth 자동 로그인 (페이지 새로고침 시 토큰 복원)
+function setupAuthAutoLogin() {
+  if (!fbAuth) return;
+  fbAuth.onAuthStateChanged(function (user) {
+    if (user && !currentUser) {
+      const info = UID_NAME_MAP[user.uid];
+      if (info) {
+        currentAuthUid = user.uid;
+        login(info.name);
+      }
+    }
+  });
+}
+
+// 이벤트 바인딩
+document.getElementById('authLoginBtn').addEventListener('click', authLogin);
+document.getElementById('authPwInput').addEventListener('keydown', e => { if (e.key === 'Enter') authLogin(); });
+const _localLoginBtn = document.getElementById('loginBtn');
+if (_localLoginBtn) _localLoginBtn.addEventListener('click', () => login(document.getElementById('loginInput').value));
+const _localLoginInput = document.getElementById('loginInput');
+if (_localLoginInput) _localLoginInput.addEventListener('keydown', e => { if (e.key === 'Enter') login(e.target.value); });
+document.getElementById('logoutBtn').addEventListener('click', logout);
+
+// ============ 디지털 시계 ============
+const DOW_KR = ['일','월','화','수','목','금','토'];
+function tickClock() {
+  const d = new Date();
+  const h = String(d.getHours()).padStart(2,'0');
+  const m = String(d.getMinutes()).padStart(2,'0');
+  const s = String(d.getSeconds()).padStart(2,'0');
+  const clockEl = document.getElementById('digitalTime');
+  if (clockEl) {
+    const hm = clockEl.querySelector('.dc-hm');
+    const sec = clockEl.querySelector('.dc-sec');
+    if (hm) hm.textContent = `${h}:${m}`;
+    if (sec) {
+      sec.textContent = s;
+      sec.classList.remove('tick');
+      // 재생을 위한 reflow
+      void sec.offsetWidth;
+      sec.classList.add('tick');
+    }
+  }
+  const dateEl = document.getElementById('digitalDate');
+  if (dateEl) {
+    const y = d.getFullYear();
+    const mo = String(d.getMonth()+1).padStart(2,'0');
+    const da = String(d.getDate()).padStart(2,'0');
+    const dow = DOW_KR[d.getDay()];
+    dateEl.textContent = `${y}.${mo}.${da} (${dow})`;
+  }
+}
+function initClockTicks() { /* analog 제거됨 — 호환용 no-op */ }
+
+// ============ 메시지 파싱 ============
+function parseMedication(text) {
+  // 끝 공백도 의미가 있을 수 있어 우선 좌우 모두 trim하지 않고 끝 공백만 보존하도록 처리
+  // 단, 시작 공백은 의미 없음
+  text = text.replace(/^\s+/, '').replace(/\s+$/, '');
+  if (!text) return { name: '', spec: '', qty: '', note: '' };
+
+  // 1. 명시적 구분자(-, ,, |, ·)가 있으면 우선 사용 (주의: '/'는 의약품명 일부로 취급하므로 구분자에서 제외)
+  if (/[-,|·]/.test(text)) {
+    const parts = text.split(/\s*[-,|·]\s*/).map(s => s.trim()).filter(Boolean);
+    return {
+      name: parts[0] || '',
+      spec: parts[1] || '',
+      qty: parts[2] || '',
+      note: parts.slice(3).join(' ') || ''
+    };
+  }
+
+  // 2. 빈칸 2개 이상이 있으면 "슬롯 명시 모드"로 파싱
+  //    공백 N개 = 다음 슬롯으로 N칸 이동 (즉 N-1개 슬롯을 빈칸으로 건너뜀)
+  //    예) "로와콜  1개" → 로와콜(name) / (빈)spec / 1개(qty) / (빈)note
+  //    예) "타이레놀정500미리 500정  급송" → 타이레놀정500미리 / 500정 / (빈) / 급송
+  if (/ {2,}/.test(text)) {
+    const fields = ['', '', '', ''];
+    let slot = 0;
+    const re = /(\S+)( +|$)/g;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      const word = m[1];
+      const gap = m[2] || '';
+      const idx = Math.min(slot, 3); // 4번째 이후 단어는 모두 비고에 누적
+      fields[idx] = fields[idx] ? fields[idx] + ' ' + word : word;
+      slot += gap.length; // 공백 갯수만큼 슬롯 이동
+    }
+    return {
+      name: fields[0],
+      spec: fields[1],
+      qty: fields[2],
+      note: fields[3]
+    };
+  }
+
+  // 3. 구분자가 없으면 공백 기반 위치 파싱
+  //    규칙: 용량·제형은 "붙여서" 의약품명에 포함 (예: 타이레놀정500미리)
+  //    → 공백은 명확한 필드 구분자 역할만 함: [0]=의약품명, [1]=규격, [2]=갯수, [3+]=비고
+  const tokens = text.split(/\s+/).filter(Boolean);
+  if (tokens.length <= 1) {
+    return { name: tokens[0] || '', spec: '', qty: '', note: '' };
+  }
+  return {
+    name: tokens[0] || '',
+    spec: tokens[1] || '',
+    qty: tokens[2] || '',
+    note: tokens.slice(3).join(' ')
+  };
+}
+
+function isSuspicious(item) {
+  if (!item.name || item.name.length < 2) return true;
+  if (!item.spec) return true;
+  if (!item.qty) return true;
+  // 의약품명 이상 (특수문자만, 숫자만)
+  if (/^[\d\W]+$/.test(item.name)) return true;
+  // 규격 이상 (단위 없음)
+  if (item.spec && !/[a-zA-Z가-힣%]/.test(item.spec)) return true;
+  return false;
+}
+
+function findDuplicates(items) {
+  const map = new Map();
+  items.forEach((it, i) => {
+    const key = (it.name + '|' + it.spec).toLowerCase().replace(/\s+/g, '');
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(i);
+  });
+  const dups = new Set();
+  map.forEach(idxs => { if (idxs.length > 1) idxs.forEach(i => dups.add(i)); });
+  return dups;
+}
+
+// ============ 채팅 ============
+function addMessage(text) {
+  const item = parseMedication(text);
+  const time = nowTime();
+  const timestamp = Date.now();
+  const msg = {
+    user: currentUser,
+    text,
+    time,
+    timestamp,
+    item
+  };
+  const listItem = {
+    name: item.name || '',
+    spec: item.spec || '',
+    qty: item.qty || '',
+    note: item.note || '',
+    author: currentUser,
+    authorUid: currentAuthUid || '',
+    time,
+    timestamp
+  };
+  if (fbDb) {
+    // Firebase 모드: push하면 리스너가 UI 업데이트
+    const msgRef = fbDb.ref(`days/${currentDate}/messages`).push();
+    listItem.msgId = msgRef.key;
+    msg.id = msgRef.key;
+    msgRef.set(msg);
+    const itemRef = fbDb.ref(`days/${currentDate}/items`).push();
+    listItem.id = itemRef.key;
+    itemRef.set(listItem);
+  } else {
+    // 로컬 모드
+    const uniq = timestamp + '-' + Math.random().toString(36).slice(2,7);
+    msg.id = uniq;
+    listItem.msgId = msg.id;
+    listItem.id = 'item-' + uniq;
+    const day = getDayData(currentDate);
+    day.messages.push(msg);
+    day.items.push(listItem);
+    allData[currentDate] = day;
+    saveData();
+    renderAll();
+  }
+}
+
+function addSystemMessage(text) {
+  const timestamp = Date.now();
+  const msg = { system: true, text, time: nowTime(), timestamp };
+  if (fbDb) {
+    fbDb.ref(`days/${currentDate}/messages`).push(msg);
+  } else {
+    msg.id = 'sys-' + timestamp;
+    const day = getDayData(currentDate);
+    day.messages.push(msg);
+    allData[currentDate] = day;
+    saveData();
+    renderChat();
+  }
+}
+
+function renderChat() {
+  const day = getDayData(currentDate);
+  const c = document.getElementById('chatMessages');
+  c.innerHTML = day.messages.map(m => {
+    if (m.system) return `<div class="msg-system">— ${escapeHtml(m.text)} · ${m.time} —</div>`;
+    const self = m.user === currentUser;
+    const initial = m.user.slice(-2);
+    let parsedTag = '';
+    if (m.item && m.item.name) {
+      parsedTag = `<div class="parsed-tag">📦 ${escapeHtml(m.item.name)}${m.item.spec?' · '+escapeHtml(m.item.spec):''}${m.item.qty?' · '+escapeHtml(m.item.qty):''}</div>`;
+    }
+    return `<div class="message ${self?'msg-self':''}">
+      <div class="msg-avatar" style="background:${colorFromName(m.user)}">${escapeHtml(initial)}</div>
+      <div class="msg-body">
+        <div class="msg-head"><span class="msg-name">${escapeHtml(m.user)}</span><span class="msg-time">${m.time}</span></div>
+        <div class="msg-text">${escapeHtml(m.text)}${parsedTag}</div>
+      </div>
+    </div>`;
+  }).join('');
+  c.scrollTop = c.scrollHeight;
+  document.getElementById('todayCount').textContent = `오늘 ${day.items.length}건`;
+}
+
+document.getElementById('sendBtn').addEventListener('click', sendMessage);
+document.getElementById('chatInput').addEventListener('keydown', e => {
+  const dd = document.getElementById('autocompleteDropdown');
+  const acOpen = dd && dd.style.display === 'block' && acCurrentMatches && acCurrentMatches.length;
+  if (acOpen) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      acActiveIdx = (acActiveIdx + 1) % acCurrentMatches.length;
+      updateAcActive();
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      acActiveIdx = (acActiveIdx - 1 + acCurrentMatches.length) % acCurrentMatches.length;
+      updateAcActive();
+      return;
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      hideAutocomplete();
+      return;
+    }
+    if (e.key === 'Enter' && !e.shiftKey && acActiveIdx >= 0) {
+      e.preventDefault();
+      selectAutocomplete(acActiveIdx);
+      return;
+    }
+    // Tab 키로도 강조 항목 즉시 선택 (PC 편의)
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const pick = acActiveIdx >= 0 ? acActiveIdx : 0;
+      selectAutocomplete(pick);
+      return;
+    }
+  }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+// 2층 재고 실시간 힌트 제어
+function hideFloor2Hint() {
+  const el = document.getElementById('floor2Hint');
+  if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+}
+function updateFloor2Hint(inputEl) {
+  const el = document.getElementById('floor2Hint');
+  if (!el || !inputEl) return;
+  const val = (inputEl.value || '').trim();
+  if (!val) { hideFloor2Hint(); return; }
+  let parsed;
+  try { parsed = parseMedication(val); } catch (e) { parsed = null; }
+  const name = parsed && parsed.name;
+  if (!name) { hideFloor2Hint(); return; }
+  const match = findFloor2Match(name);
+  if (match) {
+    const remain = getFloor2CurrentStock(match);
+    const orderQty = parseQtyNum(parsed && parsed.qty) || 0;
+    const afterStr = orderQty > 0 ? ` → 주문 후 <b>${remain - orderQty}</b>` : '';
+    el.innerHTML =
+      '⚠️ <b>2층 재고 있음</b> — ' +
+      escapeHtml(match.name) +
+      ` <span style="color:#991b1b;">(남은 <b>${remain}</b>${afterStr} · ${escapeHtml(match.cat)})</span>` +
+      ' <span style="font-weight:500;color:#7f1d1d;">· 전송 시 재확인 안내</span>';
+    el.style.display = 'block';
+  } else {
+    hideFloor2Hint();
+  }
+}
+
+// 자동완성: 입력 / 커서 이동 / 포커스 시 모두 표시 (위치 인식)
+(function () {
+  const inp = document.getElementById('chatInput');
+  if (!inp) return;
+  const trigger = () => { showAutocomplete(inp); updateFloor2Hint(inp); };
+  inp.addEventListener('input', trigger);
+  inp.addEventListener('keyup', (e) => {
+    // 방향키·스페이스로 토큰 이동 시 재계산
+    if (['ArrowLeft','ArrowRight','Home','End',' '].includes(e.key)) trigger();
+  });
+  inp.addEventListener('click', trigger);
+  inp.addEventListener('focus', () => {
+    // 비어있을 땐 표시 안 함 (이름 토큰 0은 기존 로직이 처리)
+    if (inp.value.length > 0) trigger();
+  });
+  // 포커스 벗어나면 지연 후 닫기 (탭 선택 허용)
+  inp.addEventListener('blur', () => {
+    setTimeout(() => { hideAutocomplete(); /* 힌트는 유지 — 전송 전 마지막 경고 역할 */ }, 220);
+  });
+})();
+// 자동완성: 외부 클릭 시 닫기
+document.addEventListener('click', e => {
+  const dd = document.getElementById('autocompleteDropdown');
+  const input = document.getElementById('chatInput');
+  if (!dd || !input) return;
+  if (dd.contains(e.target) || input.contains(e.target)) return;
+  hideAutocomplete();
+});
+// 활성 항목 시각적 표시
+function updateAcActive() {
+  const dd = document.getElementById('autocompleteDropdown');
+  if (!dd) return;
+  dd.querySelectorAll('.autocomplete-item').forEach((el, i) => {
+    if (i === acActiveIdx) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+}
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  // 2층 재고 사전 확인 — 엔터(보내기) 전 팝업 경고
+  try {
+    const parsed = parseMedication(text);
+    const match = findFloor2Match(parsed && parsed.name);
+    if (match) {
+      const remain = getFloor2CurrentStock(match);
+      const orderQty = parseQtyNum(parsed && parsed.qty) || 0;
+      const afterOrder = remain - orderQty;
+      const msg =
+        '⚠️ 2층 재고 확인\n\n' +
+        '【' + match.name + '】 (' + match.cat + ')\n' +
+        '• 현재 2층 남은 재고: ' + remain + '\n' +
+        (orderQty > 0 ? '• 이 주문 수량: ' + orderQty + '\n• 주문 후 남는 재고: ' + afterOrder + '\n' : '') +
+        '\n그래도 주문하시겠습니까?\n' +
+        '• 확인 → 주문 진행 (2층재고 자동 차감)\n' +
+        '• 취소 → 입력 수정';
+      if (!confirm(msg)) {
+        return; // 주문 취소
+      }
+    }
+  } catch (err) { /* 매칭 실패 시 무시하고 정상 진행 */ }
+  addMessage(text);
+  input.value = '';
+  hideAutocomplete();
+  hideFloor2Hint();
+}
+
+// ============ A4 리스트 렌더 ============
+function renderA4() {
+  const day = getDayData(currentDate);
+  const allItems = day.items;
+  const allDups = findDuplicates(allItems);
+
+  // 필터 적용 (검색·상태·작성자) — 원본 인덱스 보존
+  const filtered = applyFilters(allItems, allDups);
+  const items = filtered.map(f => f.it);
+  const filteredOrigIdx = filtered.map(f => f.origIdx);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
+  if (currentPage >= totalPages) currentPage = totalPages - 1;
+  if (currentPage < 0) currentPage = 0;
+
+  const startIdx = currentPage * ITEMS_PER_PAGE;
+  const pageItems = items.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+  const pageOrigIdx = filteredOrigIdx.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+
+  const anyCol = filterState.cols && Object.values(filterState.cols).some(v => (v||'').trim());
+  const isFiltered = filterState.search || filterState.status !== 'all' || filterState.author || anyCol;
+  const filterBadge = isFiltered ? ` <span class="filter-active-badge">필터 ${items.length}/${allItems.length}</span>` : '';
+  document.getElementById('a4Date').innerHTML = `작성일: ${currentDate} (${dayOfWeek(currentDate)})${filterBadge}`;
+  document.getElementById('a4PageNum').textContent = `페이지 ${currentPage+1} / ${totalPages}`;
+  document.getElementById('pageInfo').textContent = `${currentPage+1} / ${totalPages} 페이지`;
+
+  const grid = document.getElementById('a4Grid');
+  let html = '';
+  for (let col = 0; col < 2; col++) {
+    html += '<div class="a4-col">';
+    html += `<div class="a4-row head">
+      <div class="row-num">#</div>
+      <div class="h-name">의약품명</div>
+      <div class="h-spec">규격</div>
+      <div class="h-qty">갯수</div>
+      <div class="h-note">비고</div>
+      <div class="h-author">작성자</div>
+      <div class="h-time">시간</div>
+    </div>`;
+    for (let row = 0; row < 30; row++) {
+      const i = col * 30 + row;
+      const displayNum = startIdx + i + 1;
+      const it = pageItems[i];
+      const origIdx = pageOrigIdx[i];
+      if (!it) {
+        html += `<div class="a4-row"><div class="row-num">${displayNum}</div><div></div><div></div><div></div><div></div><div></div><div></div></div>`;
+      } else {
+        const isDup = allDups.has(origIdx);
+        // 2층 재고 매칭 + 실시간 남은 재고 계산
+        const floor2Match = findFloor2Match(it.name);
+        const isFloor2 = !!floor2Match;
+        const floor2Remain = isFloor2 ? getFloor2CurrentStock(floor2Match) : 0;
+        const floor2Low = isFloor2 && floor2Remain <= 0;
+        // UID 우선 (Auth 모드), 없으면 이름으로 폴백 (로컬 모드)
+        const isMine = currentAuthUid
+          ? (it.authorUid && it.authorUid === currentAuthUid)
+          : ((it.author || '') === currentUser);
+        // 2층 재고가 최우선 — 중복보다 더 강조
+        const baseCls = [
+          isFloor2 ? 'floor2-stock' : '',
+          isDup ? 'duplicate' : ''
+        ].filter(Boolean).join(' ');
+        const editableCls = isMine ? 'clickable mine' : 'locked';
+        // 주문중복 표시: 의약품명 위 위첨자 (자리 거의 안차지)
+        const dupSup = isDup ? '<sup class="dup-sup" title="주문중복 항목">주문중복</sup>' : '';
+        // 2층재고 표시: 의약품명 앞 큼직한 강조 배지 (시인성 극대화) + 실시간 남은수량
+        const floor2Badge = isFloor2
+          ? `<span class="floor2-badge${floor2Low ? ' empty' : ''}" title="2층 재고: ${escapeHtml(floor2Match.name)} (남은 ${floor2Remain}/기본 ${floor2Match.qty})">⚠ 2층재고·남은 ${floor2Remain}</span> `
+          : '';
+        const itemId = it.id || '';
+        const dupTitle = isDup ? ' · 주문중복' : '';
+        const floor2Title = isFloor2 ? ` · ⚠ 2층재고(남은 ${floor2Remain})` : '';
+        const titleAttr = (isMine ? '탭하여 수정/삭제 (본인 작성)' : `${it.author||''}님이 작성 — 본인만 수정 가능`) + dupTitle + floor2Title;
+        const editIcon = isMine ? '<span class="edit-mark" title="수정 가능">✏️</span>' : '';
+        html += `<div class="a4-row ${editableCls} ${baseCls}" data-itemid="${escapeHtml(itemId)}" title="${escapeHtml(titleAttr)}">
+          <div class="row-num">${displayNum}${editIcon}</div>
+          <div class="row-name">${floor2Badge}${escapeHtml(it.name||'-')}${dupSup}</div>
+          <div class="row-spec">${escapeHtml(it.spec||'-')}</div>
+          <div class="row-qty">${escapeHtml(it.qty||'-')}</div>
+          <div class="row-note"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(it.note||'')}</span></div>
+          <div class="row-author" title="${escapeHtml(it.author||'')}">${escapeHtml(it.author||'-')}</div>
+          <div class="row-time">${escapeHtml(it.time||'-')}</div>
+        </div>`;
+      }
+    }
+    html += '</div>';
+  }
+  grid.innerHTML = html;
+
+  // 행 클릭 → 본인 항목만 수정 모달
+  grid.querySelectorAll('.a4-row.clickable.mine').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.itemid;
+      if (id) openEditModal(id);
+    });
+  });
+  grid.querySelectorAll('.a4-row.locked').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.itemid;
+      const day = getDayData(currentDate);
+      const it = ((day && day.items)||[]).find(i => i.id === id);
+      const who = (it && it.author) ? it.author : '다른 직원';
+      showToast(`🔒 ${who}님이 작성한 항목입니다 (본인만 수정 가능)`, 'error');
+    });
+  });
+
+  // stats (전체 기준)
+  document.getElementById('totalNum').textContent = allItems.length;
+  document.getElementById('dupNum').textContent = allDups.size;
+  const f2Count = allItems.filter(x => !!findFloor2Match(x.name)).length;
+  const $fn = document.getElementById('floor2Num');
+  if ($fn) $fn.textContent = f2Count;
+}
+
+document.getElementById('prevPage').addEventListener('click', () => { currentPage--; renderA4(); });
+document.getElementById('nextPage').addEventListener('click', () => { currentPage++; renderA4(); });
+
+// ============ 기록 탭 ============
+function renderHistory() {
+  const dates = Object.keys(allData).sort().reverse();
+  const list = document.getElementById('historyList');
+  if (!dates.length) {
+    list.innerHTML = '<div class="empty-state">아직 저장된 기록이 없습니다.</div>';
+    return;
+  }
+  list.innerHTML = dates.map(d => {
+    const data = allData[d];
+    return `<div class="history-item">
+      <div class="hist-info">
+        <div class="hist-date">${d} (${dayOfWeek(d)})</div>
+        <div class="hist-meta">의약품 ${data.items.length}건 · 메시지 ${data.messages.length}개</div>
+      </div>
+      <div class="hist-actions">
+        <button class="hist-btn" onclick="loadDate('${d}')">열기</button>
+        <button class="hist-btn" onclick="exportPdfFor('${d}')">PDF</button>
+        <button class="hist-btn" onclick="exportXlsxFor('${d}')">Excel</button>
+        <button class="hist-btn danger" onclick="deleteDate('${d}')">삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function loadDate(d) {
+  currentDate = d;
+  currentPage = 0;
+  if (!allData[d]) allData[d] = { messages: [], items: [] };
+  if (fbDb) setupFirebaseListeners(d);
+  renderAll();
+  switchTab('work');
+}
+function deleteDate(d) {
+  if (!confirm(`${d} 기록을 삭제할까요?${fbDb?' (모든 기기에서 삭제됩니다)':''}`)) return;
+  if (fbDb) {
+    fbDb.ref(`days/${d}`).remove();
+  }
+  delete allData[d];
+  if (d === currentDate) {
+    currentDate = todayStr();
+    if (!allData[currentDate]) allData[currentDate] = { messages: [], items: [] };
+    if (fbDb) setupFirebaseListeners(currentDate);
+  }
+  saveData();
+  renderAll();
+}
+
+// ============ 내보내기 ============
+async function exportPDF() { await exportPdfFor(currentDate); }
+async function exportPdfFor(date) {
+  // 0) 라이브러리 로드 여부 확인 (네트워크 차단 시 친절한 안내)
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('PDF 라이브러리(jsPDF)가 로드되지 않았습니다.\n네트워크 연결을 확인한 후 새로고침해 주세요.');
+    return;
+  }
+  if (typeof html2canvas !== 'function') {
+    alert('PDF 캡처 라이브러리(html2canvas)가 로드되지 않았습니다.\n네트워크 연결을 확인한 후 새로고침해 주세요.');
+    return;
+  }
+
+  const orig = currentDate, origPage = currentPage;
+  // 현재 활성 탭 기억 (export 탭에서 PDF 내보낼 때 work 탭으로 전환 후 복귀)
+  const origActiveTab = (document.querySelector('.tab.active') || {}).dataset ? document.querySelector('.tab.active').dataset.tab : 'work';
+
+  currentDate = date;
+  document.body.classList.add('pdf-rendering');
+
+  // 리스트 탭이 모바일에서 숨겨져 있으면 강제 표시 (레거시 호환)
+  const listPanel = document.querySelector('.list-panel');
+  const wasHidden = listPanel ? listPanel.classList.contains('mobile-hidden') : false;
+  if (listPanel) listPanel.classList.remove('mobile-hidden');
+
+  const a4 = document.getElementById('a4Page');
+  if (!a4) {
+    document.body.classList.remove('pdf-rendering');
+    alert('PDF 대상 영역(#a4Page)을 찾지 못했습니다.');
+    return;
+  }
+
+  try {
+    const totalPages = Math.max(1, Math.ceil(getDayData(date).items.length / ITEMS_PER_PAGE));
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    for (let p = 0; p < totalPages; p++) {
+      currentPage = p;
+      renderA4();
+      // 레이아웃 안정화(폰트·그리드 재계산) 대기
+      await new Promise(r => setTimeout(r, 180));
+
+      // a4Page가 실제로 보이는 상태인지 확인
+      const rect = a4.getBoundingClientRect();
+      if (rect.width < 10 || rect.height < 10) {
+        throw new Error('A4 페이지가 화면에 표시되지 않았습니다 (가로 ' + rect.width + 'px / 세로 ' + rect.height + 'px). 다른 탭에서 호출된 경우일 수 있습니다.');
+      }
+
+      const canvas = await html2canvas(a4, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        width: 794,
+        windowWidth: 794,
+        useCORS: true,
+        allowTaint: true,
+        logging: false
+      });
+
+      if (!canvas || canvas.width === 0 || canvas.height === 0) {
+        throw new Error('캡처 결과가 비어있습니다 (크기 0).');
+      }
+
+      const img = canvas.toDataURL('image/png');
+      if (!img || img.length < 100) {
+        throw new Error('이미지 데이터 생성에 실패했습니다.');
+      }
+
+      const w = 210, h = canvas.height * w / canvas.width;
+      if (p > 0) pdf.addPage();
+      pdf.addImage(img, 'PNG', 0, 0, w, Math.min(h, 297));
+    }
+    pdf.save(`대령약국_주문리스트_${date}.pdf`);
+  } catch (err) {
+    console.error('PDF export failed:', err);
+    alert('PDF 내보내기에 실패했습니다.\n\n원인: ' + (err && err.message ? err.message : err) +
+      '\n\n해결책:\n① "주문 리스트" 탭으로 이동 후 다시 시도\n② 브라우저 새로고침 후 다시 시도\n③ Excel 내보내기는 정상 동작합니다.');
+  } finally {
+    document.body.classList.remove('pdf-rendering');
+    if (wasHidden && listPanel) listPanel.classList.add('mobile-hidden');
+    currentDate = orig; currentPage = origPage;
+    // 탭 원위치 (pdf-rendering 중에는 CSS로 가렸을 뿐 active 클래스는 그대로)
+    if (origActiveTab && origActiveTab !== 'work' && typeof switchTab === 'function') {
+      // active 표시는 유지되어 있으므로 renderAll 전 재지정 불필요
+    }
+    renderAll();
+  }
+}
+
+function exportExcel() { exportXlsxFor(currentDate); }
+function exportXlsxFor(date) {
+  const data = getDayData(date);
+  const dups = findDuplicates(data.items);
+  const rows = data.items.map((it, i) => {
+    const f2 = findFloor2Match(it.name);
+    const statusParts = [];
+    if (f2) statusParts.push('⚠2층재고');
+    if (dups.has(i)) statusParts.push('주문중복');
+    return {
+      '번호': i+1,
+      '의약품명': it.name,
+      '규격': it.spec,
+      '갯수': it.qty,
+      '비고': it.note,
+      '작성자': it.author,
+      '시간': it.time,
+      '상태': statusParts.join(' · '),
+      '2층재고명': f2 ? f2.name : '',
+      '2층재고수량': f2 ? f2.qty : ''
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:6},{wch:24},{wch:14},{wch:10},{wch:20},{wch:10},{wch:8},{wch:14},{wch:22},{wch:10}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, date);
+  XLSX.writeFile(wb, `대령약국_주문리스트_${date}.xlsx`);
+}
+
+function exportDatePDF() {
+  const d = document.getElementById('exportDate').value;
+  if (!d) return alert('날짜를 선택하세요.');
+  if (!allData[d]) return alert('해당 날짜에 기록이 없습니다.');
+  exportPdfFor(d);
+}
+function exportDateExcel() {
+  const d = document.getElementById('exportDate').value;
+  if (!d) return alert('날짜를 선택하세요.');
+  if (!allData[d]) return alert('해당 날짜에 기록이 없습니다.');
+  exportXlsxFor(d);
+}
+
+function exportBackup() {
+  const blob = new Blob([JSON.stringify(allData, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `대령약국_백업_${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+document.getElementById('restoreFile').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const data = JSON.parse(r.result);
+      if (confirm('현재 데이터를 백업으로 덮어쓸까요?')) {
+        allData = data; saveData(); renderAll();
+        alert('복원 완료');
+      }
+    } catch (err) { alert('파일을 읽을 수 없습니다.'); }
+  };
+  r.readAsText(f);
+});
+
+// ============ 마감 / 초기화 ============
+function closeDay() {
+  if (!confirm('오늘 리스트를 마감하시겠습니까?\n(자동으로 PDF & Excel 저장 후 새 날짜로 시작)')) return;
+  exportPdfFor(currentDate);
+  exportXlsxFor(currentDate);
+  addSystemMessage(`${currentUser}님이 ${currentDate} 리스트를 마감했습니다`);
+}
+function clearToday() {
+  if (!confirm(`오늘 작성된 리스트를 모두 지울까요?${fbDb?' (모든 기기에서 삭제됩니다)':''}`)) return;
+  if (fbDb) {
+    fbDb.ref(`days/${currentDate}`).remove();
+  }
+  allData[currentDate] = { messages: [], items: [] };
+  saveData(); renderAll();
+}
+function clearAll() {
+  if (!confirm(`전체 데이터를 삭제할까요? 되돌릴 수 없습니다.${fbDb?' (모든 기기와 클라우드에서 삭제됩니다)':''}`)) return;
+  if (!confirm('정말 삭제할까요?')) return;
+  if (fbDb) {
+    fbDb.ref('days').remove();
+  }
+  allData = {};
+  allData[currentDate] = { messages: [], items: [] };
+  saveData(); renderAll();
+}
+
+document.getElementById('quickPdf').addEventListener('click', exportPDF);
+document.getElementById('quickXlsx').addEventListener('click', exportExcel);
+document.getElementById('closeDay').addEventListener('click', closeDay);
+
+// ============ 탭 전환 ============
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => switchTab(t.dataset.tab));
+});
+function switchTab(name) {
+  // 새로고침 탭은 탭 전환이 아니라 즉시 동작 (현재 화면 유지)
+  if (name === 'refresh') {
+    manualRefresh();
+    return;
+  }
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-'+name));
+  if (name === 'history') renderHistory();
+  if (name === 'settings') updateSettingsFirebaseInfo();
+  updateMobileToggleVisibility();
+}
+
+// ============ 수동 새로고침 ============
+function manualRefresh() {
+  const tab = document.querySelector('.tab.refresh-tab');
+  const icon = document.querySelector('.refresh-tab .refresh-icon');
+  if (tab) tab.classList.add('refreshing');
+  if (icon) icon.classList.add('spinning');
+
+  const finish = (msg, type) => {
+    setTimeout(() => {
+      if (tab) tab.classList.remove('refreshing');
+      if (icon) icon.classList.remove('spinning');
+      showToast(msg, type);
+    }, 200);
+  };
+
+  if (fbDb) {
+    // Firebase에서 강제로 다시 가져오기
+    Promise.all([
+      fbDb.ref(`days/${currentDate}`).once('value'),
+      fbDb.ref('days').once('value'),
+      fbDb.ref('presence').once('value')
+    ]).then(([dayS, allS, presS]) => {
+      // 현재 날짜 데이터
+      const v = dayS.val() || {};
+      const msgs = v.messages ? Object.entries(v.messages).map(([k,x]) => ({id:k,...x})) : [];
+      const items = v.items ? Object.entries(v.items).map(([k,x]) => ({id:k,...x})) : [];
+      msgs.sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
+      items.sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
+      allData[currentDate] = { messages: msgs, items };
+
+      // 모든 날짜 (기록 탭용)
+      allS.forEach(dayChild => {
+        const dStr = dayChild.key;
+        if (dStr === currentDate) return;
+        const dv = dayChild.val() || {};
+        const dmsgs = dv.messages ? Object.entries(dv.messages).map(([k,x]) => ({id:k,...x})) : [];
+        const ditems = dv.items ? Object.entries(dv.items).map(([k,x]) => ({id:k,...x})) : [];
+        dmsgs.sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
+        ditems.sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
+        allData[dStr] = { messages: dmsgs, items: ditems };
+      });
+
+      // 접속자 목록
+      const users = [];
+      presS.forEach(c => { const u = c.val(); if (u && u.name) users.push(u.name); });
+      fbOnlineUsers = users;
+
+      renderAll();
+      updateConnectionUI();
+      const isHistoryActive = document.getElementById('panel-history').classList.contains('active');
+      if (isHistoryActive) renderHistory();
+      finish(`✅ 동기화 완료 · ${nowTime()} · ${items.length}건`, 'success');
+    }).catch(e => {
+      finish('❌ 새로고침 실패: ' + (e.message || '연결 확인'), 'error');
+    });
+  } else {
+    // 로컬 모드
+    loadData();
+    renderAll();
+    finish(`✅ 새로고침 완료 (로컬) · ${nowTime()}`, 'success');
+  }
+}
+
+function showToast(msg, type) {
+  let toast = document.getElementById('appToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'appToast';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+  toast.className = 'toast' + (type ? ' ' + type : '');
+  toast.textContent = msg;
+  // 강제 리플로우 후 show
+  void toast.offsetWidth;
+  toast.classList.add('show');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove('show'), 2400);
+}
+
+// ============ 모바일 뷰포트 높이 동적 조정 ============
+// iOS Safari / Android Chrome에서 주소표시줄·하단바·키보드 고려
+function setAppHeight() {
+  // visualViewport가 있으면 키보드 올라와도 정확한 높이 제공
+  const vv = window.visualViewport;
+  const h = vv ? vv.height : window.innerHeight;
+  document.documentElement.style.setProperty('--app-h', h + 'px');
+}
+setAppHeight();
+window.addEventListener('resize', setAppHeight);
+window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 100));
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', setAppHeight);
+  window.visualViewport.addEventListener('scroll', setAppHeight);
+}
+// 입력창 포커스 시 스크롤하여 확실히 보이게
+document.addEventListener('focusin', (e) => {
+  if (e.target.matches && e.target.matches('.chat-input')) {
+    setTimeout(() => {
+      e.target.scrollIntoView({ block: 'end', behavior: 'smooth' });
+    }, 300);
+  }
+});
+
+// ============ 모바일/PC 공통: 채팅 도크 ============
+function isMobile() { return window.innerWidth <= 768; }
+// 레거시 함수(기존 호출 지점 호환을 위해 no-op으로 유지)
+function updateMobileToggleVisibility() { /* no-op: 채팅 도크는 항상 표시 */ }
+function applyMobileView() { /* no-op */ }
+
+// 채팅 도크 접기/펼치기 (모바일에서만 의미있음)
+(function () {
+  const toggleBtn = document.getElementById('chatDockToggle');
+  const dock = document.getElementById('chatDock');
+  if (!toggleBtn || !dock) return;
+  toggleBtn.addEventListener('click', () => {
+    dock.classList.toggle('collapsed');
+    // 펼친 직후 채팅 스크롤 하단으로
+    if (!dock.classList.contains('collapsed')) {
+      const cm = document.getElementById('chatMessages');
+      if (cm) setTimeout(() => { cm.scrollTop = cm.scrollHeight; }, 80);
+    }
+  });
+})();
+
+window.addEventListener('resize', () => {
+  // PC로 복귀 시 collapsed 해제
+  if (!isMobile()) {
+    const dock = document.getElementById('chatDock');
+    if (dock) dock.classList.remove('collapsed');
+  }
+});
+
+// ============ 유틸 ============
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+function colorFromName(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  const colors = ['#c9763d','#7c8c5a','#5b7a99','#a64d59','#8e6e3c','#5a8a8a','#9e5b8e','#c97c5b'];
+  return colors[Math.abs(h) % colors.length];
+}
+function dayOfWeek(dStr) {
+  const days = ['일','월','화','수','목','금','토'];
+  return days[new Date(dStr).getDay()] + '요일';
+}
+
+function renderAll() {
+  renderDashboard();
+  refreshFilterAuthorOptions();
+  renderChat();
+  renderA4();
+  if (typeof renderFloor2Admin === 'function') renderFloor2Admin();
+}
+
+// ============ 실시간 대시보드 ============
+function renderDashboard() {
+  const day = getDayData(currentDate);
+  const items = (day && day.items) || [];
+  const dups = findDuplicates(items);
+  const authors = new Set(items.map(i => i.author).filter(Boolean));
+
+  // 최다 약품
+  const nameCount = {};
+  items.forEach(it => {
+    const key = (it.name||'').trim();
+    if (!key || key === '-') return;
+    nameCount[key] = (nameCount[key]||0) + 1;
+  });
+  let topName = '-', topCount = 0;
+  Object.entries(nameCount).forEach(([n,c]) => {
+    if (c > topCount) { topName = n; topCount = c; }
+  });
+
+  // 최다 작성자
+  const authorCount = {};
+  items.forEach(it => {
+    const key = (it.author||'').trim();
+    if (!key) return;
+    authorCount[key] = (authorCount[key]||0) + 1;
+  });
+  let topAuthor = '-', topAuthorCount = 0;
+  Object.entries(authorCount).forEach(([n,c]) => {
+    if (c > topAuthorCount) { topAuthor = n; topAuthorCount = c; }
+  });
+
+  // 급송 주문 (비고에 '급송' 포함)
+  const rushCount = items.filter(it => {
+    const note = (it.note||'');
+    return note.includes('급송');
+  }).length;
+
+  // 2층 재고 매칭 수
+  const floor2Count = items.filter(it => !!findFloor2Match(it.name)).length;
+
+  // 최근 입력
+  const last = items[items.length-1];
+  const lastText = last ? `${last.time||''} ${truncate(last.name||'',6)}` : '-';
+
+  // 업데이트 (요소 있을때만)
+  const $t = document.getElementById('dashTotal');
+  if ($t) $t.textContent = items.length;
+  const $a = document.getElementById('dashActive');
+  if ($a) $a.textContent = authors.size;
+  const $d = document.getElementById('dashDup');
+  if ($d) $d.textContent = dups.size;
+  const $top = document.getElementById('dashTop');
+  if ($top) $top.textContent = topCount>1 ? `${topName} (${topCount})` : (topName==='-' ? '-' : topName);
+  const $topAuthor = document.getElementById('dashTopAuthor');
+  if ($topAuthor) $topAuthor.textContent = topAuthorCount>1 ? `${topAuthor} (${topAuthorCount})` : (topAuthor==='-' ? '-' : topAuthor);
+  const $rush = document.getElementById('dashRush');
+  if ($rush) $rush.textContent = rushCount;
+  const $f2 = document.getElementById('dashFloor2');
+  if ($f2) $f2.textContent = floor2Count;
+  const $last = document.getElementById('dashLast');
+  if ($last) $last.textContent = lastText;
+}
+
+function truncate(s, n) {
+  s = String(s||'');
+  return s.length > n ? s.slice(0, n) + '…' : s;
+}
+
+// ============ 2층 재고 리스트 (외용제) ============
+// 2층에 보관된 외용제 의약품 재고. 주문 시 중복 방지용.
+// 카테고리: 안약(1회용/다회용), 연고/로션, 흡입제, 기타
+const FLOOR2_STOCK = [
+  {name:"간포트(0.4ml*30)",qty:48,cat:"안약"},
+  {name:"뉴히알유니0.15%(0.45ml*60)",qty:22,cat:"안약"},
+  {name:"디쿠아스에스(0.4ml*60)",qty:27,cat:"안약"},
+  {name:"레스타시스(0.4ml*30)",qty:15,cat:"안약"},
+  {name:"레바케이점안액(0.4ml*60)",qty:19,cat:"안약"},
+  {name:"모노프로스트(0.2ml*30)",qty:2,cat:"안약"},
+  {name:"브로낙(0.5ml*30)",qty:6,cat:"안약"},
+  {name:"싸이포린엔(0.4ml*30)",qty:9,cat:"안약"},
+  {name:"아이커비스(0.3ml*30)",qty:10,cat:"안약"},
+  {name:"에이프레쉬점안액(0.45ml*60)",qty:16,cat:"안약"},
+  {name:"잘로스트에스(0.2ml*30)",qty:13,cat:"안약"},
+  {name:"카이닉스(0.35ml*60)",qty:20,cat:"안약"},
+  {name:"카이닉스3(0.5mlx60)",qty:16,cat:"안약"},
+  {name:"티어린프리0.1%(0.5ml*60)",qty:5,cat:"안약"},
+  {name:"후메론(0.4ml*30)",qty:12,cat:"안약"},
+  {name:"히알루미니0.15%(0.5ml*60)",qty:21,cat:"안약"},
+  {name:"히알루미니0.18%(0.5ml*60)",qty:12,cat:"안약"},
+  {name:"코솝에스(0.2ml*60)",qty:3,cat:"안약"},
+  {name:"원타임프레쉬(0.4ml*30)",qty:8,cat:"안약"},
+  {name:"프레드벨점안액(0.4ml*30)",qty:6,cat:"안약"},
+  {name:"알파벨라0.15%(0.3ml*60)",qty:12,cat:"안약"},
+  {name:"인프레쉬에프1.5%(0.45ml*60)",qty:12,cat:"안약"},
+  {name:"디쿠아데이5%(0.4ml*30)",qty:6,cat:"안약"},
+  {name:"브리딘플러스점안액(0.3ml*60)",qty:3,cat:"안약"},
+  {name:"아큐베일점안액0.45%(0.4ml*30)",qty:5,cat:"안약"},
+  {name:"네오덱스5g",qty:25,cat:"안약"},
+  {name:"듀라티얼즈3.5g",qty:20,cat:"안약"},
+  {name:"디쿠아스점안액3%5ml",qty:20,cat:"안약"},
+  {name:"로테프로0.5%5ml",qty:14,cat:"안약"},
+  {name:"미드린피10ml",qty:0,cat:"안약"},
+  {name:"브로낙5ml",qty:22,cat:"안약"},
+  {name:"비가목스0.5%5ml",qty:5,cat:"안약"},
+  {name:"심브린자5ml",qty:22,cat:"안약"},
+  {name:"알파간피0.15%5ml",qty:24,cat:"안약"},
+  {name:"엘라좁6ml",qty:10,cat:"안약"},
+  {name:"오로신0.3%5ml",qty:6,cat:"안약"},
+  {name:"오큐프록스5g",qty:10,cat:"안약"},
+  {name:"잘라탄2.5ml",qty:20,cat:"안약"},
+  {name:"코솝5ml",qty:30,cat:"안약"},
+  {name:"콤비간5ml",qty:0,cat:"안약"},
+  {name:"퀴노비드이용액5ml",qty:10,cat:"안약"},
+  {name:"크라비트1.5%5ml",qty:10,cat:"안약"},
+  {name:"크라비트5ml",qty:22,cat:"안약"},
+  {name:"타리비드안연고3.5g",qty:10,cat:"안약"},
+  {name:"타프콤2.5ml",qty:67,cat:"안약"},
+  {name:"타플로탄2.5ml",qty:10,cat:"안약"},
+  {name:"트라바탄2.5ml",qty:0,cat:"안약"},
+  {name:"트루솝5ml",qty:10,cat:"안약"},
+  {name:"티모프틱5ml",qty:3,cat:"안약"},
+  {name:"루미간점안액3ml",qty:3,cat:"안약"},
+  {name:"프레드포르테5ml",qty:16,cat:"안약"},
+  {name:"플라렉스5ml",qty:0,cat:"안약"},
+  {name:"후메론5ml0.1%",qty:16,cat:"안약"},
+  {name:"히아레인0.1%5ml",qty:10,cat:"안약"},
+  {name:"히아레인0.3%5ml",qty:0,cat:"안약"},
+  {name:"히아박10ml",qty:3,cat:"안약"},
+  {name:"세트락살",qty:20,cat:"안약"},
+  {name:"시프로바이점이현탁액",qty:12,cat:"안약"},
+  {name:"뮤로128 15ml",qty:11,cat:"안약"},
+  {name:"뉴히알드롭점안액10ml",qty:10,cat:"안약"},
+  {name:"듀얼콥10ml",qty:10,cat:"안약"},
+  {name:"데스오웬로오션0.05%120ml",qty:9,cat:"연고/로션"},
+  {name:"디푸코연고10g",qty:24,cat:"연고/로션"},
+  {name:"라벨리아로션118g",qty:17,cat:"연고/로션"},
+  {name:"락티케어제마지스60g",qty:9,cat:"연고/로션"},
+  {name:"락티케어HC로션1%118g",qty:10,cat:"연고/로션"},
+  {name:"로세릴크림0.25%20g",qty:20,cat:"연고/로션"},
+  {name:"무조날크림15g",qty:29,cat:"연고/로션"},
+  {name:"베아로반연고10g",qty:28,cat:"연고/로션"},
+  {name:"시푸로겔연고50g",qty:19,cat:"연고/로션"},
+  {name:"아드반탄연고15g",qty:13,cat:"연고/로션"},
+  {name:"아드반탄크림15g",qty:16,cat:"연고/로션"},
+  {name:"에스로반연고10g",qty:30,cat:"연고/로션"},
+  {name:"에스파손로션20ml",qty:12,cat:"연고/로션"},
+  {name:"엘리델10g",qty:23,cat:"연고/로션"},
+  {name:"엘리델30g",qty:23,cat:"연고/로션"},
+  {name:"오메크린크림30g",qty:9,cat:"연고/로션"},
+  {name:"토피솔밀크로션50g",qty:17,cat:"연고/로션"},
+  {name:"토피솔밀크로션80g",qty:28,cat:"연고/로션"},
+  {name:"프로토픽0.03%30g",qty:5,cat:"연고/로션"},
+  {name:"프로토픽0.1%30g",qty:18,cat:"연고/로션"},
+  {name:"프로토픽0.03%10g",qty:0,cat:"연고/로션"},
+  {name:"다이보베트연고",qty:14,cat:"연고/로션"},
+  {name:"베타베이트연고15g",qty:24,cat:"연고/로션"},
+  {name:"더모베이트액25ml",qty:47,cat:"연고/로션"},
+  {name:"트라보코트크림15g",qty:10,cat:"연고/로션"},
+  {name:"더모베이트액50ml",qty:42,cat:"연고/로션"},
+  {name:"크레오신티",qty:6,cat:"연고/로션"},
+  {name:"더모픽스크림30g",qty:5,cat:"연고/로션"},
+  {name:"나자케어나잘스프레이액140회",qty:14,cat:"흡입제"},
+  {name:"나자케어나잘스프레이액60회",qty:0,cat:"흡입제"},
+  {name:"나자플렉스나잘스프레이18ml",qty:5,cat:"흡입제"},
+  {name:"딜라스틴나잘스프레이23g",qty:12,cat:"흡입제"},
+  {name:"렐바100",qty:13,cat:"흡입제"},
+  {name:"렐바200",qty:16,cat:"흡입제"},
+  {name:"뮤코미스트액(4ml*10v)",qty:24,cat:"흡입제"},
+  {name:"뮤코미스트액(8ml*10v)",qty:8,cat:"흡입제"},
+  {name:"바헬바레스피맷(다회용)",qty:15,cat:"흡입제"},
+  {name:"바헬바레스피맷(리필용)",qty:28,cat:"흡입제"},
+  {name:"벤토리네뷸2.5mg(2.5ml*20)",qty:0,cat:"흡입제"},
+  {name:"벤토린에보할러200회",qty:14,cat:"흡입제"},
+  {name:"스피리바레스피맷(다회용)",qty:3,cat:"흡입제"},
+  {name:"스피리바레스피맷(리필용)",qty:15,cat:"흡입제"},
+  {name:"아노로62.5엘립타",qty:12,cat:"흡입제"},
+  {name:"아바미스나잘스프레이120회",qty:20,cat:"흡입제"},
+  {name:"아트로벤트흡입액2ml",qty:20,cat:"흡입제"},
+  {name:"에너제어150/50/80",qty:12,cat:"흡입제"},
+  {name:"에너제어150/50/160",qty:17,cat:"흡입제"},
+  {name:"트렐리지엘립타",qty:6,cat:"흡입제"},
+  {name:"포스트넥스트할러120회",qty:8,cat:"흡입제"},
+  {name:"풀미코트",qty:5,cat:"흡입제"},
+  {name:"트렐리지200엘립타흡입제",qty:8,cat:"흡입제"},
+  {name:"심비코트라피헬러흡입제",qty:5,cat:"흡입제"},
+  {name:"아프모겐스프레이",qty:26,cat:"흡입제"},
+  {name:"심비코트터부헬러320/9(60회)",qty:5,cat:"흡입제"},
+  {name:"뉴도탑(5매)",qty:15,cat:"기타"},
+  {name:"디클로메드액200ml",qty:7,cat:"기타"},
+  {name:"트라스트패취(7매)",qty:20,cat:"기타"},
+  {name:"마이녹실겔(15g)",qty:25,cat:"기타"},
+  {name:"마이녹실액3%60ml",qty:5,cat:"기타"},
+  {name:"마이녹실액5%60ml",qty:2,cat:"기타"},
+  {name:"뮤코베리어액150ml",qty:12,cat:"기타"},
+  {name:"케노펜겔50g",qty:6,cat:"기타"},
+  {name:"로게인폼60g",qty:3,cat:"기타"},
+  {name:"아치온현탁액200ml",qty:0,cat:"기타"},
+  {name:"원드론패취5",qty:0,cat:"기타"},
+  {name:"리포직점안겔10g",qty:10,cat:"기타"},
+  {name:"리포직이디오점안겔(0.6g*30)",qty:4,cat:"기타"},
+  {name:"벤토린흡입액",qty:10,cat:"기타"}
+];
+
+// 한글/영문 이름 정규화 (공백·특수문자 제거, 소문자 변환)
+function normalizeMedName(s) {
+  if (!s) return '';
+  return String(s).toLowerCase().replace(/[\s\(\)\*×x·\-_/\.%,]/g, '');
+}
+
+// 2층 재고 매칭: 입력 이름이 재고 항목과 동일하거나 상호 포함 관계면 매치
+function findFloor2Match(name) {
+  if (!name) return null;
+  const q = normalizeMedName(name);
+  if (q.length < 2) return null;
+  // 1) 완전 일치 우선
+  for (const item of FLOOR2_STOCK) {
+    if (normalizeMedName(item.name) === q) return item;
+  }
+  // 2) 접두/포함 관계 (예: "디쿠아스에스" 입력 → "디쿠아스에스(0.4ml*60)" 매치)
+  //    단, 너무 짧은(2글자) 접두는 오탐 가능성 큼 → 3글자 이상으로 제한
+  if (q.length >= 3) {
+    for (const item of FLOOR2_STOCK) {
+      const n = normalizeMedName(item.name);
+      if (n.startsWith(q) || q.startsWith(n)) return item;
+    }
+    // 3) 부분 포함 (입력이 재고명을 포함하거나 그 반대)
+    for (const item of FLOOR2_STOCK) {
+      const n = normalizeMedName(item.name);
+      if (n.length >= 4 && (n.includes(q) || q.includes(n))) return item;
+    }
+  }
+  return null;
+}
+
+// ============ 2층 재고 실시간 관리 ============
+// 기본재고(FLOOR2_STOCK 상수) + 주문감소(자동) + 재고보정(수동: 입고/조정) = 현재재고
+// 재고보정은 Firebase(/floor2Adjustments)와 localStorage에 함께 저장
+let floor2Adjustments = []; // [{id, name, delta, ts, author, note}]
+
+// 갯수(문자열) → 숫자 파싱 (예: "3개" → 3, "2" → 2, "1팩" → 1, "" → 0)
+function parseQtyNum(qty) {
+  const m = String(qty || '').match(/-?\d+(?:\.\d+)?/);
+  return m ? parseFloat(m[0]) : 0;
+}
+
+// 전체 데이터에서 특정 2층재고 품목에 대한 주문 총 감소량 계산
+function getFloor2OrderedTotal(normName) {
+  if (!normName) return 0;
+  let total = 0;
+  try {
+    Object.values(allData || {}).forEach(day => {
+      (day && day.items || []).forEach(it => {
+        const m = findFloor2Match(it.name);
+        if (m && normalizeMedName(m.name) === normName) {
+          total += parseQtyNum(it.qty);
+        }
+      });
+    });
+  } catch (e) { /* ignore */ }
+  return total;
+}
+
+// 수동 보정 누적 합계
+function getFloor2AdjustmentTotal(normName) {
+  if (!normName) return 0;
+  return floor2Adjustments
+    .filter(a => a && normalizeMedName(a.name) === normName)
+    .reduce((s, a) => s + (Number(a.delta) || 0), 0);
+}
+
+// 최종 현재 재고 (FLOOR2_STOCK item 객체 또는 이름 문자열 받음)
+function getFloor2CurrentStock(itemOrName) {
+  let base = 0, normName = '';
+  if (!itemOrName) return 0;
+  if (typeof itemOrName === 'string') {
+    const m = findFloor2Match(itemOrName);
+    if (!m) return 0;
+    base = Number(m.qty) || 0;
+    normName = normalizeMedName(m.name);
+  } else {
+    base = Number(itemOrName.qty) || 0;
+    normName = normalizeMedName(itemOrName.name);
+  }
+  return base + getFloor2AdjustmentTotal(normName) - getFloor2OrderedTotal(normName);
+}
+
+// 재고 보정 추가 (입고: delta > 0, 손실·수기조정: delta < 0)
+function addFloor2Adjustment(name, delta, note) {
+  const deltaN = Number(delta);
+  if (!name || !Number.isFinite(deltaN) || deltaN === 0) return false;
+  const adj = {
+    name: String(name),
+    delta: deltaN,
+    ts: Date.now(),
+    author: currentUser || '',
+    note: String(note || '')
+  };
+  if (fbDb) {
+    const ref = fbDb.ref('floor2Adjustments').push();
+    adj.id = ref.key;
+    ref.set(adj);
+    // 리스너가 UI 업데이트
+  } else {
+    adj.id = 'adj-' + adj.ts + '-' + Math.random().toString(36).slice(2, 6);
+    floor2Adjustments.push(adj);
+    saveFloor2AdjustmentsLocal();
+    renderAll();
+    renderFloor2Admin();
+  }
+  return true;
+}
+
+// 재고 보정 삭제 (취소용)
+function removeFloor2Adjustment(id) {
+  if (!id) return;
+  if (fbDb) {
+    fbDb.ref('floor2Adjustments/' + id).remove();
+  } else {
+    floor2Adjustments = floor2Adjustments.filter(a => a.id !== id);
+    saveFloor2AdjustmentsLocal();
+    renderAll();
+    renderFloor2Admin();
+  }
+}
+
+function saveFloor2AdjustmentsLocal() {
+  try {
+    safeLS.setItem('floor2_adjustments_v1', JSON.stringify(floor2Adjustments));
+  } catch (e) { /* ignore */ }
+}
+function loadFloor2AdjustmentsLocal() {
+  try {
+    const raw = safeLS.getItem('floor2_adjustments_v1');
+    floor2Adjustments = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(floor2Adjustments)) floor2Adjustments = [];
+  } catch (e) { floor2Adjustments = []; }
+}
+
+// Firebase 실시간 리스너 (재고보정)
+let fbFloor2Ref = null;
+function setupFloor2AdjustmentsListener() {
+  if (!fbDb) return;
+  if (fbFloor2Ref) { try { fbFloor2Ref.off(); } catch (e) {} }
+  fbFloor2Ref = fbDb.ref('floor2Adjustments');
+  fbFloor2Ref.on('value', snap => {
+    const val = snap.val() || {};
+    floor2Adjustments = Object.entries(val).map(([k, v]) => ({ id: k, ...v }));
+    floor2Adjustments.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    renderAll();
+    renderFloor2Admin();
+  });
+}
+
+// ============ 2층 재고 관리 UI ============
+function renderFloor2Admin() {
+  const host = document.getElementById('floor2AdminTable');
+  if (!host) return;
+  const q = ((document.getElementById('floor2Search')||{}).value || '').trim().toLowerCase();
+  const fCat = ((document.getElementById('floor2FilterCat')||{}).value || '').trim();
+  const fStatus = ((document.getElementById('floor2FilterStatus')||{}).value || '').trim();
+
+  const rows = FLOOR2_STOCK
+    .map(item => {
+      const n = normalizeMedName(item.name);
+      const adj = getFloor2AdjustmentTotal(n);
+      const used = getFloor2OrderedTotal(n);
+      const cur = Number(item.qty) + adj - used;
+      return { item, adj, used, cur, n };
+    })
+    .filter(r => {
+      if (q && !r.item.name.toLowerCase().includes(q) && !normalizeMedName(r.item.name).includes(normalizeMedName(q))) return false;
+      if (fCat && r.item.cat !== fCat) return false;
+      if (fStatus === 'low' && r.cur > 0) return false;
+      if (fStatus === 'used' && r.used <= 0) return false;
+      if (fStatus === 'adjusted' && r.adj === 0) return false;
+      return true;
+    })
+    // 재고 부족한 순으로 정렬 (주문 빈도 높은 것이 위로)
+    .sort((a, b) => {
+      if (a.cur <= 0 && b.cur > 0) return -1;
+      if (b.cur <= 0 && a.cur > 0) return 1;
+      if (a.used !== b.used) return b.used - a.used;
+      return a.cur - b.cur;
+    });
+
+  if (!rows.length) {
+    host.innerHTML = '<div class="floor2-admin-empty">조건에 맞는 항목이 없습니다.</div>';
+    return;
+  }
+
+  // ▣ 권한 확인: 지정 직원만 조정 버튼 활성화, 그 외는 읽기 전용
+  const allowed = canAdjustFloor2();
+
+  let html = '';
+  if (!allowed) {
+    html += `<div style="padding:8px 10px; margin-bottom:8px; background:#fef3c7; border:1px solid #f59e0b; border-radius:6px; font-size:11.5px; color:#78350f;">
+      🔒 <b>읽기 전용</b> — 2층 재고 조정 권한자: <b>${FLOOR2_AUTHORIZED_USERS.join(' · ')}</b><br>
+      현재 로그인: <b>${escapeHtml(currentUser || '(미로그인)')}</b> · 조정이 필요하면 권한자에게 요청하세요.
+    </div>`;
+  }
+  html += '<div class="floor2-row head">';
+  html += '  <div>약품명</div>';
+  html += '  <div class="f2-num">기본</div>';
+  html += '  <div class="f2-num">주문↓</div>';
+  html += '  <div class="f2-num">보정</div>';
+  html += '  <div class="f2-num">현재</div>';
+  html += '  <div style="text-align:center;">보정</div>';
+  html += '</div>';
+
+  rows.forEach(r => {
+    const name = r.item.name;
+    const curCls = r.cur <= 0 ? 'low' : (r.cur <= Math.max(2, Math.round(Number(r.item.qty)*0.2)) ? 'mid' : '');
+    const btns = allowed
+      ? `<button class="f2-btn plus" onclick="promptFloor2Adjust(${JSON.stringify(name).replace(/"/g,'&quot;')}, 1)">📥 입고</button>
+         <button class="f2-btn minus" onclick="promptFloor2Adjust(${JSON.stringify(name).replace(/"/g,'&quot;')}, -1)">➖ 조정</button>`
+      : `<button class="f2-btn" disabled title="권한 없음" style="opacity:0.4; cursor:not-allowed;">🔒 잠김</button>`;
+    html += `<div class="floor2-row">
+      <div class="f2-name">${escapeHtml(name)}<span class="f2-cat">${escapeHtml(r.item.cat||'')}</span></div>
+      <div class="f2-num">${Number(r.item.qty)}</div>
+      <div class="f2-num" style="color:#7f1d1d;">${r.used > 0 ? '-' + r.used : '0'}</div>
+      <div class="f2-num" style="color:${r.adj>=0?'#065f46':'#7f1d1d'};">${r.adj>0?'+'+r.adj:(r.adj||'0')}</div>
+      <div class="f2-current ${curCls}">${r.cur}</div>
+      <div class="f2-actions">${btns}</div>
+    </div>`;
+  });
+  host.innerHTML = html;
+
+  // 이력 모달이 열려있으면 같이 갱신
+  const histModal = document.getElementById('floor2HistModal');
+  if (histModal && histModal.style.display !== 'none') {
+    renderFloor2HistModal();
+  }
+}
+
+function promptFloor2Adjust(name, sign) {
+  // ▣ 권한 체크: 지정된 직원만 조정 가능
+  if (!canAdjustFloor2()) {
+    alert('⛔ 2층 재고 조정 권한이 없습니다.\n\n조정 권한자: ' + FLOOR2_AUTHORIZED_USERS.join(', ') +
+          '\n현재 로그인: ' + (currentUser || '(미로그인)') +
+          '\n\n권한자에게 요청해 주세요.');
+    return;
+  }
+  const match = FLOOR2_STOCK.find(i => i.name === name);
+  if (!match) { alert('재고 항목을 찾을 수 없습니다: ' + name); return; }
+  const cur = getFloor2CurrentStock(match);
+  const action = sign > 0 ? '입고' : '조정(감소)';
+  const raw = prompt(
+    `【${match.name}】\n현재 재고: ${cur}\n\n${action} 수량을 입력하세요 (숫자만, 양수):\n` +
+    `• 입고(📥): 실제 입고된 수량\n• 조정(➖): 손실·수기조정 수량 (자동으로 마이너스 처리)`,
+    ''
+  );
+  if (raw === null) return;
+  const n = parseFloat(String(raw).trim());
+  if (!Number.isFinite(n) || n <= 0) {
+    alert('올바른 숫자를 입력하세요 (양수).');
+    return;
+  }
+  const delta = sign > 0 ? n : -n;
+  // ▣ 사유 입력 (선택) - "누가"는 로그인 이름으로 자동 기록, "왜"는 직접 입력
+  const who = currentUser || '(미상)';
+  const reasonHint = sign > 0
+    ? '예: "입고 - ' + todayStr() + '", "도매상 배송"'
+    : '예: "파손", "유효기간 임박 폐기", "재고실사 보정"';
+  const note = prompt(
+    '📝 사유 입력 (선택)\n\n' +
+    '• 누가: ' + who + ' (자동 기록)\n' +
+    '• 언제: ' + todayStr() + ' (자동 기록)\n' +
+    '• 품목: ' + match.name + '\n' +
+    '• 변동: ' + (sign > 0 ? '+' : '-') + n + '\n\n' +
+    '왜? (사유 · 비워도 됩니다)\n' + reasonHint,
+    ''
+  ) || '';
+  if (addFloor2Adjustment(match.name, delta, note)) {
+    // Firebase 모드는 리스너가 갱신, 로컬 모드는 addFloor2Adjustment가 renderAll 호출
+  }
+}
+
+function openFloor2Adjustments() {
+  renderFloor2HistModal();
+  const m = document.getElementById('floor2HistModal');
+  if (m) m.style.display = 'flex';
+}
+function closeFloor2HistModal() {
+  const m = document.getElementById('floor2HistModal');
+  if (m) m.style.display = 'none';
+}
+function renderFloor2HistModal() {
+  const host = document.getElementById('floor2HistList');
+  if (!host) return;
+  if (!floor2Adjustments.length) {
+    host.innerHTML = '<div style="padding:20px; text-align:center; color:#6b7280;">보정 이력이 없습니다.</div>';
+    return;
+  }
+  const canUndo = canAdjustFloor2();
+  const headerNote = canUndo
+    ? '<div style="font-size:11px; color:#6b7280; padding:6px 2px 10px;">최근 100건 · ↩ 취소 버튼으로 해당 보정 되돌리기 가능 (반대 부호 보정 추가 방식)</div>'
+    : '<div style="font-size:11px; color:#991b1b; padding:6px 2px 10px;">⛔ 취소 권한은 ' + FLOOR2_AUTHORIZED_USERS.join('·') + '님만 사용 가능합니다.</div>';
+  const rows = floor2Adjustments
+    .slice().sort((a,b) => (b.ts||0) - (a.ts||0))
+    .slice(0, 100)
+    .map(a => {
+      const d = new Date(a.ts || 0);
+      const ts = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      const sign = a.delta >= 0 ? '+' : '';
+      const isCancel = /↩\s*취소/.test(a.note || '');
+      const deltaColor = a.delta >= 0 ? '#065f46' : '#7f1d1d';
+      const bgColor = isCancel ? '#f3f4f6' : (a.delta >= 0 ? '#ecfdf5' : '#fef2f2');
+      const undoBtn = canUndo && !isCancel
+        ? `<button class="f2-btn" style="background:#fef3c7; color:#92400e; font-size:10.5px; padding:4px 8px; white-space:nowrap;" onclick="undoFloor2Adjustment('${escapeHtml(a.id)}')">↩ 취소</button>`
+        : '';
+      return `<div style="display:grid; grid-template-columns: 1fr auto; gap:8px; padding:8px 10px; background:${bgColor}; border-radius:6px; border:1px solid #e5e7eb; align-items:center;">
+        <div style="min-width:0;">
+          <div style="font-weight:700; font-size:12px; color:#111827; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            ${escapeHtml(a.name)} <span style="color:${deltaColor}; font-weight:900;">${sign}${a.delta}</span>
+            ${isCancel ? '<span style="color:#6b7280; font-size:10px; font-weight:500;"> · (취소분)</span>' : ''}
+          </div>
+          <div style="font-size:10.5px; color:#4b5563; margin-top:2px;">
+            <b>${escapeHtml(a.author || '-')}</b> · ${ts}${a.note ? ' · ' + escapeHtml(a.note) : ''}
+          </div>
+        </div>
+        <div>${undoBtn}</div>
+      </div>`;
+    }).join('');
+  host.innerHTML = headerNote + rows;
+}
+function undoFloor2Adjustment(id) {
+  if (!canAdjustFloor2()) {
+    alert('⛔ 취소 권한이 없습니다. (' + FLOOR2_AUTHORIZED_USERS.join(', ') + '만 가능)');
+    return;
+  }
+  const target = floor2Adjustments.find(a => a.id === id);
+  if (!target) { alert('이력 항목을 찾을 수 없습니다.'); return; }
+  const d = new Date(target.ts || 0);
+  const ts = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  const sign = target.delta >= 0 ? '+' : '';
+  if (!confirm(
+    '다음 보정을 취소하시겠습니까?\n\n' +
+    '• 품목: ' + target.name + '\n' +
+    '• 변동: ' + sign + target.delta + '\n' +
+    '• 작성: ' + (target.author || '-') + ' @ ' + ts + '\n' +
+    (target.note ? '• 사유: ' + target.note + '\n' : '') +
+    '\n→ 반대 부호 보정 ' + (target.delta >= 0 ? '-' : '+') + Math.abs(target.delta) +
+    ' 이(가) 추가되어 현재 재고가 원상복구됩니다.\n(이력은 감사용으로 남아있음)'
+  )) return;
+
+  const reverseDelta = -Number(target.delta);
+  const reverseNote = '↩ 취소: ' + (target.author || '-') + ' ' + ts +
+    (target.note ? ' (' + target.note + ')' : '');
+  if (addFloor2Adjustment(target.name, reverseDelta, reverseNote)) {
+    // 성공 시 모달 재렌더
+    setTimeout(() => renderFloor2HistModal(), 120);
+  }
+}
+
+function exportFloor2Report() {
+  if (typeof XLSX === 'undefined') { alert('엑셀 모듈 로드 실패'); return; }
+  const rows = FLOOR2_STOCK.map(item => {
+    const n = normalizeMedName(item.name);
+    const adj = getFloor2AdjustmentTotal(n);
+    const used = getFloor2OrderedTotal(n);
+    const cur = Number(item.qty) + adj - used;
+    return {
+      '카테고리': item.cat,
+      '약품명': item.name,
+      '기본재고': Number(item.qty),
+      '주문감소': used,
+      '수동보정': adj,
+      '현재재고': cur,
+      '상태': cur <= 0 ? '⚠소진' : (cur <= Math.max(2, Math.round(Number(item.qty)*0.2)) ? '부족' : '정상')
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:10},{wch:30},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '2층재고');
+  // 보정이력 시트
+  if (floor2Adjustments.length) {
+    const adjRows = floor2Adjustments.slice().sort((a,b)=>(a.ts||0)-(b.ts||0)).map(a => ({
+      '일시': a.ts ? new Date(a.ts).toLocaleString('ko-KR') : '',
+      '약품명': a.name,
+      '변화량': a.delta,
+      '작성자': a.author || '',
+      '메모': a.note || ''
+    }));
+    const ws2 = XLSX.utils.json_to_sheet(adjRows);
+    ws2['!cols'] = [{wch:20},{wch:30},{wch:10},{wch:12},{wch:30}];
+    XLSX.utils.book_append_sheet(wb, ws2, '보정이력');
+  }
+  const filename = `2층재고리포트_${todayStr()}.xlsx`;
+  XLSX.writeFile(wb, filename);
+}
+
+// 관리 UI 필터 리스너
+(function () {
+  const attach = () => {
+    ['floor2Search','floor2FilterCat','floor2FilterStatus'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && !el.__bound) {
+        el.__bound = true;
+        el.addEventListener('input', renderFloor2Admin);
+        el.addEventListener('change', renderFloor2Admin);
+      }
+    });
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attach);
+  } else {
+    attach();
+  }
+})();
+
+// ============ 자동완성 (의약품명·규격·비고 전방위) ============
+// ※ 규칙: 용량·제형은 의약품명에 붙여 입력 (예: 타이레놀정500미리)
+//    규격 = 포장 단위 (예: 500정, 100정, 10ml, 1box)
+//    갯수 = 주문 수량 (예: 1개, 2개)
+const COMMON_SPECS = [
+  // 포장 단위(정/캡슐) — 의약품 대부분이 이 포맷
+  '30정','60정','100정','300정','500정','1000정','10정','20정','90정',
+  '30캡슐','60캡슐','100캡슐','500캡슐',
+  // 박스/팩
+  '1box','2box','5box','10box','1팩','10팩','1세트',
+  // 액상·외용
+  '10ml','30ml','50ml','100ml','150ml','500ml','1L',
+  '10g','30g','50g','100g',
+  // 앰플/바이알
+  '5앰플','10앰플','30앰플','1바이알','10바이알'
+];
+const COMMON_NOTES = [
+  '급송','급','긴급','빨리','오늘중','오후','오전',
+  '환자대기','직접전달','조제실','카운터','유통기한확인',
+  '재고확인','발주','반품','폐기','소분','분할',
+  '정기','DUR','보험','비급여','처방전확인','재처방','보관주의','냉장','냉동'
+];
+
+function computeFreqDictFull() {
+  const names = {}, specs = {}, notes = {};
+  const nameToSpecs = {}; // 약품명별 자주 쓰는 규격
+  // 최근 30일간 집계 (더 풍부한 자동완성)
+  const recentDates = Object.keys(allData).sort().slice(-30);
+  recentDates.forEach(d => {
+    const data = allData[d];
+    if (!data || !data.items) return;
+    data.items.forEach(it => {
+      const name = (it.name||'').trim();
+      const spec = (it.spec||'').trim();
+      const note = (it.note||'').trim();
+      if (name && name !== '-' && name.length >= 1) {
+        if (!names[name]) names[name] = { value: name, count: 0, spec: '' };
+        names[name].count++;
+        if (!names[name].spec && spec && spec !== '-') names[name].spec = spec;
+      }
+      if (spec && spec !== '-') {
+        if (!specs[spec]) specs[spec] = { value: spec, count: 0 };
+        specs[spec].count++;
+        if (name && name !== '-') {
+          if (!nameToSpecs[name]) nameToSpecs[name] = {};
+          nameToSpecs[name][spec] = (nameToSpecs[name][spec] || 0) + 1;
+        }
+      }
+      if (note && note !== '-') {
+        if (!notes[note]) notes[note] = { value: note, count: 0 };
+        notes[note].count++;
+      }
+    });
+  });
+  return {
+    names: Object.values(names).sort((a,b) => b.count - a.count),
+    specs: Object.values(specs).sort((a,b) => b.count - a.count),
+    notes: Object.values(notes).sort((a,b) => b.count - a.count),
+    nameToSpecs
+  };
+}
+// 구버전 호환 (혹시 다른 곳에서 호출하는 경우)
+function computeFreqDict() { return computeFreqDictFull().names.map(n => ({ name: n.value, count: n.count, spec: n.spec||'', qty: '' })); }
+
+let acActiveIdx = -1;
+let acCurrentMatches = [];
+let acCurrentField = 'name'; // 'name' | 'spec' | 'note'
+
+// 커서 위치 기준으로 현재 토큰(및 필드) 파악
+function getCurrentTokenInfo(input) {
+  const val = input.value || '';
+  const cursorPos = (input.selectionStart != null) ? input.selectionStart : val.length;
+  const before = val.substring(0, cursorPos);
+  // 주문 구분자(,|·) 이후만을 "현재 주문"으로 취급
+  const lastOrderSep = Math.max(before.lastIndexOf(','), before.lastIndexOf('|'), before.lastIndexOf('·'));
+  const orderStart = lastOrderSep + 1;
+  const currentOrder = before.substring(orderStart);
+  // 현재 주문 내에서 공백으로 토큰 분리 (2공백은 빈 토큰 = 건너뜀)
+  const tokens = currentOrder.split(/ /); // 단일 공백 split
+  const tokenIdx = tokens.length - 1; // 0=name, 1=spec, 2=qty, 3=note
+  const currentToken = tokens[tokenIdx] || '';
+  // 현재 토큰의 시작 위치 (커서 이전의 마지막 공백 + 1)
+  const lastSpaceIdx = before.lastIndexOf(' ');
+  const tokenStart = lastSpaceIdx >= 0 ? lastSpaceIdx + 1 : orderStart;
+  // 같은 주문에 이미 입력된 약품명 (첫 번째 토큰)
+  const typedName = (tokens[0] || '').trim();
+  return { tokenIdx, currentToken, tokenStart, cursorPos, typedName, currentOrder };
+}
+
+function showAutocomplete(input) {
+  const dd = document.getElementById('autocompleteDropdown');
+  if (!dd) return;
+  // 문자열을 넘긴 구버전 호출 호환
+  if (typeof input === 'string') input = document.getElementById('chatInput');
+  if (!input) return;
+  const info = getCurrentTokenInfo(input);
+  const token = (info.currentToken || '').toLowerCase();
+  // 구분자 문자(-)가 현재 토큰에 있으면 끔. '/'는 의약품명에 포함될 수 있으므로 유지.
+  if (/-/.test(token)) { hideAutocomplete(); return; }
+
+  const full = computeFreqDictFull();
+  let pool = [];
+  let hint = '';
+  let field = 'name';
+
+  if (info.tokenIdx === 0) {
+    // 의약품명: 1글자부터 추천
+    if (!token) { hideAutocomplete(); return; }
+    field = 'name';
+    pool = full.names
+      .filter(d => d.value.toLowerCase().includes(token))
+      .slice(0, 8);
+    hint = '💊 의약품명 (탭하여 선택)';
+  } else if (info.tokenIdx === 1) {
+    // 규격: 해당 약품명에 자주 쓴 규격을 우선 노출, 그다음 전체 빈도, 그다음 기본값
+    field = 'spec';
+    const seen = new Set();
+    const merged = [];
+    // 1) 앞서 입력한 약품명과 짝지어진 규격
+    const typed = (info.typedName || '').toLowerCase();
+    if (typed) {
+      Object.keys(full.nameToSpecs).forEach(n => {
+        if (n.toLowerCase() === typed || n.toLowerCase().startsWith(typed)) {
+          Object.entries(full.nameToSpecs[n]).forEach(([v, c]) => {
+            if (!seen.has(v)) { seen.add(v); merged.push({ value: v, count: c, paired: true }); }
+          });
+        }
+      });
+    }
+    // 2) 전체 기록의 규격 빈도순
+    full.specs.forEach(s => {
+      if (!seen.has(s.value)) { seen.add(s.value); merged.push(s); }
+    });
+    // 3) 기본 추천 규격
+    COMMON_SPECS.forEach(v => {
+      if (!seen.has(v)) { seen.add(v); merged.push({ value: v, count: 0, common: true }); }
+    });
+    pool = merged
+      .filter(d => !token || d.value.toLowerCase().includes(token))
+      .slice(0, 10);
+    hint = '📐 규격 (탭하여 선택)';
+  } else if (info.tokenIdx === 2) {
+    // 갯수: 숫자라 자동완성 생략
+    hideAutocomplete();
+    return;
+  } else { // tokenIdx >= 3
+    // 비고
+    field = 'note';
+    const seen = new Set();
+    const merged = [];
+    full.notes.forEach(n => {
+      if (!seen.has(n.value)) { seen.add(n.value); merged.push(n); }
+    });
+    COMMON_NOTES.forEach(v => {
+      if (!seen.has(v)) { seen.add(v); merged.push({ value: v, count: 0, common: true }); }
+    });
+    pool = merged
+      .filter(d => !token || d.value.toLowerCase().includes(token))
+      .slice(0, 10);
+    hint = '📝 비고 (탭하여 선택)';
+  }
+
+  if (!pool.length) { hideAutocomplete(); return; }
+
+  acCurrentMatches = pool;
+  acCurrentField = field;
+
+  dd.innerHTML = '<div class="autocomplete-hint">' + hint + '</div>' +
+    pool.map((m, i) => {
+      const badge = m.count > 0 ? (m.count + '회') : (m.paired ? '관련' : '추천');
+      const specAside = (field === 'name' && m.spec) ? `<span class="autocomplete-spec">${escapeHtml(m.spec)}</span>` : '';
+      return `<div class="autocomplete-item" data-idx="${i}">
+        <span><span class="autocomplete-name">${escapeHtml(m.value)}</span>${specAside}</span>
+        <span class="autocomplete-count">${escapeHtml(badge)}</span>
+      </div>`;
+    }).join('');
+  dd.style.display = 'block';
+  acActiveIdx = -1;
+  dd.querySelectorAll('.autocomplete-item').forEach(el => {
+    // 모바일 탭 반응성: mousedown + touchstart 양쪽
+    const handler = (ev) => {
+      ev.preventDefault();
+      selectAutocomplete(parseInt(el.dataset.idx));
+    };
+    el.addEventListener('mousedown', handler);
+    el.addEventListener('touchstart', handler, { passive: false });
+  });
+}
+
+function selectAutocomplete(idx) {
+  const m = acCurrentMatches[idx];
+  if (!m) return;
+  const input = document.getElementById('chatInput');
+  if (!input) return;
+  const val = input.value || '';
+  const cursorPos = (input.selectionStart != null) ? input.selectionStart : val.length;
+  const before = val.substring(0, cursorPos);
+  const after = val.substring(cursorPos);
+
+  // 현재 토큰의 시작 = 커서 직전의 마지막 공백/주문구분자 이후
+  const lastSpace = before.lastIndexOf(' ');
+  const lastComma = Math.max(before.lastIndexOf(','), before.lastIndexOf('|'), before.lastIndexOf('·'));
+  const tokenStart = Math.max(lastSpace, lastComma) + 1;
+  const prefix = val.substring(0, tokenStart);
+
+  // 약품명 선택 시에는 규격까지 한 번에 채워 주어 모바일 타이핑 최소화
+  let insert = m.value;
+  if (acCurrentField === 'name' && m.spec) {
+    insert = m.value + ' ' + m.spec + ' ';
+  } else {
+    insert = m.value + ' ';
+  }
+  const newVal = prefix + insert + after;
+  input.value = newVal;
+  const newCursor = (prefix + insert).length;
+  try { input.setSelectionRange(newCursor, newCursor); } catch (e) {}
+  input.focus();
+  hideAutocomplete();
+}
+
+function hideAutocomplete() {
+  const dd = document.getElementById('autocompleteDropdown');
+  if (dd) dd.style.display = 'none';
+  acActiveIdx = -1;
+}
+
+// ============ 검색 / 필터 ============
+let filterState = {
+  search: '',
+  status: 'all',
+  author: '',
+  cols: { name: '', spec: '', qty: '', note: '', author: '', time: '' }
+};
+
+function applyFilters(items, dups) {
+  dups = dups || findDuplicates(items);
+  const q = filterState.search.trim().toLowerCase();
+  const c = filterState.cols || {};
+  const cq = {
+    name: (c.name||'').trim().toLowerCase(),
+    spec: (c.spec||'').trim().toLowerCase(),
+    qty: (c.qty||'').trim().toLowerCase(),
+    note: (c.note||'').trim().toLowerCase(),
+    author: (c.author||'').trim().toLowerCase(),
+    time: (c.time||'').trim().toLowerCase()
+  };
+  return items
+    .map((it, origIdx) => ({ it, origIdx, dup: dups.has(origIdx) }))
+    .filter(({ it, dup }) => {
+      // 전역 검색
+      if (q) {
+        const hay = [(it.name||''), (it.spec||''), (it.qty||''), (it.note||''), (it.author||'')]
+          .join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      // 컬럼별 검색 (각 값 포함 여부로 판정)
+      if (cq.name && !(it.name||'').toLowerCase().includes(cq.name)) return false;
+      if (cq.spec && !(it.spec||'').toLowerCase().includes(cq.spec)) return false;
+      if (cq.qty && !(it.qty||'').toLowerCase().includes(cq.qty)) return false;
+      if (cq.note && !(it.note||'').toLowerCase().includes(cq.note)) return false;
+      if (cq.author && !(it.author||'').toLowerCase().includes(cq.author)) return false;
+      if (cq.time && !(it.time||'').toLowerCase().includes(cq.time)) return false;
+      // 상태·작성자 드롭다운
+      const isF2 = !!findFloor2Match(it.name);
+      if (filterState.status === 'duplicate' && !dup) return false;
+      if (filterState.status === 'normal' && (dup || isF2)) return false;
+      if (filterState.status === 'floor2' && !isF2) return false;
+      if (filterState.author && it.author !== filterState.author) return false;
+      return true;
+    });
+}
+
+function refreshFilterAuthorOptions() {
+  const sel = document.getElementById('filterAuthor');
+  if (!sel) return;
+  const day = getDayData(currentDate);
+  const authors = [...new Set(((day && day.items)||[]).map(i => i.author).filter(Boolean))].sort();
+  const curr = sel.value || filterState.author || '';
+  sel.innerHTML = '<option value="">모든 작성자</option>' +
+    authors.map(a => `<option value="${escapeHtml(a)}" ${a===curr?'selected':''}>${escapeHtml(a)}</option>`).join('');
+}
+
+function setupFilterListeners() {
+  const s = document.getElementById('searchInput');
+  const st = document.getElementById('filterStatus');
+  const au = document.getElementById('filterAuthor');
+  const cl = document.getElementById('filterClear');
+  const tog = document.getElementById('colFilterToggle');
+  const panel = document.getElementById('colFilters');
+  const colKeys = ['name','spec','qty','note','author','time'];
+  const colInputs = {};
+  colKeys.forEach(k => { colInputs[k] = document.getElementById('cf_' + k); });
+
+  if (s) s.addEventListener('input', e => { filterState.search = e.target.value; currentPage = 0; renderA4(); });
+  if (st) st.addEventListener('change', e => { filterState.status = e.target.value; currentPage = 0; renderA4(); });
+  if (au) au.addEventListener('change', e => { filterState.author = e.target.value; currentPage = 0; renderA4(); });
+
+  // 컬럼별 찾기 토글
+  if (tog && panel) {
+    tog.addEventListener('click', () => {
+      const opened = panel.hasAttribute('hidden') ? false : true;
+      if (opened) {
+        panel.setAttribute('hidden', '');
+        tog.setAttribute('aria-expanded', 'false');
+      } else {
+        panel.removeAttribute('hidden');
+        tog.setAttribute('aria-expanded', 'true');
+        // 처음 열 때 의약품명 입력창에 포커스
+        const first = colInputs.name;
+        if (first) setTimeout(() => first.focus(), 50);
+      }
+    });
+  }
+
+  // 컬럼별 입력 이벤트
+  colKeys.forEach(k => {
+    const el = colInputs[k];
+    if (!el) return;
+    el.addEventListener('input', e => {
+      if (!filterState.cols) filterState.cols = {};
+      filterState.cols[k] = e.target.value;
+      currentPage = 0;
+      renderA4();
+    });
+  });
+
+  if (cl) cl.addEventListener('click', () => {
+    filterState = {
+      search: '', status: 'all', author: '',
+      cols: { name:'', spec:'', qty:'', note:'', author:'', time:'' }
+    };
+    if (s) s.value = '';
+    if (st) st.value = 'all';
+    if (au) au.value = '';
+    colKeys.forEach(k => { if (colInputs[k]) colInputs[k].value = ''; });
+    currentPage = 0;
+    renderA4();
+    showToast('필터 초기화', 'success');
+  });
+}
+
+// ============ 수정 / 삭제 ============
+let editingItem = null;
+
+function openEditModal(itemId) {
+  const day = getDayData(currentDate);
+  const item = ((day && day.items)||[]).find(i => i.id === itemId);
+  if (!item) {
+    showToast('항목을 찾을 수 없습니다 (새로고침 후 다시 시도)', 'error');
+    return;
+  }
+  const itemMine = currentAuthUid
+    ? (item.authorUid && item.authorUid === currentAuthUid)
+    : ((item.author||'') === currentUser);
+  if (!itemMine) {
+    showToast(`🔒 ${item.author||'다른 직원'}님 작성 항목 — 본인만 수정 가능`, 'error');
+    return;
+  }
+  editingItem = item;
+  document.getElementById('editName').value = item.name || '';
+  document.getElementById('editSpec').value = item.spec || '';
+  document.getElementById('editQty').value = item.qty || '';
+  document.getElementById('editNote').value = item.note || '';
+  const metaEl = document.getElementById('editMeta');
+  if (metaEl) {
+    metaEl.innerHTML = `작성: <b>${escapeHtml(item.author||'-')}</b> · ${escapeHtml(item.time||'-')}`;
+  }
+  document.getElementById('editModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').style.display = 'none';
+  editingItem = null;
+}
+
+function saveEdit() {
+  if (!editingItem) return;
+  const editMine = currentAuthUid
+    ? (editingItem.authorUid && editingItem.authorUid === currentAuthUid)
+    : ((editingItem.author||'') === currentUser);
+  if (!editMine) {
+    showToast('🔒 본인 작성 항목만 수정할 수 있습니다', 'error');
+    closeEditModal();
+    return;
+  }
+  const updates = {
+    name: document.getElementById('editName').value.trim(),
+    spec: document.getElementById('editSpec').value.trim(),
+    qty: document.getElementById('editQty').value.trim(),
+    note: document.getElementById('editNote').value.trim()
+  };
+  const before = { name: editingItem.name||'', spec: editingItem.spec||'', qty: editingItem.qty||'', note: editingItem.note||'' };
+  // 변경 없으면 리턴
+  if (before.name === updates.name && before.spec === updates.spec && before.qty === updates.qty && before.note === updates.note) {
+    closeEditModal();
+    return;
+  }
+  const logEntry = {
+    action: 'edit',
+    itemId: editingItem.id,
+    by: currentUser,
+    at: Date.now(),
+    time: nowTime(),
+    before,
+    after: updates
+  };
+  if (fbDb) {
+    fbDb.ref(`days/${currentDate}/items/${editingItem.id}`).update(updates);
+    fbDb.ref(`days/${currentDate}/editLog`).push(logEntry);
+  } else {
+    const day = getDayData(currentDate);
+    const idx = day.items.findIndex(i => i.id === editingItem.id);
+    if (idx >= 0) Object.assign(day.items[idx], updates);
+    day.editLog = day.editLog || [];
+    day.editLog.push(logEntry);
+    allData[currentDate] = day;
+    saveData();
+    renderAll();
+  }
+  closeEditModal();
+  showToast(`✅ ${currentUser}님이 수정했습니다`, 'success');
+}
+
+function deleteEditItem() {
+  if (!editingItem) return;
+  const delMine = currentAuthUid
+    ? (editingItem.authorUid && editingItem.authorUid === currentAuthUid)
+    : ((editingItem.author||'') === currentUser);
+  if (!delMine) {
+    showToast('🔒 본인 작성 항목만 삭제할 수 있습니다', 'error');
+    closeEditModal();
+    return;
+  }
+  const name = editingItem.name || '이 항목';
+  if (!confirm(`"${name}" 항목을 정말 삭제하시겠습니까?`)) return;
+  const logEntry = {
+    action: 'delete',
+    itemId: editingItem.id,
+    by: currentUser,
+    at: Date.now(),
+    time: nowTime(),
+    before: {
+      name: editingItem.name||'',
+      spec: editingItem.spec||'',
+      qty: editingItem.qty||'',
+      note: editingItem.note||'',
+      author: editingItem.author||''
+    }
+  };
+  if (fbDb) {
+    fbDb.ref(`days/${currentDate}/items/${editingItem.id}`).remove();
+    fbDb.ref(`days/${currentDate}/editLog`).push(logEntry);
+  } else {
+    const day = getDayData(currentDate);
+    day.items = (day.items||[]).filter(i => i.id !== editingItem.id);
+    day.editLog = day.editLog || [];
+    day.editLog.push(logEntry);
+    allData[currentDate] = day;
+    saveData();
+    renderAll();
+  }
+  closeEditModal();
+  showToast(`🗑️ ${currentUser}님이 삭제했습니다`, 'success');
+}
+
+// ============ 자동 동기화 (다른 탭) ============
+window.addEventListener('storage', e => {
+  if (e.key === STORAGE.DATA) {
+    loadData();
+    renderAll();
+  }
+});
+
+// ============ 부팅 ============
+try {
+  initClockTicks();
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  // 2층 재고 보정 로컬 데이터 로드 (Firebase 연결 시 리스너로 덮어씀)
+  if (typeof loadFloor2AdjustmentsLocal === 'function') loadFloor2AdjustmentsLocal();
+
+  // Firebase 먼저 시도, 없으면 설정 화면 또는 로그인
+  const fbReady = tryInitFirebase();
+  const savedUser = safeLS.getItem(STORAGE.USER);
+  const fbSkipped = safeLS.getItem(STORAGE.FB_SKIPPED);
+
+  if (!fbReady && !fbSkipped) {
+    // 첫 방문 또는 Firebase 미설정 → 설정 화면
+    document.getElementById('fbSetup').style.display = 'flex';
+  } else {
+    // Auth 사용 가능 → onAuthStateChanged가 토큰 있으면 자동 로그인
+    if (fbAuth) {
+      setupAuthAutoLogin();
+      // 토큰 없으면 0.8초 후 로그인 화면 표시 (콜백 기다림)
+      setTimeout(() => {
+        if (!currentUser) showLogin();
+      }, 800);
+    } else if (savedUser) {
+      // Auth 불가 → 로컬 모드 자동 진입
+      login(savedUser);
+    } else {
+      showLogin();
+    }
+  }
+  updateConnectionUI();
+  updateSettingsFirebaseInfo();
+  updateMobileToggleVisibility();
+
+  // 검색·필터 리스너 설정
+  setupFilterListeners();
+  // 초기 대시보드 렌더
+  if (typeof renderDashboard === 'function') renderDashboard();
+
+  // iOS 키보드 대응 - 입력창 포커스 시 스크롤
+  const _chatInput = document.getElementById('chatInput');
+  if (_chatInput) {
+    _chatInput.addEventListener('focus', () => {
+      setTimeout(() => {
+        const cm = document.getElementById('chatMessages');
+        if (cm) cm.scrollTop = cm.scrollHeight;
+      }, 300);
+    });
+  }
+
+  // iOS 사파리 비공개 모드 안내 (저장 공간 없음)
+  if (!window.__lsAvailable) {
+    console.warn('[iOS] localStorage 사용 불가 — 비공개 모드로 추정. 임시 저장만 동작합니다.');
+    setTimeout(() => {
+      try {
+        const banner = document.createElement('div');
+        banner.style.cssText = 'position:fixed;bottom:12px;left:12px;right:12px;max-width:520px;margin:0 auto;z-index:999;background:#fdf6dc;border:1px solid #d4a017;color:#6b5a17;padding:10px 12px;border-radius:8px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);';
+        banner.innerHTML = '⚠️ 저장공간 제한 모드입니다 (사파리 비공개 탭 가능성). 일반 탭으로 열면 정상 동작합니다. <span style="float:right;cursor:pointer;font-weight:700;" onclick="this.parentElement.remove()">✕</span>';
+        document.body.appendChild(banner);
+      } catch (e) {}
+    }, 1500);
+  }
+
+  // 부팅 성공 — 이후 사소한 오류로 전체 화면을 가리지 않음
+  window.__bootDone = true;
+} catch (bootErr) {
+  console.error('[부팅 실패]', bootErr);
+  if (window.__showFatal) window.__showFatal(bootErr && bootErr.message ? bootErr.message : '부팅 중 오류', bootErr && bootErr.stack ? bootErr.stack : '');
+}
+
+// 매일 자정에 새 날짜로 자동 전환
+setInterval(() => {
+  const t = todayStr();
+  if (t !== currentDate) {
+    currentDate = t;
+    if (!allData[t]) allData[t] = { messages: [], items: [] };
+    saveData();
+    if (fbDb) setupFirebaseListeners(t);
+    renderAll();
+  }
+}, 60000);
+</script>
+</body>
+</html>
