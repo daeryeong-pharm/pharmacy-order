@@ -444,6 +444,145 @@ body {
   letter-spacing: 0.3px;
 }
 
+/* ============ 공지사항 박스 ============ */
+.notice-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #fffaf0 0%, #fff4e0 100%);
+  border: 1px solid #e8d5b0;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(201, 118, 61, 0.08), inset 0 1px 0 rgba(255,255,255,0.6);
+  min-width: 180px;
+  max-width: 260px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  position: relative;
+}
+.notice-box:hover {
+  background: linear-gradient(135deg, #fff5e1 0%, #ffebc9 100%);
+  border-color: #d4b37a;
+  box-shadow: 0 3px 10px rgba(201, 118, 61, 0.16);
+  transform: translateY(-1px);
+}
+.notice-box.can-edit::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #c9763d;
+  box-shadow: 0 0 0 2px #fff, 0 0 6px rgba(201, 118, 61, 0.5);
+}
+.notice-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 3px;
+}
+.notice-pin {
+  font-size: 11px;
+  line-height: 1;
+}
+.notice-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a5a2b;
+  letter-spacing: 0.3px;
+  flex: 1;
+}
+.notice-edit-icon {
+  font-size: 11px;
+  color: #c9763d;
+  font-weight: 600;
+}
+.notice-content {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #3d2f1f;
+  line-height: 1.35;
+  max-height: 34px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.notice-content.empty {
+  color: #b59880;
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* 공지사항 보기/편집 모달 */
+.notice-modal-body {
+  padding: 0 18px 14px;
+}
+.notice-view-text {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #2d2a26;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #fffaf0;
+  border: 1px solid #f0e4cd;
+  border-radius: 10px;
+  padding: 14px 16px;
+  min-height: 80px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.notice-view-text.empty {
+  color: #a08a70;
+  font-style: italic;
+  text-align: center;
+  padding: 30px 16px;
+}
+.notice-meta {
+  font-size: 11px;
+  color: #8a7560;
+  margin-top: 8px;
+  text-align: right;
+}
+.notice-textarea {
+  width: 100%;
+  min-height: 140px;
+  max-height: 40vh;
+  padding: 12px 14px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #2d2a26;
+  background: #fffefb;
+  border: 1.5px solid #e8d5b0;
+  border-radius: 10px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.notice-textarea:focus {
+  border-color: #c9763d;
+  box-shadow: 0 0 0 3px rgba(201, 118, 61, 0.12);
+}
+.notice-readonly-hint {
+  font-size: 11px;
+  color: #8a7560;
+  background: #fff5e1;
+  border: 1px solid #f0d9a8;
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-top: 10px;
+  text-align: center;
+}
+
 /* ================= 탭 ================= */
 .tabs {
   display: flex;
@@ -1585,6 +1724,11 @@ body.pdf-rendering .a4-page {
   .digital-clock .dc-hm { font-size: 18px; }
   .digital-clock .dc-sec { font-size: 11px; min-width: 18px; }
   .digital-date { font-size: 9.5px; margin-top: 2px; }
+  .notice-box { min-width: 120px; max-width: 160px; padding: 4px 9px; }
+  .notice-title { font-size: 10px; }
+  .notice-pin { font-size: 10px; }
+  .notice-content { font-size: 11px; max-height: 30px; -webkit-line-clamp: 2; }
+  .header-right { gap: 6px; }
 
   /* 탭 */
   .tabs { padding: 0 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -1869,6 +2013,8 @@ body.pdf-rendering .a4-page {
   .header { padding: 4px 12px; }
   .clock-block { padding: 3px 8px; min-width: 80px; }
   .digital-clock .dc-hm { font-size: 15px; }
+  .notice-box { min-width: 100px; max-width: 140px; padding: 3px 8px; }
+  .notice-content { font-size: 10.5px; max-height: 26px; }
   .tab { padding: 6px 14px; }
 }
 
@@ -1967,6 +2113,14 @@ body.pdf-rendering .a4-page {
     </div>
     <div class="header-center">대령약국 의약품 주문 시스템</div>
     <div class="header-right">
+      <div class="notice-box" id="noticeBox" onclick="openNoticeView()" title="공지사항">
+        <div class="notice-header">
+          <span class="notice-pin">📌</span>
+          <span class="notice-title">공지사항</span>
+          <span class="notice-edit-icon" id="noticeEditIcon" style="display:none;">✎</span>
+        </div>
+        <div class="notice-content" id="noticeContent">공지사항이 없습니다</div>
+      </div>
       <div class="clock-block">
         <div class="digital-clock" id="digitalTime">
           <span class="dc-hm">--:--</span><span class="dc-sec">--</span>
@@ -2219,6 +2373,42 @@ body.pdf-rendering .a4-page {
   </div><!-- /.app-body -->
 </div>
 
+<!-- 공지사항 보기 모달 -->
+<div class="modal-backdrop" id="noticeViewModal" style="display:none;" onclick="if(event.target===this)closeNoticeViewModal()">
+  <div class="modal" style="max-width:560px; width:94%;">
+    <div class="modal-head">
+      <span>📌 공지사항</span>
+      <button class="modal-close" onclick="closeNoticeViewModal()">✕</button>
+    </div>
+    <div class="notice-modal-body">
+      <div class="notice-view-text" id="noticeViewText">공지사항이 없습니다</div>
+      <div class="notice-meta" id="noticeViewMeta"></div>
+    </div>
+    <div class="modal-foot" id="noticeViewFoot">
+      <button class="modal-btn" onclick="closeNoticeViewModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 공지사항 편집 모달 (백승준 약국장 전용) -->
+<div class="modal-backdrop" id="noticeEditModal" style="display:none;" onclick="if(event.target===this)closeNoticeEditModal()">
+  <div class="modal" style="max-width:560px; width:94%;">
+    <div class="modal-head">
+      <span>✏️ 공지사항 작성 · 수정</span>
+      <button class="modal-close" onclick="closeNoticeEditModal()">✕</button>
+    </div>
+    <div class="notice-modal-body">
+      <textarea class="notice-textarea" id="noticeEditText" placeholder="전 직원에게 공유할 공지 내용을 입력하세요.&#10;예) 오늘 2시에 전체 미팅 있습니다.&#10;&#10;• 줄바꿈 사용 가능&#10;• 실시간으로 모든 직원 화면에 반영됩니다"></textarea>
+      <div class="notice-readonly-hint">🔒 약국장(백승준)만 수정 가능 · 모든 직원에게 실시간 공유됩니다</div>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn danger" onclick="clearNotice()" style="margin-right:auto;">🗑 비우기</button>
+      <button class="modal-btn" onclick="closeNoticeEditModal()">취소</button>
+      <button class="modal-btn primary" onclick="saveNotice()">저장</button>
+    </div>
+  </div>
+</div>
+
 <!-- 2층 재고 보정 이력 모달 (Undo 기능) -->
 <div class="modal-backdrop" id="floor2HistModal" style="display:none;" onclick="if(event.target===this)closeFloor2HistModal()">
   <div class="modal" style="max-width:640px; width:94%;">
@@ -2317,6 +2507,7 @@ const STORAGE = {
   DATA: 'dr_pharm_data', // { 'YYYY-MM-DD': { messages: [], items: [] } }
   FB_CONFIG: 'dr_pharm_fb_config',
   FB_SKIPPED: 'dr_pharm_fb_skipped',
+  NOTICE: 'dr_pharm_notice', // { text, updatedAt, author }
 };
 
 let currentUser = null;
@@ -2509,6 +2700,10 @@ function setupFirebaseForUser() {
   if (typeof setupFloor2AdjustmentsListener === 'function') {
     setupFloor2AdjustmentsListener();
   }
+  // 공지사항 실시간 동기화
+  if (typeof setupNoticeListener === 'function') {
+    setupNoticeListener();
+  }
 }
 
 function detachFirebaseListeners() {
@@ -2526,6 +2721,10 @@ function detachFirebaseListeners() {
   if (typeof fbFloor2Ref !== 'undefined' && fbFloor2Ref) {
     try { fbFloor2Ref.off(); } catch (e) {}
     fbFloor2Ref = null;
+  }
+  if (typeof fbNoticeRef !== 'undefined' && fbNoticeRef) {
+    try { fbNoticeRef.off(); } catch (e) {}
+    fbNoticeRef = null;
   }
 }
 
@@ -2751,12 +2950,14 @@ function login(name) {
   document.getElementById('userAvatar').textContent = name.slice(-2);
   document.getElementById('userAvatar').style.background = colorFromName(name);
   loadData();
+  if (typeof loadNoticeFromLS === 'function') loadNoticeFromLS();
   if (fbDb) {
     setupFirebaseForUser();
   }
   addSystemMessage(`${name}님이 입장하셨습니다`);
   updateConnectionUI();
   renderAll();
+  if (typeof renderNoticeBox === 'function') renderNoticeBox();
 }
 
 async function logout() {
@@ -4024,6 +4225,202 @@ function setupFloor2AdjustmentsListener() {
     renderAll();
     renderFloor2Admin();
   });
+}
+
+/* ============ 공지사항 (약국장 백승준 전용 편집) ============ */
+const NOTICE_OWNER = '백승준';   // 이 이름(=currentUser)만 쓰기/수정 가능
+const NOTICE_OWNER_UID = 'bhgORSzZ23dlNUfZmDPBe3IsnPN2'; // 안전 이중 체크용
+let noticeState = { text: '', updatedAt: 0, author: '' };
+let fbNoticeRef = null;
+
+function canEditNotice() {
+  // 이름 또는 UID 둘 중 하나라도 일치하면 허용 (이중 안전장치)
+  if (currentUser === NOTICE_OWNER) return true;
+  if (typeof currentAuthUid !== 'undefined' && currentAuthUid === NOTICE_OWNER_UID) return true;
+  return false;
+}
+
+function loadNoticeFromLS() {
+  try {
+    const raw = safeLS.getItem(STORAGE.NOTICE);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        noticeState = {
+          text: String(parsed.text || ''),
+          updatedAt: Number(parsed.updatedAt || 0),
+          author: String(parsed.author || '')
+        };
+      }
+    }
+  } catch (e) { noticeState = { text: '', updatedAt: 0, author: '' }; }
+}
+
+function saveNoticeToLS() {
+  try { safeLS.setItem(STORAGE.NOTICE, JSON.stringify(noticeState)); } catch (e) {}
+}
+
+function setupNoticeListener() {
+  if (!fbDb) return;
+  if (fbNoticeRef) { try { fbNoticeRef.off(); } catch (e) {} }
+  fbNoticeRef = fbDb.ref('notice');
+  fbNoticeRef.on('value', snap => {
+    const val = snap.val();
+    if (val && typeof val === 'object') {
+      noticeState = {
+        text: String(val.text || ''),
+        updatedAt: Number(val.updatedAt || 0),
+        author: String(val.author || '')
+      };
+    } else {
+      noticeState = { text: '', updatedAt: 0, author: '' };
+    }
+    saveNoticeToLS();
+    renderNoticeBox();
+  });
+}
+
+function formatNoticeTime(ts) {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${y}.${m}.${day} ${hh}:${mm}`;
+  } catch (e) { return ''; }
+}
+
+function renderNoticeBox() {
+  const box = document.getElementById('noticeBox');
+  const content = document.getElementById('noticeContent');
+  const editIcon = document.getElementById('noticeEditIcon');
+  if (!box || !content) return;
+
+  const text = (noticeState.text || '').trim();
+  if (text) {
+    content.textContent = text;
+    content.classList.remove('empty');
+  } else {
+    content.textContent = canEditNotice() ? '클릭하여 공지 작성' : '공지사항이 없습니다';
+    content.classList.add('empty');
+  }
+
+  if (canEditNotice()) {
+    box.classList.add('can-edit');
+    if (editIcon) editIcon.style.display = 'inline';
+  } else {
+    box.classList.remove('can-edit');
+    if (editIcon) editIcon.style.display = 'none';
+  }
+}
+
+function openNoticeView() {
+  // 약국장이 빈 공지를 클릭하면 바로 편집 모달, 그 외는 보기 모달
+  const text = (noticeState.text || '').trim();
+  if (canEditNotice() && !text) {
+    openNoticeEditModal();
+    return;
+  }
+
+  const viewText = document.getElementById('noticeViewText');
+  const viewMeta = document.getElementById('noticeViewMeta');
+  const viewFoot = document.getElementById('noticeViewFoot');
+
+  if (text) {
+    viewText.textContent = text;
+    viewText.classList.remove('empty');
+  } else {
+    viewText.textContent = '공지사항이 없습니다';
+    viewText.classList.add('empty');
+  }
+
+  if (noticeState.updatedAt) {
+    const who = noticeState.author ? ` · ${noticeState.author}` : '';
+    viewMeta.textContent = `최종 수정: ${formatNoticeTime(noticeState.updatedAt)}${who}`;
+  } else {
+    viewMeta.textContent = '';
+  }
+
+  // 약국장이면 '수정' 버튼 추가
+  if (viewFoot) {
+    if (canEditNotice()) {
+      viewFoot.innerHTML = `
+        <button class="modal-btn" onclick="closeNoticeViewModal()">닫기</button>
+        <button class="modal-btn primary" onclick="closeNoticeViewModal(); openNoticeEditModal();">✏️ 수정</button>
+      `;
+    } else {
+      viewFoot.innerHTML = `<button class="modal-btn" onclick="closeNoticeViewModal()">닫기</button>`;
+    }
+  }
+
+  document.getElementById('noticeViewModal').style.display = 'flex';
+}
+
+function closeNoticeViewModal() {
+  const m = document.getElementById('noticeViewModal');
+  if (m) m.style.display = 'none';
+}
+
+function openNoticeEditModal() {
+  if (!canEditNotice()) {
+    alert('⛔ 공지사항은 약국장(' + NOTICE_OWNER + ')만 작성·수정할 수 있습니다.');
+    return;
+  }
+  const ta = document.getElementById('noticeEditText');
+  if (ta) ta.value = noticeState.text || '';
+  document.getElementById('noticeEditModal').style.display = 'flex';
+  setTimeout(() => { if (ta) ta.focus(); }, 50);
+}
+
+function closeNoticeEditModal() {
+  const m = document.getElementById('noticeEditModal');
+  if (m) m.style.display = 'none';
+}
+
+function saveNotice() {
+  if (!canEditNotice()) {
+    alert('⛔ 권한이 없습니다.');
+    return;
+  }
+  const ta = document.getElementById('noticeEditText');
+  const newText = (ta ? ta.value : '').trim();
+  const payload = {
+    text: newText,
+    updatedAt: Date.now(),
+    author: currentUser || NOTICE_OWNER
+  };
+
+  // Firebase가 연결되어 있으면 Firebase에 저장 (리스너가 renderNoticeBox 호출)
+  if (fbDb) {
+    fbDb.ref('notice').set(payload)
+      .then(() => { closeNoticeEditModal(); })
+      .catch(err => { alert('저장 실패: ' + (err && err.message ? err.message : err)); });
+  } else {
+    // 오프라인: 로컬에만 반영
+    noticeState = payload;
+    saveNoticeToLS();
+    renderNoticeBox();
+    closeNoticeEditModal();
+  }
+}
+
+function clearNotice() {
+  if (!canEditNotice()) return;
+  if (!confirm('공지사항을 비우시겠습니까?')) return;
+  const payload = { text: '', updatedAt: Date.now(), author: currentUser || NOTICE_OWNER };
+  if (fbDb) {
+    fbDb.ref('notice').set(payload)
+      .then(() => { closeNoticeEditModal(); })
+      .catch(err => { alert('저장 실패: ' + (err && err.message ? err.message : err)); });
+  } else {
+    noticeState = payload;
+    saveNoticeToLS();
+    renderNoticeBox();
+    closeNoticeEditModal();
+  }
 }
 
 // ============ 2층 재고 관리 UI ============
