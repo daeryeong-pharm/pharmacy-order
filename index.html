@@ -2467,7 +2467,7 @@ body.pdf-rendering .a4-page {
             <span style="font-size:10.5px;color:var(--text-muted);">Firebase Console에서 Auth 계정 먼저 만들고 UID 확보</span>
           </div>
         </div>
-        <div class="settings-card" id="medDictCard" style="display:none;">
+        <div class="settings-card" id="medDictCard">
           <h3>📘 약품 사전 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(주문 이력 기반 자동 구축)</span></h3>
           <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
             최근 180일 주문 이력을 분석해 약품 계열·변형·규격·수량·비고 조합을 학습합니다.<br>
@@ -3944,7 +3944,15 @@ function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-'+name));
   if (name === 'history') renderHistory();
-  if (name === 'settings') updateSettingsFirebaseInfo();
+  if (name === 'settings') {
+    updateSettingsFirebaseInfo();
+    // 약국장 전용 카드들 재렌더 (권한 체크 재실행)
+    if (typeof renderMedDictAdmin === 'function') renderMedDictAdmin();
+    if (typeof renderEmployeesAdmin === 'function') renderEmployeesAdmin();
+    if (typeof renderBackupMeta === 'function') renderBackupMeta();
+    if (typeof renderDataMgmtCard === 'function') renderDataMgmtCard();
+    if (typeof renderFloor2Meta === 'function') renderFloor2Meta();
+  }
   updateMobileToggleVisibility();
 }
 
