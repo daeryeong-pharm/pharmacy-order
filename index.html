@@ -1091,6 +1091,79 @@ body {
   animation: floor2HintPulse 1.6s ease-in-out infinite;
 }
 .floor2-hint b { color: #991b1b; }
+
+/* ============ 칩 프리뷰 (주문 입력 미리보기) ============ */
+.chip-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #fffaf0;
+  border: 1px solid #e8d5b0;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 4px 10px;
+  background: #fff;
+  border: 1.5px solid #d4b37a;
+  border-radius: 18px;
+  font-size: 12px;
+  color: #3d2f1f;
+  cursor: pointer;
+  transition: all 0.12s;
+  user-select: none;
+}
+.chip:hover { border-color: #c9763d; background: #fff5e1; }
+.chip-ico { font-size: 11px; opacity: 0.85; }
+.chip-val { font-weight: 600; }
+.chip-del {
+  margin-left: 2px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: #f3e8d8;
+  color: #8a5a2b;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+}
+.chip-del:hover { background: #fee2e2; color: #991b1b; }
+.chip[data-field="name"] { border-color: #c9763d; background: #fff5e1; }
+.chip[data-field="spec"] { border-color: #0d9488; background: #f0fdfa; color: #134e4a; }
+.chip[data-field="qty"]  { border-color: #6366f1; background: #eef2ff; color: #312e81; }
+.chip[data-field="note"] { border-color: #991b1b; background: #fef2f2; color: #7f1d1d; }
+
+.autocomplete-item.ac-tmpl { background: #fffaf0; border-left: 3px solid #c9763d; }
+.autocomplete-item.ac-tmpl .autocomplete-name { color: #78350f; font-weight: 700; }
+.ac-tmpl-row { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: 6px; vertical-align: middle; }
+.ac-tmpl-part {
+  display: inline-block; padding: 1px 6px; font-size: 10.5px;
+  background: #f3e8d8; color: #5d4a33; border-radius: 10px; font-weight: 500;
+}
+.chip-picker-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 6px;
+}
+.chip-picker-btn {
+  padding: 10px 10px;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  background: #fff; cursor: pointer;
+  font-family: inherit; font-size: 13px; color: #1f2937;
+  display: flex; justify-content: space-between; align-items: center;
+  transition: all 0.12s;
+}
+.chip-picker-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+.chip-picker-btn.active { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+.chip-picker-lbl { font-weight: 600; }
+.chip-picker-cnt { font-size: 10.5px; color: #6b7280; font-weight: 500; }
 @keyframes floor2HintPulse {
   0%, 100% { border-color: #dc2626; }
   50%      { border-color: #ef4444; box-shadow: 0 0 0 2px rgba(220,38,38,0.18), 0 1px 4px rgba(220,38,38,0.25); }
@@ -2394,6 +2467,18 @@ body.pdf-rendering .a4-page {
             <span style="font-size:10.5px;color:var(--text-muted);">Firebase Console에서 Auth 계정 먼저 만들고 UID 확보</span>
           </div>
         </div>
+        <div class="settings-card" id="medDictCard" style="display:none;">
+          <h3>📘 약품 사전 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(주문 이력 기반 자동 구축)</span></h3>
+          <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+            최근 180일 주문 이력을 분석해 약품 계열·변형·규격·수량·비고 조합을 학습합니다.<br>
+            각 주문 전송 시 실시간 반영되며, 모든 직원 자동완성에 최상위로 노출됩니다.
+          </p>
+          <div id="medDictStats" style="font-size:11.5px; color:#5d4a33; line-height:1.6; padding:8px 12px; background:#fffaf0; border:1px solid #e8d5b0; border-radius:8px; margin-bottom:8px;">-</div>
+          <div class="settings-row">
+            <button class="hist-btn" onclick="manualRebuildMedDict()">🔄 사전 재구축 (180일 전체 재분석)</button>
+            <span style="font-size:10.5px;color:var(--text-muted);">신규 주문은 자동 학습되므로 평소엔 불필요</span>
+          </div>
+        </div>
         <div class="settings-card">
           <h3>🗂 데이터 백업 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(주 1회 권장)</span></h3>
           <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
@@ -2440,7 +2525,8 @@ body.pdf-rendering .a4-page {
       <div class="chat-input-area">
         <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
         <div class="floor2-hint" id="floor2Hint" style="display:none;"></div>
-        <div class="input-help">형식: <b>의약품명 규격 갯수 비고</b> &nbsp; (공백 1칸=다음칸 · <b>공백 2칸=빈칸 건너뛰기</b> · 또는 <code>-</code> <code>,</code>) &nbsp; <span style="color:var(--text-muted);">※ 용량·제형은 <b>붙여서</b> 의약품명에 포함 (예: 타이레놀정500미리, 립스타플러스10/10)</span></div>
+        <div class="chip-preview" id="chipPreview" style="display:none;"></div>
+        <div class="input-help">형식: <b>의약품명 규격 갯수 비고</b> &nbsp; (공백 1칸=다음칸 · <b>공백 2칸=빈칸 건너뛰기</b>) &nbsp; <span style="color:var(--text-muted);">※ 칩 탭=변경 · × 탭=해당 필드 제거</span></div>
         <div class="chat-input-row">
           <textarea class="chat-input" id="chatInput" placeholder="예: 타이레놀정500미리 500정 1개 급송"></textarea>
           <button class="send-btn" id="sendBtn">전송</button>
@@ -2450,6 +2536,17 @@ body.pdf-rendering .a4-page {
   </aside>
 
   </div><!-- /.app-body -->
+</div>
+
+<!-- 칩 교체 피커 모달 -->
+<div class="modal-backdrop" id="chipPickerModal" style="display:none;" onclick="if(event.target===this)closeChipPicker()">
+  <div class="modal" style="max-width:460px; width:94%;">
+    <div class="modal-head">
+      <span id="chipPickerTitle">선택</span>
+      <button class="modal-close" onclick="closeChipPicker()">✕</button>
+    </div>
+    <div class="modal-body" id="chipPickerBody" style="padding:14px 16px;"></div>
+  </div>
 </div>
 
 <!-- 직원 추가·수정 모달 -->
@@ -2842,6 +2939,12 @@ function setupFirebaseListeners(date) {
     const items = val.items ? Object.entries(val.items).map(([k,v]) => ({id:k,...v})) : [];
     msgs.sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
     items.sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
+    // 약품 사전: 새로 들어온 items만 incremental 업데이트
+    if (typeof updateMedDictIncremental === 'function') {
+      const prev = (allData[date] && allData[date].items) || [];
+      const prevIds = new Set(prev.map(it => it && it.id));
+      items.forEach(it => { if (it && it.id && !prevIds.has(it.id)) { try { updateMedDictIncremental(it); } catch(e){} } });
+    }
     allData[date] = { messages: msgs, items };
     if (date === currentDate) renderAll();
   });
@@ -3065,8 +3168,15 @@ function login(name) {
   if (typeof renderEmployeesAdmin === 'function') renderEmployeesAdmin();
   if (typeof renderBackupMeta === 'function') renderBackupMeta();
   if (typeof renderDataMgmtCard === 'function') renderDataMgmtCard();
+  if (typeof renderMedDictAdmin === 'function') renderMedDictAdmin();
   if (typeof seedEmployeesIfMissing === 'function') seedEmployeesIfMissing();
   if (typeof checkBackupReminder === 'function') checkBackupReminder();
+  // 약품 사전: allData 로딩 후 재구축
+  setTimeout(function() {
+    if (typeof rebuildMedDict === 'function') {
+      try { rebuildMedDict(); if (typeof renderMedDictAdmin === 'function') renderMedDictAdmin(); } catch(e){}
+    }
+  }, fbDb ? 3000 : 500);
 }
 
 async function logout() {
@@ -3285,6 +3395,9 @@ function addMessage(text) {
     allData[currentDate] = day;
     saveData();
     renderAll();
+    if (typeof updateMedDictIncremental === 'function') {
+      try { updateMedDictIncremental(listItem); } catch(e){}
+    }
   }
 }
 
@@ -3395,7 +3508,7 @@ function updateFloor2Hint(inputEl) {
 (function () {
   const inp = document.getElementById('chatInput');
   if (!inp) return;
-  const trigger = () => { showAutocomplete(inp); updateFloor2Hint(inp); };
+  const trigger = () => { showAutocomplete(inp); updateFloor2Hint(inp); if (typeof renderChipPreview === 'function') renderChipPreview(); };
   inp.addEventListener('input', trigger);
   inp.addEventListener('keyup', (e) => {
     // 방향키·스페이스로 토큰 이동 시 재계산
@@ -4948,6 +5061,429 @@ function clearNotice() {
   }
 }
 
+/* ============ 약품 사전 & 주문 템플릿 (6개월 이력 기반) ============ */
+// 설계: allData(Firebase /days)에서 파생된 뷰. 별도 Firebase 경로 없음.
+// - 최근 180일치 주문 분석
+// - 완전체 조합 (name|spec|qty|note) 카운트
+// - 계열(base) ↔ 변형(dose) 분리 저장
+// - 신규 주문 수신 시 incremental 업데이트
+// - 모든 기기에서 동일 파생 (allData가 Firebase로 공유되므로)
+
+const MED_DICT_CACHE_KEY = 'dr_pharm_med_dict_v1';
+const MED_DICT_WINDOW_DAYS = 180;
+const MED_DICT_TOP_N = 5;
+
+let medDict = { bases: {}, templates: [], lastBuild: 0 };
+
+function loadMedDictLocal() {
+  try {
+    const raw = safeLS.getItem(MED_DICT_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.bases) medDict = parsed;
+    }
+  } catch (e) {}
+}
+
+function saveMedDictLocal() {
+  try { safeLS.setItem(MED_DICT_CACHE_KEY, JSON.stringify(medDict)); } catch(e){}
+}
+
+// 약품명에서 base(계열)와 variant(용량) 분리
+// 예: "립스타플러스10/10" → { base: "립스타플러스", dose: "10/10" }
+// 예: "이모튼"         → { base: "이모튼",         dose: "" }
+// 예: "타이레놀정500미리" → { base: "타이레놀정",   dose: "500미리" }
+function extractBaseAndVariant(fullName) {
+  if (!fullName) return { base: '', dose: '' };
+  const s = String(fullName).trim();
+  // 패턴 1: 끝이 숫자/숫자/... 형태 (복합 용량: 10/10, 5/20, 10/160)
+  let m = s.match(/^(.+?)(\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)+)$/);
+  if (m && m[1].length >= 2) return { base: m[1].trim(), dose: m[2] };
+  // 패턴 2: 끝이 "숫자+단위" (500미리, 100mg, 0.5mcg 등)
+  m = s.match(/^(.+?)(\d+(?:\.\d+)?(?:mg|미리|mcg|μg|g|%|ml|밀리|mL|iu))$/i);
+  if (m && m[1].length >= 2) return { base: m[1].trim(), dose: m[2] };
+  // 패턴 3: 끝이 단순 숫자 (주의: 흔히 오인 ex. '타이레놀500' 는 500이 dose)
+  m = s.match(/^(.+?[가-힣a-zA-Z])(\d+(?:\.\d+)?)$/);
+  if (m && m[1].length >= 2) return { base: m[1].trim(), dose: m[2] };
+  // 기본: 전체를 base로
+  return { base: s, dose: '' };
+}
+
+function normalizeBaseName(name) {
+  return String(name || '').toLowerCase().replace(/[\s\(\)\*×x·\-_\.%,]/g, '');
+}
+
+// 6개월치 allData 분석해서 medDict 재구축
+function rebuildMedDict() {
+  const cutoff = Date.now() - MED_DICT_WINDOW_DAYS * 86400000;
+  const templates = {};
+  const bases = {};
+
+  Object.entries(allData || {}).forEach(([date, day]) => {
+    const items = (day && day.items) || [];
+    items.forEach(it => {
+      if (!it || !it.name) return;
+      if ((it.timestamp || 0) < cutoff) return;
+      const name = String(it.name).trim();
+      const spec = String(it.spec || '').trim();
+      const qty = String(it.qty || '').trim();
+      const note = String(it.note || '').trim();
+      if (!name) return;
+
+      const key = name + '|' + spec + '|' + qty + '|' + note;
+      if (!templates[key]) {
+        templates[key] = { name: name, spec: spec, qty: qty, note: note, count: 0, lastUsed: 0 };
+      }
+      templates[key].count++;
+      if ((it.timestamp || 0) > templates[key].lastUsed) {
+        templates[key].lastUsed = it.timestamp || 0;
+      }
+
+      const bv = extractBaseAndVariant(name);
+      const base = bv.base; const dose = bv.dose;
+      if (!base) return;
+      const bnorm = normalizeBaseName(base);
+      if (!bases[bnorm]) {
+        bases[bnorm] = { displayName: base, variants: {}, specs: {}, qtys: {}, notes: {}, count: 0, fullNames: {} };
+      }
+      const b = bases[bnorm];
+      b.count++;
+      b.fullNames[name] = (b.fullNames[name] || 0) + 1;
+      if (dose) b.variants[dose] = (b.variants[dose] || 0) + 1;
+      if (spec) b.specs[spec] = (b.specs[spec] || 0) + 1;
+      if (qty) b.qtys[qty] = (b.qtys[qty] || 0) + 1;
+      if (note) b.notes[note] = (b.notes[note] || 0) + 1;
+    });
+  });
+
+  const templatesArr = Object.values(templates).sort((a, b) => b.count - a.count);
+
+  medDict = {
+    bases: bases,
+    templates: templatesArr,
+    lastBuild: Date.now()
+  };
+  saveMedDictLocal();
+  if (typeof renderMedDictAdmin === 'function') renderMedDictAdmin();
+}
+
+// 신규 주문 1건 incremental update (실시간)
+function updateMedDictIncremental(item) {
+  if (!item || !item.name) return;
+  const name = String(item.name).trim();
+  const spec = String(item.spec || '').trim();
+  const qty = String(item.qty || '').trim();
+  const note = String(item.note || '').trim();
+  if (!name) return;
+
+  if (!medDict || !medDict.templates) medDict = { bases: {}, templates: [], lastBuild: 0 };
+
+  let template = null;
+  for (let i = 0; i < medDict.templates.length; i++) {
+    const t = medDict.templates[i];
+    if (t.name === name && t.spec === spec && t.qty === qty && t.note === note) {
+      template = t; break;
+    }
+  }
+  if (template) {
+    template.count = (template.count || 0) + 1;
+    template.lastUsed = Date.now();
+  } else {
+    medDict.templates.push({ name: name, spec: spec, qty: qty, note: note, count: 1, lastUsed: Date.now() });
+  }
+  medDict.templates.sort((a, b) => (b.count || 0) - (a.count || 0));
+
+  const bv = extractBaseAndVariant(name);
+  const base = bv.base; const dose = bv.dose;
+  if (base) {
+    const bnorm = normalizeBaseName(base);
+    if (!medDict.bases[bnorm]) {
+      medDict.bases[bnorm] = { displayName: base, variants: {}, specs: {}, qtys: {}, notes: {}, count: 0, fullNames: {} };
+    }
+    const b = medDict.bases[bnorm];
+    b.count = (b.count || 0) + 1;
+    b.fullNames[name] = (b.fullNames[name] || 0) + 1;
+    if (dose) b.variants[dose] = (b.variants[dose] || 0) + 1;
+    if (spec) b.specs[spec] = (b.specs[spec] || 0) + 1;
+    if (qty) b.qtys[qty] = (b.qtys[qty] || 0) + 1;
+    if (note) b.notes[note] = (b.notes[note] || 0) + 1;
+  }
+  saveMedDictLocal();
+}
+
+// 사용자 타이핑 기준 상위 템플릿 추천 (빈도 + 최근성 스코어)
+function getTemplateRecommendations(query, limit) {
+  limit = limit || MED_DICT_TOP_N;
+  if (!medDict || !medDict.templates) return [];
+  const q = normalizeMedName(query || '');
+  if (!q || q.length < 1) return [];
+  const now = Date.now();
+  const matches = [];
+  for (let i = 0; i < medDict.templates.length; i++) {
+    const t = medDict.templates[i];
+    const n = normalizeMedName(t.name);
+    if (n.includes(q) || n.startsWith(q)) {
+      const ageDays = (now - (t.lastUsed || 0)) / 86400000;
+      const recencyBoost = Math.max(0, 30 - ageDays) / 30;
+      matches.push({ t: t, score: (t.count || 0) + recencyBoost * 5 });
+    }
+  }
+  matches.sort((a, b) => b.score - a.score);
+  return matches.slice(0, limit).map(x => x.t);
+}
+
+// 특정 base의 상위 변형들
+function getVariantsForBase(baseName) {
+  const bnorm = normalizeBaseName(baseName);
+  const b = medDict.bases[bnorm];
+  if (!b) return [];
+  return Object.entries(b.variants || {})
+    .sort((a, b) => b[1] - a[1])
+    .map(x => ({ dose: x[0], count: x[1] }));
+}
+
+// 특정 base의 상위 규격
+function getSpecsForBase(baseName) {
+  const bnorm = normalizeBaseName(baseName);
+  const b = medDict.bases[bnorm];
+  if (!b) return [];
+  return Object.entries(b.specs || {})
+    .sort((a, b) => b[1] - a[1])
+    .map(x => ({ value: x[0], count: x[1] }));
+}
+
+// 사전 통계
+function getMedDictStats() {
+  const bases = (medDict && medDict.bases) || {};
+  const templates = (medDict && medDict.templates) || [];
+  return {
+    baseCount: Object.keys(bases).length,
+    templateCount: templates.length,
+    lastBuild: (medDict && medDict.lastBuild) || 0,
+    totalOrdersAnalyzed: templates.reduce((s, t) => s + (t.count || 0), 0)
+  };
+}
+
+/* ============ 칩(Chip) 프리뷰 UI ============ */
+// 현재 chatInput 내용을 parseMedication으로 분석해 칩 표시
+// 칩 × 버튼으로 해당 필드만 제거, 칩 탭으로 교체 피커
+
+function renderChipPreview() {
+  const preview = document.getElementById('chipPreview');
+  const input = document.getElementById('chatInput');
+  if (!preview || !input) return;
+  const text = input.value || '';
+  if (!text.trim()) {
+    preview.style.display = 'none';
+    preview.innerHTML = '';
+    return;
+  }
+  let parsed;
+  try { parsed = parseMedication(text); } catch (e) { parsed = null; }
+  if (!parsed || !parsed.name) {
+    preview.style.display = 'none';
+    return;
+  }
+
+  const chips = [];
+  if (parsed.name) chips.push({ field: 'name', label: '💊', value: parsed.name });
+  if (parsed.spec) chips.push({ field: 'spec', label: '📦', value: parsed.spec });
+  if (parsed.qty)  chips.push({ field: 'qty',  label: '#',  value: parsed.qty });
+  if (parsed.note) chips.push({ field: 'note', label: '📝', value: parsed.note });
+
+  preview.innerHTML = chips.map(c =>
+    '<span class="chip" data-field="' + c.field + '" data-value="' + escapeHtml(c.value) + '">' +
+    '<span class="chip-ico">' + c.label + '</span>' +
+    '<span class="chip-val">' + escapeHtml(c.value) + '</span>' +
+    '<button class="chip-del" title="이 필드만 지우기" data-field="' + c.field + '">×</button>' +
+    '</span>'
+  ).join('');
+  preview.style.display = 'flex';
+
+  preview.querySelectorAll('.chip-del').forEach(btn => {
+    btn.addEventListener('mousedown', (ev) => { ev.preventDefault(); removeChipField(btn.dataset.field); });
+    btn.addEventListener('touchstart', (ev) => { ev.preventDefault(); removeChipField(btn.dataset.field); }, { passive: false });
+  });
+  preview.querySelectorAll('.chip').forEach(el => {
+    el.addEventListener('mousedown', (ev) => {
+      if (ev.target.classList.contains('chip-del')) return;
+      ev.preventDefault();
+      openChipPicker(el.dataset.field, el.dataset.value);
+    });
+  });
+}
+
+function removeChipField(field) {
+  const input = document.getElementById('chatInput');
+  if (!input) return;
+  let parsed;
+  try { parsed = parseMedication(input.value || ''); } catch (e) { parsed = null; }
+  if (!parsed) return;
+  if (field === 'name') parsed.name = '';
+  if (field === 'spec') parsed.spec = '';
+  if (field === 'qty')  parsed.qty  = '';
+  if (field === 'note') parsed.note = '';
+  // 재조립 — 빈 슬롯은 공백 2개로 건너뛰기 패턴으로 유지
+  const parts = [parsed.name, parsed.spec, parsed.qty, parsed.note];
+  // 뒤쪽부터 빈 슬롯 제거 (명시된 빈 슬롯만 유지)
+  while (parts.length > 0 && !parts[parts.length - 1]) parts.pop();
+  let rebuilt;
+  if (parts.includes('')) {
+    // 중간에 빈 슬롯이 있으면 공백 2개 패턴 사용
+    rebuilt = parts.map(p => p || '').map((p, i) =>
+      p || (i < parts.length - 1 ? '' : '')
+    ).join(' ');
+    // 연속 빈 토큰 처리
+    rebuilt = '';
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (i === 0) rebuilt += (p || '');
+      else if (p) rebuilt += ' ' + p;
+      else rebuilt += '  '; // 빈 슬롯 → 공백 2개로 다음 슬롯 건너뜀
+    }
+  } else {
+    rebuilt = parts.filter(Boolean).join(' ');
+  }
+  input.value = rebuilt;
+  renderChipPreview();
+}
+
+function openChipPicker(field, curValue) {
+  // 현재 입력된 약품명에서 base 뽑아서 해당 base의 옵션 가져오기
+  const input = document.getElementById('chatInput');
+  let parsed;
+  try { parsed = parseMedication(input.value || ''); } catch (e) { parsed = null; }
+  const curName = (parsed && parsed.name) || '';
+  const bv = extractBaseAndVariant(curName);
+  const base = bv.base;
+
+  const modal = document.getElementById('chipPickerModal');
+  const title = document.getElementById('chipPickerTitle');
+  const body = document.getElementById('chipPickerBody');
+  if (!modal || !body) return;
+
+  let html = '';
+  let options = [];
+  if (field === 'name') {
+    // 같은 base의 다른 변형들
+    title.textContent = '💊 약품명 변경 (' + (base || '전체') + ')';
+    if (base) {
+      const variants = getVariantsForBase(base);
+      if (variants.length > 0) {
+        options = variants.map(v => ({ value: base + v.dose, label: v.dose || base, count: v.count }));
+      }
+      // 등록된 full names
+      const bnorm = normalizeBaseName(base);
+      const fullNames = medDict.bases[bnorm] && medDict.bases[bnorm].fullNames;
+      if (fullNames) {
+        const full = Object.entries(fullNames).sort((a, b) => b[1] - a[1]).map(x => ({ value: x[0], label: x[0], count: x[1] }));
+        options = full.slice(0, 10);
+      }
+    }
+  } else if (field === 'spec') {
+    title.textContent = '📦 규격 선택';
+    if (base) {
+      options = getSpecsForBase(base).slice(0, 10).map(s => ({ value: s.value, label: s.value, count: s.count }));
+    }
+    if (!options.length) {
+      options = (typeof COMMON_SPECS !== 'undefined' ? COMMON_SPECS : []).slice(0, 10).map(v => ({ value: v, label: v, count: 0 }));
+    }
+  } else if (field === 'qty') {
+    title.textContent = '# 수량 선택';
+    const quick = ['1개', '2개', '3개', '4개', '5개', '10개', '20개'];
+    options = quick.map(v => ({ value: v, label: v, count: 0 }));
+  } else if (field === 'note') {
+    title.textContent = '📝 비고 선택';
+    const bnorm = normalizeBaseName(base || curName);
+    const b = medDict.bases[bnorm];
+    if (b && b.notes) {
+      options = Object.entries(b.notes).sort((a, b) => b[1] - a[1]).slice(0, 10).map(x => ({ value: x[0], label: x[0], count: x[1] }));
+    }
+    const quick = ['급송', '환자대기', '직접전달', '조제실', '카운터', '유통기한확인'];
+    quick.forEach(q => {
+      if (!options.some(o => o.value === q)) options.push({ value: q, label: q, count: 0 });
+    });
+  }
+
+  if (!options.length) {
+    html = '<div style="padding:20px;text-align:center;color:#6b7280;">추천 항목이 없습니다. 텍스트로 직접 입력하세요.</div>';
+  } else {
+    html = '<div class="chip-picker-list">';
+    options.forEach(o => {
+      const isActive = o.value === curValue;
+      html += '<button class="chip-picker-btn' + (isActive ? ' active' : '') + '" data-value="' + escapeHtml(o.value) + '" data-field="' + field + '">' +
+        '<span class="chip-picker-lbl">' + escapeHtml(o.label) + '</span>' +
+        (o.count > 0 ? '<span class="chip-picker-cnt">' + o.count + '회</span>' : '') +
+        '</button>';
+    });
+    html += '</div>';
+  }
+  html += '<div style="padding:10px 0 0; text-align:center;"><button class="modal-btn" onclick="closeChipPicker()">닫기</button></div>';
+  body.innerHTML = html;
+
+  body.querySelectorAll('.chip-picker-btn').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      applyChipPicker(btn.dataset.field, btn.dataset.value);
+    });
+  });
+  modal.style.display = 'flex';
+}
+
+function closeChipPicker() {
+  const m = document.getElementById('chipPickerModal');
+  if (m) m.style.display = 'none';
+}
+
+function applyChipPicker(field, value) {
+  const input = document.getElementById('chatInput');
+  if (!input) return;
+  let parsed;
+  try { parsed = parseMedication(input.value || ''); } catch (e) { parsed = null; }
+  if (!parsed) parsed = { name: '', spec: '', qty: '', note: '' };
+  if (field === 'name') parsed.name = value;
+  if (field === 'spec') parsed.spec = value;
+  if (field === 'qty')  parsed.qty  = value;
+  if (field === 'note') parsed.note = value;
+  // 재조립 (간단히 공백 분리, 빈 슬롯은 공백 2개)
+  let rebuilt = '';
+  const parts = [parsed.name, parsed.spec, parsed.qty, parsed.note];
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i];
+    if (i === 0) rebuilt += (p || '');
+    else if (p) rebuilt += ' ' + p;
+    else rebuilt += '  ';
+  }
+  rebuilt = rebuilt.replace(/\s+$/, '') + ' ';
+  input.value = rebuilt;
+  renderChipPreview();
+  closeChipPicker();
+}
+
+/* ============ 약품 사전 관리 UI (백승준 전용) ============ */
+function renderMedDictAdmin() {
+  const el = document.getElementById('medDictStats');
+  if (!el) return;
+  const s = getMedDictStats();
+  const when = s.lastBuild ? new Date(s.lastBuild).toLocaleString('ko-KR') : '-';
+  el.innerHTML =
+    '📘 <b>계열 약품:</b> ' + s.baseCount + '종 · ' +
+    '<b>조합 템플릿:</b> ' + s.templateCount + '개<br>' +
+    '<span style="font-size:10.5px;color:var(--text-muted);">분석된 총 주문: ' + s.totalOrdersAnalyzed + '건 · 최근 ' + MED_DICT_WINDOW_DAYS + '일 · 재구축: ' + when + '</span>';
+}
+
+function manualRebuildMedDict() {
+  if (typeof canEditEmployees === 'function' && !canEditEmployees()) {
+    alert('⛔ 재구축 권한 없음 (약국장만)');
+    return;
+  }
+  if (!confirm('약품 사전을 최근 ' + MED_DICT_WINDOW_DAYS + '일 이력으로 재분석하시겠습니까?\n(약 3~5초 소요)')) return;
+  const t0 = Date.now();
+  rebuildMedDict();
+  const ms = Date.now() - t0;
+  const s = getMedDictStats();
+  alert('✅ 약품 사전 재구축 완료 (' + ms + 'ms)\n\n• 계열: ' + s.baseCount + '종\n• 조합: ' + s.templateCount + '개\n• 분석된 주문: ' + s.totalOrdersAnalyzed + '건');
+}
+
 /* ============ 직원 관리 (Firebase /employees 실시간 동기화) ============ */
 // 편집 권한: 약국장(백승준)만.
 // Firebase에 /employees 데이터 있으면 덮어씀. 비어있으면 현재 UID_NAME_MAP(시드) 유지.
@@ -5476,13 +6012,16 @@ function showAutocomplete(input) {
   let field = 'name';
 
   if (info.tokenIdx === 0) {
-    // 의약품명: 1글자부터 추천
+    // 의약품명: 1글자부터 추천 (템플릿 상위 5개 먼저)
     if (!token) { hideAutocomplete(); return; }
     field = 'name';
-    pool = full.names
+    const tmpl = (typeof getTemplateRecommendations === 'function') ? getTemplateRecommendations(token, 5) : [];
+    const tmplPool = tmpl.map(t => ({ value: t.name, count: t.count, spec: t.spec, __tmpl: t }));
+    const namesPool = full.names
       .filter(d => d.value.toLowerCase().includes(token))
       .slice(0, 8);
-    hint = '💊 의약품명 (탭하여 선택)';
+    pool = tmplPool.concat(namesPool);
+    hint = tmplPool.length > 0 ? '💊 추천 조합 · 이름 (탭 = 자동 채움)' : '💊 의약품명 (탭하여 선택)';
   } else if (info.tokenIdx === 1) {
     // 규격: 해당 약품명에 자주 쓴 규격을 우선 노출, 그다음 전체 빈도, 그다음 기본값
     field = 'spec';
@@ -5540,6 +6079,20 @@ function showAutocomplete(input) {
   dd.innerHTML = '<div class="autocomplete-hint">' + hint + '</div>' +
     pool.map((m, i) => {
       const badge = m.count > 0 ? (m.count + '회') : (m.paired ? '관련' : '추천');
+      if (m.__tmpl) {
+        const t = m.__tmpl;
+        const parts = [];
+        if (t.spec) parts.push('<span class="ac-tmpl-part">📦' + escapeHtml(t.spec) + '</span>');
+        if (t.qty)  parts.push('<span class="ac-tmpl-part">#' + escapeHtml(t.qty) + '</span>');
+        if (t.note) parts.push('<span class="ac-tmpl-part">📝' + escapeHtml(t.note) + '</span>');
+        return `<div class="autocomplete-item ac-tmpl" data-idx="${i}">
+          <span>
+            <span class="autocomplete-name">⭐ ${escapeHtml(t.name)}</span>
+            ${parts.length ? '<span class="ac-tmpl-row">' + parts.join('') + '</span>' : ''}
+          </span>
+          <span class="autocomplete-count">${t.count}회</span>
+        </div>`;
+      }
       const specAside = (field === 'name' && m.spec) ? `<span class="autocomplete-spec">${escapeHtml(m.spec)}</span>` : '';
       return `<div class="autocomplete-item" data-idx="${i}">
         <span><span class="autocomplete-name">${escapeHtml(m.value)}</span>${specAside}</span>
@@ -5575,6 +6128,23 @@ function selectAutocomplete(idx) {
   const tokenStart = Math.max(lastSpace, lastComma) + 1;
   const prefix = val.substring(0, tokenStart);
 
+  // 템플릿 선택: 전체 조합으로 입력창 치환
+  if (m.__tmpl) {
+    const t = m.__tmpl;
+    let full = t.name || '';
+    if (t.spec) full += ' ' + t.spec;
+    else full += '  ';
+    if (t.qty) full += (full.endsWith(' ') ? '' : ' ') + t.qty;
+    else if (t.note) full += ' ';
+    if (t.note) full += ' ' + t.note;
+    full = full.replace(/\s+$/, '') + ' ';
+    input.value = full;
+    try { input.setSelectionRange(full.length, full.length); } catch (e) {}
+    input.focus();
+    hideAutocomplete();
+    if (typeof renderChipPreview === 'function') renderChipPreview();
+    return;
+  }
   // 약품명 선택 시에는 규격까지 한 번에 채워 주어 모바일 타이핑 최소화
   let insert = m.value;
   if (acCurrentField === 'name' && m.spec) {
@@ -5588,6 +6158,7 @@ function selectAutocomplete(idx) {
   try { input.setSelectionRange(newCursor, newCursor); } catch (e) {}
   input.focus();
   hideAutocomplete();
+  if (typeof renderChipPreview === 'function') renderChipPreview();
 }
 
 function hideAutocomplete() {
@@ -5851,6 +6422,7 @@ try {
 
   // 2층 재고 의약품 목록 로컬 캐시 로드 (Firebase 연결 시 리스너로 덮어씀)
   if (typeof loadFloor2MedListLocal === 'function') loadFloor2MedListLocal();
+  if (typeof loadMedDictLocal === 'function') loadMedDictLocal();
 
   // Firebase 먼저 시도, 없으면 설정 화면 또는 로그인
   const fbReady = tryInitFirebase();
