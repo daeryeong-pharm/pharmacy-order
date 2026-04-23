@@ -449,13 +449,13 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 6px 12px;
+  padding: 7px 13px;
   background: linear-gradient(135deg, #fffaf0 0%, #fff4e0 100%);
   border: 1px solid #e8d5b0;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(201, 118, 61, 0.08), inset 0 1px 0 rgba(255,255,255,0.6);
-  min-width: 180px;
-  max-width: 260px;
+  min-width: 300px;
+  max-width: 380px;
   cursor: pointer;
   transition: all 0.18s ease;
   position: relative;
@@ -501,15 +501,16 @@ body {
 }
 .notice-content {
   font-family: 'Noto Sans KR', sans-serif;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 500;
   color: #3d2f1f;
-  line-height: 1.35;
-  max-height: 34px;
+  line-height: 1.45;
+  max-height: 58px;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  line-clamp: 3;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   word-break: break-word;
   white-space: pre-wrap;
@@ -1724,10 +1725,10 @@ body.pdf-rendering .a4-page {
   .digital-clock .dc-hm { font-size: 18px; }
   .digital-clock .dc-sec { font-size: 11px; min-width: 18px; }
   .digital-date { font-size: 9.5px; margin-top: 2px; }
-  .notice-box { min-width: 120px; max-width: 160px; padding: 4px 9px; }
+  .notice-box { min-width: 220px; max-width: 300px; padding: 5px 10px; }
   .notice-title { font-size: 10px; }
   .notice-pin { font-size: 10px; }
-  .notice-content { font-size: 11px; max-height: 30px; -webkit-line-clamp: 2; }
+  .notice-content { font-size: 11.5px; line-height: 1.4; max-height: 50px; line-clamp: 3; -webkit-line-clamp: 3; }
   .header-right { gap: 6px; }
 
   /* 탭 */
@@ -2013,8 +2014,8 @@ body.pdf-rendering .a4-page {
   .header { padding: 4px 12px; }
   .clock-block { padding: 3px 8px; min-width: 80px; }
   .digital-clock .dc-hm { font-size: 15px; }
-  .notice-box { min-width: 100px; max-width: 140px; padding: 3px 8px; }
-  .notice-content { font-size: 10.5px; max-height: 26px; }
+  .notice-box { min-width: 180px; max-width: 240px; padding: 4px 9px; }
+  .notice-content { font-size: 11px; line-height: 1.35; max-height: 42px; line-clamp: 3; -webkit-line-clamp: 3; }
   .tab { padding: 6px 14px; }
 }
 
