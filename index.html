@@ -1492,7 +1492,35 @@ body.pdf-rendering .a4-page {
 .f2-btn.plus { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
 .f2-btn.minus { background: #fef2f2; color: #7f1d1d; border-color: #fecaca; }
 .f2-btn:hover { opacity: 0.85; }
-.floor2-admin-empty { padding: 18px; text-align: center; color: var(--text-muted); font-size: 12px; }
+.floor2-admin-empty { padding: 18px; text-align: center; color: var(--text-muted); font-size: 12px; line-height: 1.6; }
+
+/* 2층 재고 목록 업로드 카드 */
+.floor2-upload-card {
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #fffaf0 0%, #fff4e0 100%);
+  border: 1px solid #e8d5b0;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.floor2-upload-meta {
+  font-size: 11.5px;
+  color: #5d4a33;
+  line-height: 1.7;
+  margin-bottom: 8px;
+}
+.floor2-upload-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.floor2-upload-readonly {
+  font-size: 11px;
+  color: #78350f;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 5px;
+  padding: 6px 10px;
+}
 
 /* ===== Firebase 설정 오버레이 ===== */
 .fb-overlay {
@@ -2307,31 +2335,28 @@ body.pdf-rendering .a4-page {
           </div>
         </div>
         <div class="settings-card">
-          <h3>📦 2층 재고 관리 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(실시간)</span></h3>
+          <h3>📦 2층 재고 의약품 목록 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(주문 시 ⚠ 표시용)</span></h3>
           <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
-            현재재고 = 기본재고 + 수동보정(입고·조정) − 주문감소(자동). 입고(📥) 시 플러스, 손실·수기조정은 마이너스를 입력하세요.
+            2층에 보관 중인 의약품 <b>이름만</b> 관리 (수량 추적 없음). 이 목록에 있는 약품을 주문 입력하면 자동으로 경고 표시가 뜹니다.
           </p>
-          <div class="floor2-admin-controls">
+          <div id="floor2UploadCard" class="floor2-upload-card">
+            <div id="floor2UploadMeta" class="floor2-upload-meta">-</div>
+            <div id="floor2UploadActions" class="floor2-upload-actions" style="display:none;">
+              <input type="file" id="floor2FileInput" accept=".xlsx,.xls" style="display:none;" onchange="handleFloor2FileUpload(event)" />
+              <button class="hist-btn" onclick="document.getElementById('floor2FileInput').click()">📂 xlsx 파일 업로드</button>
+              <button class="hist-btn danger" onclick="confirmClearFloor2List()" title="모든 목록을 비웁니다">🗑 전체 비우기</button>
+            </div>
+            <div id="floor2UploadReadOnly" class="floor2-upload-readonly" style="display:none;">
+              🔒 <b>읽기 전용</b> — 목록 업데이트는 약국장(백승준)만 가능합니다.
+            </div>
+          </div>
+          <div class="floor2-admin-controls" style="margin-top:10px;">
             <input type="search" id="floor2Search" placeholder="🔍 약품명으로 찾기" />
             <select id="floor2FilterCat">
               <option value="">전체 카테고리</option>
-              <option value="안약">안약</option>
-              <option value="연고/로션">연고/로션</option>
-              <option value="흡입제">흡입제</option>
-              <option value="기타">기타</option>
-            </select>
-            <select id="floor2FilterStatus">
-              <option value="">전체 상태</option>
-              <option value="low">소진·부족(≤0)</option>
-              <option value="used">주문감소 있음</option>
-              <option value="adjusted">보정 있음</option>
             </select>
           </div>
           <div id="floor2AdminTable" class="floor2-admin-table"></div>
-          <div class="settings-row" style="margin-top:10px;">
-            <button class="hist-btn" onclick="openFloor2Adjustments()">📋 전체 보정 이력 보기</button>
-            <button class="hist-btn" onclick="exportFloor2Report()">📊 재고 리포트(xlsx)</button>
-          </div>
         </div>
         <div class="settings-card">
           <h3>업데이트 및 데이터 안내</h3>
@@ -2409,22 +2434,6 @@ body.pdf-rendering .a4-page {
   </div>
 </div>
 
-<!-- 2층 재고 보정 이력 모달 (Undo 기능) -->
-<div class="modal-backdrop" id="floor2HistModal" style="display:none;" onclick="if(event.target===this)closeFloor2HistModal()">
-  <div class="modal" style="max-width:640px; width:94%;">
-    <div class="modal-head">
-      <span>📋 2층 재고 보정 이력</span>
-      <button class="modal-close" onclick="closeFloor2HistModal()">✕</button>
-    </div>
-    <div class="modal-body" style="max-height:60vh; overflow-y:auto;">
-      <div id="floor2HistList" style="display:flex; flex-direction:column; gap:6px;"></div>
-    </div>
-    <div class="modal-foot">
-      <button class="modal-btn" onclick="closeFloor2HistModal()">닫기</button>
-    </div>
-  </div>
-</div>
-
 <!-- 수정/삭제 모달 -->
 <div class="modal-backdrop" id="editModal" style="display:none;" onclick="if(event.target===this)closeEditModal()">
   <div class="modal">
@@ -2489,13 +2498,8 @@ Object.entries(UID_NAME_MAP).forEach(([uid, info]) => {
   NAME_UID_MAP[info.name] = uid;
 });
 
-/* ============ 2층 재고 조정 권한자 (이 명단만 입고/조정 버튼 사용 가능) ============ */
-const FLOOR2_AUTHORIZED_USERS = ['백승준', '빈나라', '김종희', '임선영'];
-function canAdjustFloor2() {
-  const me = (currentUser || '').trim();
-  if (!me) return false;
-  return FLOOR2_AUTHORIZED_USERS.includes(me);
-}
+/* ============ 2층 재고 목록 업로드 권한 — 약국장(백승준)만 ============ */
+/* canEditFloor2List() 는 floor2MedList 관리 블록에서 정의됨 (공지사항 권한과 동일) */
 
 let fbAuth = null;
 let currentAuthUid = null; // Firebase Auth UID (없으면 로컬 모드)
@@ -2696,9 +2700,9 @@ function setupFirebaseForUser() {
   setupFirebaseListeners(currentDate);
   setupFirebasePresence();
   loadAllDatesFromFirebase();
-  // 2층 재고 보정 실시간 동기화
-  if (typeof setupFloor2AdjustmentsListener === 'function') {
-    setupFloor2AdjustmentsListener();
+  // 2층 재고 의약품 목록 실시간 동기화
+  if (typeof setupFloor2MedListListener === 'function') {
+    setupFloor2MedListListener();
   }
   // 공지사항 실시간 동기화
   if (typeof setupNoticeListener === 'function') {
@@ -2718,9 +2722,9 @@ function detachFirebaseListeners() {
   if (fbDb) {
     try { fbDb.ref('presence').off(); } catch (e) {}
   }
-  if (typeof fbFloor2Ref !== 'undefined' && fbFloor2Ref) {
-    try { fbFloor2Ref.off(); } catch (e) {}
-    fbFloor2Ref = null;
+  if (typeof fbFloor2MedListRef !== 'undefined' && fbFloor2MedListRef) {
+    try { fbFloor2MedListRef.off(); } catch (e) {}
+    fbFloor2MedListRef = null;
   }
   if (typeof fbNoticeRef !== 'undefined' && fbNoticeRef) {
     try { fbNoticeRef.off(); } catch (e) {}
@@ -3270,13 +3274,11 @@ function updateFloor2Hint(inputEl) {
   if (!name) { hideFloor2Hint(); return; }
   const match = findFloor2Match(name);
   if (match) {
-    const remain = getFloor2CurrentStock(match);
-    const orderQty = parseQtyNum(parsed && parsed.qty) || 0;
-    const afterStr = orderQty > 0 ? ` → 주문 후 <b>${remain - orderQty}</b>` : '';
+    const catLabel = match.cat ? ' · ' + escapeHtml(match.cat) : '';
     el.innerHTML =
-      '⚠️ <b>2층 재고 있음</b> — ' +
+      '⚠️ <b>2층 재고 품목</b> — ' +
       escapeHtml(match.name) +
-      ` <span style="color:#991b1b;">(남은 <b>${remain}</b>${afterStr} · ${escapeHtml(match.cat)})</span>` +
+      `<span style="color:#991b1b;">${catLabel}</span>` +
       ' <span style="font-weight:500;color:#7f1d1d;">· 전송 시 재확인 안내</span>';
     el.style.display = 'block';
   } else {
@@ -3330,16 +3332,13 @@ function sendMessage() {
     const parsed = parseMedication(text);
     const match = findFloor2Match(parsed && parsed.name);
     if (match) {
-      const remain = getFloor2CurrentStock(match);
-      const orderQty = parseQtyNum(parsed && parsed.qty) || 0;
-      const afterOrder = remain - orderQty;
+      const catLine = match.cat ? ' (' + match.cat + ')' : '';
       const msg =
-        '⚠️ 2층 재고 확인\n\n' +
-        '【' + match.name + '】 (' + match.cat + ')\n' +
-        '• 현재 2층 남은 재고: ' + remain + '\n' +
-        (orderQty > 0 ? '• 이 주문 수량: ' + orderQty + '\n• 주문 후 남는 재고: ' + afterOrder + '\n' : '') +
-        '\n그래도 주문하시겠습니까?\n' +
-        '• 확인 → 주문 진행 (2층재고 자동 차감)\n' +
+        '⚠️ 2층 재고 품목 확인\n\n' +
+        '【' + match.name + '】' + catLine + '\n\n' +
+        '이 의약품은 2층에 보관 중입니다.\n' +
+        '그래도 주문하시겠습니까?\n\n' +
+        '• 확인 → 주문 진행\n' +
         '• 취소 → 입력 수정';
       if (!confirm(msg)) {
         return; // 주문 취소
@@ -3400,11 +3399,9 @@ function renderA4() {
         html += `<div class="a4-row"><div class="row-num">${displayNum}</div><div></div><div></div><div></div><div></div><div></div><div></div></div>`;
       } else {
         const isDup = allDups.has(origIdx);
-        // 2층 재고 매칭 + 실시간 남은 재고 계산
+        // 2층 재고 매칭 (이름만 확인 — 수량 추적 없음)
         const floor2Match = findFloor2Match(it.name);
         const isFloor2 = !!floor2Match;
-        const floor2Remain = isFloor2 ? getFloor2CurrentStock(floor2Match) : 0;
-        const floor2Low = isFloor2 && floor2Remain <= 0;
         // UID 우선 (Auth 모드), 없으면 이름으로 폴백 (로컬 모드)
         const isMine = currentAuthUid
           ? (it.authorUid && it.authorUid === currentAuthUid)
@@ -3417,13 +3414,13 @@ function renderA4() {
         const editableCls = isMine ? 'clickable mine' : 'locked';
         // 주문중복 표시: 의약품명 위 위첨자 (자리 거의 안차지)
         const dupSup = isDup ? '<sup class="dup-sup" title="주문중복 항목">주문중복</sup>' : '';
-        // 2층재고 표시: 의약품명 앞 큼직한 강조 배지 (시인성 극대화) + 실시간 남은수량
+        // 2층재고 표시: 의약품명 앞 큼직한 강조 배지 (이름 매칭만)
         const floor2Badge = isFloor2
-          ? `<span class="floor2-badge${floor2Low ? ' empty' : ''}" title="2층 재고: ${escapeHtml(floor2Match.name)} (남은 ${floor2Remain}/기본 ${floor2Match.qty})">⚠ 2층재고·남은 ${floor2Remain}</span> `
+          ? `<span class="floor2-badge" title="2층 재고 품목: ${escapeHtml(floor2Match.name)}${floor2Match.cat ? ' (' + escapeHtml(floor2Match.cat) + ')' : ''}">⚠ 2층재고</span> `
           : '';
         const itemId = it.id || '';
         const dupTitle = isDup ? ' · 주문중복' : '';
-        const floor2Title = isFloor2 ? ` · ⚠ 2층재고(남은 ${floor2Remain})` : '';
+        const floor2Title = isFloor2 ? ' · ⚠ 2층재고' : '';
         const titleAttr = (isMine ? '탭하여 수정/삭제 (본인 작성)' : `${it.author||''}님이 작성 — 본인만 수정 가능`) + dupTitle + floor2Title;
         const editIcon = isMine ? '<span class="edit-mark" title="수정 가능">✏️</span>' : '';
         html += `<div class="a4-row ${editableCls} ${baseCls}" data-itemid="${escapeHtml(itemId)}" title="${escapeHtml(titleAttr)}">
@@ -3942,139 +3939,402 @@ function truncate(s, n) {
   return s.length > n ? s.slice(0, n) + '…' : s;
 }
 
-// ============ 2층 재고 리스트 (외용제) ============
-// 2층에 보관된 외용제 의약품 재고. 주문 시 중복 방지용.
-// 카테고리: 안약(1회용/다회용), 연고/로션, 흡입제, 기타
-const FLOOR2_STOCK = [
-  {name:"간포트(0.4ml*30)",qty:48,cat:"안약"},
-  {name:"뉴히알유니0.15%(0.45ml*60)",qty:22,cat:"안약"},
-  {name:"디쿠아스에스(0.4ml*60)",qty:27,cat:"안약"},
-  {name:"레스타시스(0.4ml*30)",qty:15,cat:"안약"},
-  {name:"레바케이점안액(0.4ml*60)",qty:19,cat:"안약"},
-  {name:"모노프로스트(0.2ml*30)",qty:2,cat:"안약"},
-  {name:"브로낙(0.5ml*30)",qty:6,cat:"안약"},
-  {name:"싸이포린엔(0.4ml*30)",qty:9,cat:"안약"},
-  {name:"아이커비스(0.3ml*30)",qty:10,cat:"안약"},
-  {name:"에이프레쉬점안액(0.45ml*60)",qty:16,cat:"안약"},
-  {name:"잘로스트에스(0.2ml*30)",qty:13,cat:"안약"},
-  {name:"카이닉스(0.35ml*60)",qty:20,cat:"안약"},
-  {name:"카이닉스3(0.5mlx60)",qty:16,cat:"안약"},
-  {name:"티어린프리0.1%(0.5ml*60)",qty:5,cat:"안약"},
-  {name:"후메론(0.4ml*30)",qty:12,cat:"안약"},
-  {name:"히알루미니0.15%(0.5ml*60)",qty:21,cat:"안약"},
-  {name:"히알루미니0.18%(0.5ml*60)",qty:12,cat:"안약"},
-  {name:"코솝에스(0.2ml*60)",qty:3,cat:"안약"},
-  {name:"원타임프레쉬(0.4ml*30)",qty:8,cat:"안약"},
-  {name:"프레드벨점안액(0.4ml*30)",qty:6,cat:"안약"},
-  {name:"알파벨라0.15%(0.3ml*60)",qty:12,cat:"안약"},
-  {name:"인프레쉬에프1.5%(0.45ml*60)",qty:12,cat:"안약"},
-  {name:"디쿠아데이5%(0.4ml*30)",qty:6,cat:"안약"},
-  {name:"브리딘플러스점안액(0.3ml*60)",qty:3,cat:"안약"},
-  {name:"아큐베일점안액0.45%(0.4ml*30)",qty:5,cat:"안약"},
-  {name:"네오덱스5g",qty:25,cat:"안약"},
-  {name:"듀라티얼즈3.5g",qty:20,cat:"안약"},
-  {name:"디쿠아스점안액3%5ml",qty:20,cat:"안약"},
-  {name:"로테프로0.5%5ml",qty:14,cat:"안약"},
-  {name:"미드린피10ml",qty:0,cat:"안약"},
-  {name:"브로낙5ml",qty:22,cat:"안약"},
-  {name:"비가목스0.5%5ml",qty:5,cat:"안약"},
-  {name:"심브린자5ml",qty:22,cat:"안약"},
-  {name:"알파간피0.15%5ml",qty:24,cat:"안약"},
-  {name:"엘라좁6ml",qty:10,cat:"안약"},
-  {name:"오로신0.3%5ml",qty:6,cat:"안약"},
-  {name:"오큐프록스5g",qty:10,cat:"안약"},
-  {name:"잘라탄2.5ml",qty:20,cat:"안약"},
-  {name:"코솝5ml",qty:30,cat:"안약"},
-  {name:"콤비간5ml",qty:0,cat:"안약"},
-  {name:"퀴노비드이용액5ml",qty:10,cat:"안약"},
-  {name:"크라비트1.5%5ml",qty:10,cat:"안약"},
-  {name:"크라비트5ml",qty:22,cat:"안약"},
-  {name:"타리비드안연고3.5g",qty:10,cat:"안약"},
-  {name:"타프콤2.5ml",qty:67,cat:"안약"},
-  {name:"타플로탄2.5ml",qty:10,cat:"안약"},
-  {name:"트라바탄2.5ml",qty:0,cat:"안약"},
-  {name:"트루솝5ml",qty:10,cat:"안약"},
-  {name:"티모프틱5ml",qty:3,cat:"안약"},
-  {name:"루미간점안액3ml",qty:3,cat:"안약"},
-  {name:"프레드포르테5ml",qty:16,cat:"안약"},
-  {name:"플라렉스5ml",qty:0,cat:"안약"},
-  {name:"후메론5ml0.1%",qty:16,cat:"안약"},
-  {name:"히아레인0.1%5ml",qty:10,cat:"안약"},
-  {name:"히아레인0.3%5ml",qty:0,cat:"안약"},
-  {name:"히아박10ml",qty:3,cat:"안약"},
-  {name:"세트락살",qty:20,cat:"안약"},
-  {name:"시프로바이점이현탁액",qty:12,cat:"안약"},
-  {name:"뮤로128 15ml",qty:11,cat:"안약"},
-  {name:"뉴히알드롭점안액10ml",qty:10,cat:"안약"},
-  {name:"듀얼콥10ml",qty:10,cat:"안약"},
-  {name:"데스오웬로오션0.05%120ml",qty:9,cat:"연고/로션"},
-  {name:"디푸코연고10g",qty:24,cat:"연고/로션"},
-  {name:"라벨리아로션118g",qty:17,cat:"연고/로션"},
-  {name:"락티케어제마지스60g",qty:9,cat:"연고/로션"},
-  {name:"락티케어HC로션1%118g",qty:10,cat:"연고/로션"},
-  {name:"로세릴크림0.25%20g",qty:20,cat:"연고/로션"},
-  {name:"무조날크림15g",qty:29,cat:"연고/로션"},
-  {name:"베아로반연고10g",qty:28,cat:"연고/로션"},
-  {name:"시푸로겔연고50g",qty:19,cat:"연고/로션"},
-  {name:"아드반탄연고15g",qty:13,cat:"연고/로션"},
-  {name:"아드반탄크림15g",qty:16,cat:"연고/로션"},
-  {name:"에스로반연고10g",qty:30,cat:"연고/로션"},
-  {name:"에스파손로션20ml",qty:12,cat:"연고/로션"},
-  {name:"엘리델10g",qty:23,cat:"연고/로션"},
-  {name:"엘리델30g",qty:23,cat:"연고/로션"},
-  {name:"오메크린크림30g",qty:9,cat:"연고/로션"},
-  {name:"토피솔밀크로션50g",qty:17,cat:"연고/로션"},
-  {name:"토피솔밀크로션80g",qty:28,cat:"연고/로션"},
-  {name:"프로토픽0.03%30g",qty:5,cat:"연고/로션"},
-  {name:"프로토픽0.1%30g",qty:18,cat:"연고/로션"},
-  {name:"프로토픽0.03%10g",qty:0,cat:"연고/로션"},
-  {name:"다이보베트연고",qty:14,cat:"연고/로션"},
-  {name:"베타베이트연고15g",qty:24,cat:"연고/로션"},
-  {name:"더모베이트액25ml",qty:47,cat:"연고/로션"},
-  {name:"트라보코트크림15g",qty:10,cat:"연고/로션"},
-  {name:"더모베이트액50ml",qty:42,cat:"연고/로션"},
-  {name:"크레오신티",qty:6,cat:"연고/로션"},
-  {name:"더모픽스크림30g",qty:5,cat:"연고/로션"},
-  {name:"나자케어나잘스프레이액140회",qty:14,cat:"흡입제"},
-  {name:"나자케어나잘스프레이액60회",qty:0,cat:"흡입제"},
-  {name:"나자플렉스나잘스프레이18ml",qty:5,cat:"흡입제"},
-  {name:"딜라스틴나잘스프레이23g",qty:12,cat:"흡입제"},
-  {name:"렐바100",qty:13,cat:"흡입제"},
-  {name:"렐바200",qty:16,cat:"흡입제"},
-  {name:"뮤코미스트액(4ml*10v)",qty:24,cat:"흡입제"},
-  {name:"뮤코미스트액(8ml*10v)",qty:8,cat:"흡입제"},
-  {name:"바헬바레스피맷(다회용)",qty:15,cat:"흡입제"},
-  {name:"바헬바레스피맷(리필용)",qty:28,cat:"흡입제"},
-  {name:"벤토리네뷸2.5mg(2.5ml*20)",qty:0,cat:"흡입제"},
-  {name:"벤토린에보할러200회",qty:14,cat:"흡입제"},
-  {name:"스피리바레스피맷(다회용)",qty:3,cat:"흡입제"},
-  {name:"스피리바레스피맷(리필용)",qty:15,cat:"흡입제"},
-  {name:"아노로62.5엘립타",qty:12,cat:"흡입제"},
-  {name:"아바미스나잘스프레이120회",qty:20,cat:"흡입제"},
-  {name:"아트로벤트흡입액2ml",qty:20,cat:"흡입제"},
-  {name:"에너제어150/50/80",qty:12,cat:"흡입제"},
-  {name:"에너제어150/50/160",qty:17,cat:"흡입제"},
-  {name:"트렐리지엘립타",qty:6,cat:"흡입제"},
-  {name:"포스트넥스트할러120회",qty:8,cat:"흡입제"},
-  {name:"풀미코트",qty:5,cat:"흡입제"},
-  {name:"트렐리지200엘립타흡입제",qty:8,cat:"흡입제"},
-  {name:"심비코트라피헬러흡입제",qty:5,cat:"흡입제"},
-  {name:"아프모겐스프레이",qty:26,cat:"흡입제"},
-  {name:"심비코트터부헬러320/9(60회)",qty:5,cat:"흡입제"},
-  {name:"뉴도탑(5매)",qty:15,cat:"기타"},
-  {name:"디클로메드액200ml",qty:7,cat:"기타"},
-  {name:"트라스트패취(7매)",qty:20,cat:"기타"},
-  {name:"마이녹실겔(15g)",qty:25,cat:"기타"},
-  {name:"마이녹실액3%60ml",qty:5,cat:"기타"},
-  {name:"마이녹실액5%60ml",qty:2,cat:"기타"},
-  {name:"뮤코베리어액150ml",qty:12,cat:"기타"},
-  {name:"케노펜겔50g",qty:6,cat:"기타"},
-  {name:"로게인폼60g",qty:3,cat:"기타"},
-  {name:"아치온현탁액200ml",qty:0,cat:"기타"},
-  {name:"원드론패취5",qty:0,cat:"기타"},
-  {name:"리포직점안겔10g",qty:10,cat:"기타"},
-  {name:"리포직이디오점안겔(0.6g*30)",qty:4,cat:"기타"},
-  {name:"벤토린흡입액",qty:10,cat:"기타"}
+// ============ 2층 재고 의약품 목록 (이름 + 카테고리만) ============
+// 초기 시드 데이터: 2층재고 조제약 리스트26.4.23.xlsx 에서 추출한 의약품명.
+// 약국장이 설정 → xlsx 업로드로 언제든 교체 가능 (Firebase 실시간 동기화).
+let floor2MedList = [
+  {name:"간포트(0.4ml*30)",cat:"안약"},
+  {name:"뉴히알유니0.15%(0.45ml*60)",cat:"안약"},
+  {name:"디쿠아스에스(0.4ml*60)",cat:"안약"},
+  {name:"레스타시스(0.4ml*30)",cat:"안약"},
+  {name:"레바케이점안액(0.4ml*60)",cat:"안약"},
+  {name:"모노프로스트(0.2ml*30)",cat:"안약"},
+  {name:"브로낙(0.5ml*30)",cat:"안약"},
+  {name:"싸이포린엔(0.4ml*30)",cat:"안약"},
+  {name:"아이커비스(0.3ml*30)",cat:"안약"},
+  {name:"에이프레쉬점안액(0.45ml*60)",cat:"안약"},
+  {name:"잘로스트에스(0.2ml*30)",cat:"안약"},
+  {name:"카이닉스(0.35ml*60)",cat:"안약"},
+  {name:"카이닉스3(0.5mlx60)",cat:"안약"},
+  {name:"티어린프리0.1%(0.5ml*60)",cat:"안약"},
+  {name:"후메론(0.4ml*30)",cat:"안약"},
+  {name:"히알루미니0.15%(0.5ml*60)",cat:"안약"},
+  {name:"히알루미니0.18%(0.5ml*60)",cat:"안약"},
+  {name:"코솝에스(0.2ml*60)",cat:"안약"},
+  {name:"원타임프레쉬(0.4ml*30)",cat:"안약"},
+  {name:"프레드벨점안액(0.4ml*30)",cat:"안약"},
+  {name:"알파벨라0.15%(0.3ml*60)",cat:"안약"},
+  {name:"인프레쉬에프1.5%(0.45ml*60)",cat:"안약"},
+  {name:"디쿠아데이5%(0.4ml*30)",cat:"안약"},
+  {name:"브리딘플러스점안액(0.3ml*60)",cat:"안약"},
+  {name:"아큐베일점안액0.45%(0.4ml*30)",cat:"안약"},
+  {name:"네오덱스5g",cat:"안약"},
+  {name:"듀라티얼즈3.5g",cat:"안약"},
+  {name:"디쿠아스점안액3%5ml",cat:"안약"},
+  {name:"로테프로0.5%5ml",cat:"안약"},
+  {name:"미드린피10ml",cat:"안약"},
+  {name:"브로낙5ml",cat:"안약"},
+  {name:"비가목스0.5%5ml",cat:"안약"},
+  {name:"심브린자5ml",cat:"안약"},
+  {name:"알파간피0.15%5ml",cat:"안약"},
+  {name:"엘라좁6ml",cat:"안약"},
+  {name:"오로신0.3%5ml",cat:"안약"},
+  {name:"오큐프록스5g",cat:"안약"},
+  {name:"잘라탄2.5ml",cat:"안약"},
+  {name:"코솝5ml",cat:"안약"},
+  {name:"콤비간5ml",cat:"안약"},
+  {name:"퀴노비드이용액5ml",cat:"안약"},
+  {name:"크라비트1.5%5ml",cat:"안약"},
+  {name:"크라비트5ml",cat:"안약"},
+  {name:"타리비드안연고3.5g",cat:"안약"},
+  {name:"타프콤2.5ml",cat:"안약"},
+  {name:"타플로탄2.5ml",cat:"안약"},
+  {name:"트라바탄2.5ml",cat:"안약"},
+  {name:"트루솝5ml",cat:"안약"},
+  {name:"티모프틱5ml",cat:"안약"},
+  {name:"루미간점안액3ml",cat:"안약"},
+  {name:"프레드포르테5ml",cat:"안약"},
+  {name:"플라렉스5ml",cat:"안약"},
+  {name:"후메론5ml0.1%",cat:"안약"},
+  {name:"히아레인0.1%5ml",cat:"안약"},
+  {name:"히아레인0.3%5ml",cat:"안약"},
+  {name:"히아박10ml",cat:"안약"},
+  {name:"세트락살",cat:"안약"},
+  {name:"시프로바이점이현탁액",cat:"안약"},
+  {name:"뮤로128 15ml",cat:"안약"},
+  {name:"뉴히알드롭점안액10ml",cat:"안약"},
+  {name:"듀얼콥10ml",cat:"안약"},
+  {name:"데스오웬로오션0.05%120ml",cat:"연고/로션"},
+  {name:"디푸코연고10g",cat:"연고/로션"},
+  {name:"라벨리아로션118g",cat:"연고/로션"},
+  {name:"락티케어제마지스60g",cat:"연고/로션"},
+  {name:"락티케어HC로션1%118g",cat:"연고/로션"},
+  {name:"로세릴크림0.25%20g",cat:"연고/로션"},
+  {name:"무조날크림15g",cat:"연고/로션"},
+  {name:"베아로반연고10g",cat:"연고/로션"},
+  {name:"시푸로겔연고50g",cat:"연고/로션"},
+  {name:"아드반탄연고15g",cat:"연고/로션"},
+  {name:"아드반탄크림15g",cat:"연고/로션"},
+  {name:"에스로반연고10g",cat:"연고/로션"},
+  {name:"에스파손로션20ml",cat:"연고/로션"},
+  {name:"엘리델10g",cat:"연고/로션"},
+  {name:"엘리델30g",cat:"연고/로션"},
+  {name:"오메크린크림30g",cat:"연고/로션"},
+  {name:"토피솔밀크로션50g",cat:"연고/로션"},
+  {name:"토피솔밀크로션80g",cat:"연고/로션"},
+  {name:"프로토픽0.03%30g",cat:"연고/로션"},
+  {name:"프로토픽0.1%30g",cat:"연고/로션"},
+  {name:"프로토픽0.03%10g",cat:"연고/로션"},
+  {name:"다이보베트연고",cat:"연고/로션"},
+  {name:"베타베이트연고15g",cat:"연고/로션"},
+  {name:"더모베이트액25ml",cat:"연고/로션"},
+  {name:"트라보코트크림15g",cat:"연고/로션"},
+  {name:"더모베이트액50ml",cat:"연고/로션"},
+  {name:"크레오신티",cat:"연고/로션"},
+  {name:"더모픽스크림30g",cat:"연고/로션"},
+  {name:"나자케어나잘스프레이액140회",cat:"흡입제"},
+  {name:"나자케어나잘스프레이액60회",cat:"흡입제"},
+  {name:"나자플렉스나잘스프레이18ml",cat:"흡입제"},
+  {name:"딜라스틴나잘스프레이23g",cat:"흡입제"},
+  {name:"렐바100",cat:"흡입제"},
+  {name:"렐바200",cat:"흡입제"},
+  {name:"뮤코미스트액(4ml*10v)",cat:"흡입제"},
+  {name:"뮤코미스트액(8ml*10v)",cat:"흡입제"},
+  {name:"바헬바레스피맷(다회용)",cat:"흡입제"},
+  {name:"바헬바레스피맷(리필용)",cat:"흡입제"},
+  {name:"벤토리네뷸2.5mg(2.5ml*20)",cat:"흡입제"},
+  {name:"벤토린에보할러200회",cat:"흡입제"},
+  {name:"스피리바레스피맷(다회용)",cat:"흡입제"},
+  {name:"스피리바레스피맷(리필용)",cat:"흡입제"},
+  {name:"아노로62.5엘립타",cat:"흡입제"},
+  {name:"아바미스나잘스프레이120회",cat:"흡입제"},
+  {name:"아트로벤트흡입액2ml",cat:"흡입제"},
+  {name:"에너제어150/50/80",cat:"흡입제"},
+  {name:"에너제어150/50/160",cat:"흡입제"},
+  {name:"트렐리지엘립타",cat:"흡입제"},
+  {name:"포스트넥스트할러120회",cat:"흡입제"},
+  {name:"풀미코트",cat:"흡입제"},
+  {name:"트렐리지200엘립타흡입제",cat:"흡입제"},
+  {name:"심비코트라피헬러흡입제",cat:"흡입제"},
+  {name:"아프모겐스프레이",cat:"흡입제"},
+  {name:"심비코트터부헬러320/9(60회)",cat:"흡입제"},
+  {name:"뉴도탑(5매)",cat:"기타"},
+  {name:"디클로메드액200ml",cat:"기타"},
+  {name:"트라스트패취(7매)",cat:"기타"},
+  {name:"마이녹실겔(15g)",cat:"기타"},
+  {name:"마이녹실액3%60ml",cat:"기타"},
+  {name:"마이녹실액5%60ml",cat:"기타"},
+  {name:"뮤코베리어액150ml",cat:"기타"},
+  {name:"케노펜겔50g",cat:"기타"},
+  {name:"로게인폼60g",cat:"기타"},
+  {name:"아치온현탁액200ml",cat:"기타"},
+  {name:"원드론패취5",cat:"기타"},
+  {name:"리포직점안겔10g",cat:"기타"},
+  {name:"리포직이디오점안겔(0.6g*30)",cat:"기타"},
+  {name:"벤토린흡입액",cat:"기타"},
+  {name:"가바펜틴(동아) 100mg",cat:"조제약"},
+  {name:"다이아벡스XR1000mg",cat:"조제약"},
+  {name:"가스모틴정",cat:"조제약"},
+  {name:"다이아벡스정 500",cat:"조제약"},
+  {name:"고덱스",cat:"조제약"},
+  {name:"덱시드",cat:"조제약"},
+  {name:"글리세틸정",cat:"조제약"},
+  {name:"듀비에",cat:"조제약"},
+  {name:"글리아타민연질(대웅)",cat:"조제약"},
+  {name:"듀오다트",cat:"조제약"},
+  {name:"글리아티린연질(종근당)",cat:"조제약"},
+  {name:"디카맥스1000 (PTP)",cat:"조제약"},
+  {name:"기넥신에프40mg",cat:"조제약"},
+  {name:"디카맥스1000 (병)",cat:"조제약"},
+  {name:"기넥신에프80mg",cat:"조제약"},
+  {name:"디카맥스디 (PTP)",cat:"조제약"},
+  {name:"기넥신에프80mg(병)",cat:"조제약"},
+  {name:"디카맥스디 (병)",cat:"조제약"},
+  {name:"딜라트렌 3.125",cat:"조제약"},
+  {name:"딜라트렌 6.25",cat:"조제약"},
+  {name:"딜라트렌 25",cat:"조제약"},
+  {name:"딜라트렌 12.5",cat:"조제약"},
+  {name:"딜라트렌 SR 8mg",cat:"조제약"},
+  {name:"딜라트렌 SR 16mg",cat:"조제약"},
+  {name:"딜라트렌 SR 32mg",cat:"조제약"},
+  {name:"낙소졸 500/20",cat:"조제약"},
+  {name:"노자임 40,000",cat:"조제약"},
+  {name:"노자임 457,7",cat:"조제약"},
+  {name:"뉴로셀텍",cat:"조제약"},
+  {name:"뉴론틴 300",cat:"조제약"},
+  {name:"라베원 10",cat:"조제약"},
+  {name:"마이렙트 250",cat:"조제약"},
+  {name:"라본디",cat:"조제약"},
+  {name:"마이렙트 500",cat:"조제약"},
+  {name:"라스피린",cat:"조제약"},
+  {name:"메네스에스정",cat:"조제약"},
+  {name:"레가론캡슐",cat:"조제약"},
+  {name:"메네신정",cat:"조제약"},
+  {name:"메디락DS",cat:"조제약"},
+  {name:"레바트",cat:"조제약"},
+  {name:"메디아벤엘",cat:"조제약"},
+  {name:"로디엔 2.5mg",cat:"조제약"},
+  {name:"메시마",cat:"조제약"},
+  {name:"메이액트",cat:"조제약"},
+  {name:"로바젯 10/5",cat:"조제약"},
+  {name:"메트포르민 500mg",cat:"조제약"},
+  {name:"로바젯 10/10",cat:"조제약"},
+  {name:"로바젯 10/20",cat:"조제약"},
+  {name:"메트포르민 750mg",cat:"조제약"},
+  {name:"로수젯 10/2.5",cat:"조제약"},
+  {name:"명도파 25-100",cat:"조제약"},
+  {name:"로수젯 10/5",cat:"조제약"},
+  {name:"명도파 50-200",cat:"조제약"},
+  {name:"모노로바 10",cat:"조제약"},
+  {name:"로수젯 10/10",cat:"조제약"},
+  {name:"모티리톤",cat:"조제약"},
+  {name:"로수젯 10/20",cat:"조제약"},
+  {name:"몬테리진",cat:"조제약"},
+  {name:"무코스타서방",cat:"조제약"},
+  {name:"리록시아 10mg",cat:"조제약"},
+  {name:"리록시아 15mg",cat:"조제약"},
+  {name:"뮤테란 200",cat:"조제약"},
+  {name:"리록시아 20mg",cat:"조제약"},
+  {name:"리리카 25",cat:"조제약"},
+  {name:"리리카 50",cat:"조제약"},
+  {name:"리리카 75",cat:"조제약"},
+  {name:"리리카 150",cat:"조제약"},
+  {name:"리바로 4",cat:"조제약"},
+  {name:"리바로젯 2/10",cat:"조제약"},
+  {name:"리바로젯 4/10",cat:"조제약"},
+  {name:"리비디",cat:"조제약"},
+  {name:"리페리돈 1",cat:"조제약"},
+  {name:"리피딜슈프라",cat:"조제약"},
+  {name:"릭시아나 15",cat:"조제약"},
+  {name:"릭시아나 30",cat:"조제약"},
+  {name:"릭시아나 60",cat:"조제약"},
+  {name:"립스타+ 10/5",cat:"조제약"},
+  {name:"립스타+ 10/10",cat:"조제약"},
+  {name:"립스타+ 10/20",cat:"조제약"},
+  {name:"란스톤 캡슐 15",cat:"조제약"},
+  {name:"람노스캡슐 250",cat:"조제약"},
+  {name:"바라클 0.5mg",cat:"조제약"},
+  {name:"사이폴엔 25mg",cat:"조제약"},
+  {name:"바이오탑하이포르테",cat:"조제약"},
+  {name:"사이폴엔 50mg",cat:"조제약"},
+  {name:"사이폴엔 100mg",cat:"조제약"},
+  {name:"발사벨 40mg",cat:"조제약"},
+  {name:"삼스카30",cat:"조제약"},
+  {name:"발사벨 80mg",cat:"조제약"},
+  {name:"세비카 5/20",cat:"조제약"},
+  {name:"발사벨 160mg",cat:"조제약"},
+  {name:"셀레베타 25mg",cat:"조제약"},
+  {name:"베니톨 500mg",cat:"조제약"},
+  {name:"셀레베타 50mg",cat:"조제약"},
+  {name:"베믈리디",cat:"조제약"},
+  {name:"셀셉트250",cat:"조제약"},
+  {name:"베스자임",cat:"조제약"},
+  {name:"슈가논",cat:"조제약"},
+  {name:"스타브론",cat:"조제약"},
+  {name:"베타미가",cat:"조제약"},
+  {name:"스토가 10mg",cat:"조제약"},
+  {name:"베타히스 24",cat:"조제약"},
+  {name:"스티렌투엑스",cat:"조제약"},
+  {name:"보나링에이",cat:"조제약"},
+  {name:"본키",cat:"조제약"},
+  {name:"신바로",cat:"조제약"},
+  {name:"볼그레액",cat:"조제약"},
+  {name:"써스펜이알",cat:"조제약"},
+  {name:"부루펜 200",cat:"조제약"},
+  {name:"씨앤유",cat:"조제약"},
+  {name:"부스파 5mg",cat:"조제약"},
+  {name:"씬지로이드 0.025",cat:"조제약"},
+  {name:"비리어드",cat:"조제약"},
+  {name:"씬지로이드 0.0375",cat:"조제약"},
+  {name:"비카루드",cat:"조제약"},
+  {name:"씬지로이드 0.05",cat:"조제약"},
+  {name:"베타유론서방정 50",cat:"조제약"},
+  {name:"씬지로이드 0.075",cat:"조제약"},
+  {name:"씬지로이드 0.1",cat:"조제약"},
+  {name:"씬지로이드 0.112",cat:"조제약"},
+  {name:"씬지로이드 0.15",cat:"조제약"},
+  {name:"씬지로이드 0.2",cat:"조제약"},
+  {name:"씬지록신 25",cat:"조제약"},
+  {name:"씬지록신 50",cat:"조제약"},
+  {name:"씬지록신 75",cat:"조제약"},
+  {name:"씬지록신 88",cat:"조제약"},
+  {name:"씬지록신 100",cat:"조제약"},
+  {name:"씬지록신 125",cat:"조제약"},
+  {name:"씬지록신 150",cat:"조제약"},
+  {name:"세토펜현탁액",cat:"조제약"},
+  {name:"시그마트 5",cat:"조제약"},
+  {name:"스피로닥톤(구주)",cat:"조제약"},
+  {name:"아레이 10",cat:"조제약"},
+  {name:"오마코",cat:"조제약"},
+  {name:"아레이 20",cat:"조제약"},
+  {name:"오메틸큐티렛",cat:"조제약"},
+  {name:"아로나민씨플러스",cat:"조제약"},
+  {name:"오미탄",cat:"조제약"},
+  {name:"아리셉트 5",cat:"조제약"},
+  {name:"오팔몬정",cat:"조제약"},
+  {name:"아리셉트 10",cat:"조제약"},
+  {name:"우루사 100mg",cat:"조제약"},
+  {name:"아모디핀5",cat:"조제약"},
+  {name:"아모잘탄+ 5/100/25",cat:"조제약"},
+  {name:"우루사 200mg",cat:"조제약"},
+  {name:"아모잘탄 5/50",cat:"조제약"},
+  {name:"아바트리 5/80/10",cat:"조제약"},
+  {name:"우루사 300mg",cat:"조제약"},
+  {name:"아스트릭스",cat:"조제약"},
+  {name:"아스피린장용정(유한)",cat:"조제약"},
+  {name:"움카민플러스시럽",cat:"조제약"},
+  {name:"아자프린50",cat:"조제약"},
+  {name:"웰부트린 XL 150",cat:"조제약"},
+  {name:"아토바미브 10/5",cat:"조제약"},
+  {name:"웰부트린 XL 300",cat:"조제약"},
+  {name:"아토바미브 10/10",cat:"조제약"},
+  {name:"유로박솜",cat:"조제약"},
+  {name:"아토젯10/10",cat:"조제약"},
+  {name:"유파시딘R",cat:"조제약"},
+  {name:"아토젯10/20",cat:"조제약"},
+  {name:"이모튼",cat:"조제약"},
+  {name:"아토젯10/40",cat:"조제약"},
+  {name:"안티로이드",cat:"조제약"},
+  {name:"인데놀10",cat:"조제약"},
+  {name:"알파본",cat:"조제약"},
+  {name:"휴텍스아스피린",cat:"조제약"},
+  {name:"애니디핀 5mg",cat:"조제약"},
+  {name:"아기오과립",cat:"조제약"},
+  {name:"애드원",cat:"조제약"},
+  {name:"아트맥콤비젤10/1000",cat:"조제약"},
+  {name:"앤지비드서방40",cat:"조제약"},
+  {name:"엘칸정",cat:"조제약"},
+  {name:"에도파벨",cat:"조제약"},
+  {name:"아질라사1",cat:"조제약"},
+  {name:"에비스타 60",cat:"조제약"},
+  {name:"이미그란",cat:"조제약"},
+  {name:"에소듀오 20/800",cat:"조제약"},
+  {name:"에소듀오 40/800",cat:"조제약"},
+  {name:"에소메졸+ 20/350",cat:"조제약"},
+  {name:"에이덱스",cat:"조제약"},
+  {name:"에팔",cat:"조제약"},
+  {name:"에필라탐정1000",cat:"조제약"},
+  {name:"엑스포지 10/160",cat:"조제약"},
+  {name:"엔테론 150mg",cat:"조제약"},
+  {name:"엔테론 50mg",cat:"조제약"},
+  {name:"엔트레스토 50",cat:"조제약"},
+  {name:"엔트레스토 100",cat:"조제약"},
+  {name:"엔트레스토 200",cat:"조제약"},
+  {name:"엘도스",cat:"조제약"},
+  {name:"엘리퀴스 2.5mg",cat:"조제약"},
+  {name:"엘리퀴스 5mg",cat:"조제약"},
+  {name:"엘오공 10/10",cat:"조제약"},
+  {name:"오르필서방 300",cat:"조제약"},
+  {name:"오르필서방 600",cat:"조제약"},
+  {name:"자디앙 10",cat:"조제약"},
+  {name:"칸데모어 8mg",cat:"조제약"},
+  {name:"자디앙 25",cat:"조제약"},
+  {name:"칸데모어 16mg",cat:"조제약"},
+  {name:"제미글로",cat:"조제약"},
+  {name:"칸데모어 32mg",cat:"조제약"},
+  {name:"칸타벨 8/5mg",cat:"조제약"},
+  {name:"조인스 200mg",cat:"조제약"},
+  {name:"칸타벨 16/5mg",cat:"조제약"},
+  {name:"칼루타미 50",cat:"조제약"},
+  {name:"징키스틴",cat:"조제약"},
+  {name:"코프리그렐 75/100",cat:"조제약"},
+  {name:"직듀오서방정 10/500",cat:"조제약"},
+  {name:"콜라잘",cat:"조제약"},
+  {name:"직듀오서방정 10/1000",cat:"조제약"},
+  {name:"콩브럭 1.25mg",cat:"조제약"},
+  {name:"콩브럭 2.5mg",cat:"조제약"},
+  {name:"콩브럭 5mg",cat:"조제약"},
+  {name:"콩코르 2.5mg",cat:"조제약"},
+  {name:"콩코르 5mg",cat:"조제약"},
+  {name:"큐덱시 100",cat:"조제약"},
+  {name:"크레스토 5mg",cat:"조제약"},
+  {name:"크레스토 10mg",cat:"조제약"},
+  {name:"크레스토 20mg",cat:"조제약"},
+  {name:"클로그렐",cat:"조제약"},
+  {name:"카비드츄어블정",cat:"조제약"},
+  {name:"타크로벨 0.25",cat:"조제약"},
+  {name:"파자임이중95",cat:"조제약"},
+  {name:"타크로벨 0.5",cat:"조제약"},
+  {name:"퍼킨 25-100",cat:"조제약"},
+  {name:"타크로벨 1",cat:"조제약"},
+  {name:"퍼킨 25-250",cat:"조제약"},
+  {name:"타크로벨 2",cat:"조제약"},
+  {name:"펜넬",cat:"조제약"},
+  {name:"탐스오디정0.4(한미)",cat:"조제약"},
+  {name:"펜잘 8시간이알",cat:"조제약"},
+  {name:"테노포벨",cat:"조제약"},
+  {name:"푸록틴캡슐20",cat:"조제약"},
+  {name:"텔미누보 40/2.5",cat:"조제약"},
+  {name:"프로맥",cat:"조제약"},
+  {name:"텔미누보 40/5",cat:"조제약"},
+  {name:"프리그렐정 75mg",cat:"조제약"},
+  {name:"텔미누보 80/2.5",cat:"조제약"},
+  {name:"플라빅스 75",cat:"조제약"},
+  {name:"텔미트렌 20",cat:"조제약"},
+  {name:"트레블 40/5/5",cat:"조제약"},
+  {name:"플라빅스 A",cat:"조제약"},
+  {name:"트루패스 4mg",cat:"조제약"},
+  {name:"플래리스",cat:"조제약"},
+  {name:"트루패스 8mg",cat:"조제약"},
+  {name:"넥스팜탄산칼슘",cat:"조제약"},
+  {name:"플리바스 50mg",cat:"조제약"},
+  {name:"트윈베타 80/5",cat:"조제약"},
+  {name:"플리바스 75mg",cat:"조제약"},
+  {name:"트레스탄",cat:"조제약"},
+  {name:"펜타사서방 1g",cat:"조제약"},
+  {name:"타이레놀현탁액(어린이)",cat:"조제약"},
+  {name:"포리부틴드라이시럽",cat:"조제약"},
+  {name:"포텍플러스",cat:"조제약"},
+  {name:"노보래피드",cat:"조제약"},
+  {name:"대원 헤데라정",cat:"조제약"},
+  {name:"타프콤점안액",cat:"조제약"},
+  {name:"하루날디",cat:"조제약"},
+  {name:"하루신서방정 0.4",cat:"조제약"},
+  {name:"할록신200",cat:"조제약"},
+  {name:"헤르벤 30mg",cat:"조제약"},
+  {name:"헤르벤서방 90mg",cat:"조제약"},
+  {name:"헤르벤서방정180mg",cat:"조제약"},
+  {name:"훼로바유",cat:"조제약"},
 ];
 
 // 한글/영문 이름 정규화 (공백·특수문자 제거, 소문자 변환)
@@ -4083,24 +4343,27 @@ function normalizeMedName(s) {
   return String(s).toLowerCase().replace(/[\s\(\)\*×x·\-_/\.%,]/g, '');
 }
 
-// 2층 재고 매칭: 입력 이름이 재고 항목과 동일하거나 상호 포함 관계면 매치
+// 2층 재고 매칭: 입력 이름이 목록 항목과 동일하거나 상호 포함 관계면 매치
+// floor2MedList 는 [{name, cat}] 구조 (수량 없음)
 function findFloor2Match(name) {
   if (!name) return null;
+  const list = Array.isArray(floor2MedList) ? floor2MedList : [];
+  if (!list.length) return null;
   const q = normalizeMedName(name);
   if (q.length < 2) return null;
   // 1) 완전 일치 우선
-  for (const item of FLOOR2_STOCK) {
-    if (normalizeMedName(item.name) === q) return item;
+  for (const item of list) {
+    if (item && normalizeMedName(item.name) === q) return item;
   }
-  // 2) 접두/포함 관계 (예: "디쿠아스에스" 입력 → "디쿠아스에스(0.4ml*60)" 매치)
-  //    단, 너무 짧은(2글자) 접두는 오탐 가능성 큼 → 3글자 이상으로 제한
+  // 2) 접두/포함 관계 (3글자 이상일 때만 — 오탐 방지)
   if (q.length >= 3) {
-    for (const item of FLOOR2_STOCK) {
+    for (const item of list) {
+      if (!item) continue;
       const n = normalizeMedName(item.name);
       if (n.startsWith(q) || q.startsWith(n)) return item;
     }
-    // 3) 부분 포함 (입력이 재고명을 포함하거나 그 반대)
-    for (const item of FLOOR2_STOCK) {
+    for (const item of list) {
+      if (!item) continue;
       const n = normalizeMedName(item.name);
       if (n.length >= 4 && (n.includes(q) || q.includes(n))) return item;
     }
@@ -4108,123 +4371,240 @@ function findFloor2Match(name) {
   return null;
 }
 
-// ============ 2층 재고 실시간 관리 ============
-// 기본재고(FLOOR2_STOCK 상수) + 주문감소(자동) + 재고보정(수동: 입고/조정) = 현재재고
-// 재고보정은 Firebase(/floor2Adjustments)와 localStorage에 함께 저장
-let floor2Adjustments = []; // [{id, name, delta, ts, author, note}]
+// ============ 2층 재고 의약품 목록 (이름만 관리) ============
+// 수량 추적 없음. 주문 시 이 목록에 있는 약품이면 ⚠ 2층재고 배지 표시.
+// 업데이트: 약국장이 xlsx 파일 업로드 → Firebase /floor2MedList 동기화 → 전 직원 즉시 반영.
 
-// 갯수(문자열) → 숫자 파싱 (예: "3개" → 3, "2" → 2, "1팩" → 1, "" → 0)
-function parseQtyNum(qty) {
-  const m = String(qty || '').match(/-?\d+(?:\.\d+)?/);
-  return m ? parseFloat(m[0]) : 0;
-}
+// 목록 메타 정보 (마지막 업로드 일시·업로더·파일명)
+let floor2ListMeta = { updatedAt: 0, author: '', filename: '', count: 0 };
 
-// 전체 데이터에서 특정 2층재고 품목에 대한 주문 총 감소량 계산
-function getFloor2OrderedTotal(normName) {
-  if (!normName) return 0;
-  let total = 0;
-  try {
-    Object.values(allData || {}).forEach(day => {
-      (day && day.items || []).forEach(it => {
-        const m = findFloor2Match(it.name);
-        if (m && normalizeMedName(m.name) === normName) {
-          total += parseQtyNum(it.qty);
-        }
-      });
-    });
-  } catch (e) { /* ignore */ }
-  return total;
-}
-
-// 수동 보정 누적 합계
-function getFloor2AdjustmentTotal(normName) {
-  if (!normName) return 0;
-  return floor2Adjustments
-    .filter(a => a && normalizeMedName(a.name) === normName)
-    .reduce((s, a) => s + (Number(a.delta) || 0), 0);
-}
-
-// 최종 현재 재고 (FLOOR2_STOCK item 객체 또는 이름 문자열 받음)
-function getFloor2CurrentStock(itemOrName) {
-  let base = 0, normName = '';
-  if (!itemOrName) return 0;
-  if (typeof itemOrName === 'string') {
-    const m = findFloor2Match(itemOrName);
-    if (!m) return 0;
-    base = Number(m.qty) || 0;
-    normName = normalizeMedName(m.name);
-  } else {
-    base = Number(itemOrName.qty) || 0;
-    normName = normalizeMedName(itemOrName.name);
-  }
-  return base + getFloor2AdjustmentTotal(normName) - getFloor2OrderedTotal(normName);
-}
-
-// 재고 보정 추가 (입고: delta > 0, 손실·수기조정: delta < 0)
-function addFloor2Adjustment(name, delta, note) {
-  const deltaN = Number(delta);
-  if (!name || !Number.isFinite(deltaN) || deltaN === 0) return false;
-  const adj = {
-    name: String(name),
-    delta: deltaN,
-    ts: Date.now(),
-    author: currentUser || '',
-    note: String(note || '')
-  };
-  if (fbDb) {
-    const ref = fbDb.ref('floor2Adjustments').push();
-    adj.id = ref.key;
-    ref.set(adj);
-    // 리스너가 UI 업데이트
-  } else {
-    adj.id = 'adj-' + adj.ts + '-' + Math.random().toString(36).slice(2, 6);
-    floor2Adjustments.push(adj);
-    saveFloor2AdjustmentsLocal();
-    renderAll();
-    renderFloor2Admin();
-  }
-  return true;
-}
-
-// 재고 보정 삭제 (취소용)
-function removeFloor2Adjustment(id) {
-  if (!id) return;
-  if (fbDb) {
-    fbDb.ref('floor2Adjustments/' + id).remove();
-  } else {
-    floor2Adjustments = floor2Adjustments.filter(a => a.id !== id);
-    saveFloor2AdjustmentsLocal();
-    renderAll();
-    renderFloor2Admin();
-  }
-}
-
-function saveFloor2AdjustmentsLocal() {
-  try {
-    safeLS.setItem('floor2_adjustments_v1', JSON.stringify(floor2Adjustments));
-  } catch (e) { /* ignore */ }
-}
-function loadFloor2AdjustmentsLocal() {
-  try {
-    const raw = safeLS.getItem('floor2_adjustments_v1');
-    floor2Adjustments = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(floor2Adjustments)) floor2Adjustments = [];
-  } catch (e) { floor2Adjustments = []; }
-}
-
-// Firebase 실시간 리스너 (재고보정)
-let fbFloor2Ref = null;
-function setupFloor2AdjustmentsListener() {
+// Firebase 리스너 — /floor2MedList 경로 실시간 동기화
+let fbFloor2MedListRef = null;
+function setupFloor2MedListListener() {
   if (!fbDb) return;
-  if (fbFloor2Ref) { try { fbFloor2Ref.off(); } catch (e) {} }
-  fbFloor2Ref = fbDb.ref('floor2Adjustments');
-  fbFloor2Ref.on('value', snap => {
-    const val = snap.val() || {};
-    floor2Adjustments = Object.entries(val).map(([k, v]) => ({ id: k, ...v }));
-    floor2Adjustments.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  if (fbFloor2MedListRef) { try { fbFloor2MedListRef.off(); } catch (e) {} }
+  fbFloor2MedListRef = fbDb.ref('floor2MedList');
+  fbFloor2MedListRef.on('value', snap => {
+    const val = snap.val();
+    if (val && typeof val === 'object' && Array.isArray(val.items)) {
+      floor2MedList = val.items.filter(x => x && x.name);
+      floor2ListMeta = {
+        updatedAt: Number(val.updatedAt || 0),
+        author: String(val.author || ''),
+        filename: String(val.filename || ''),
+        count: floor2MedList.length
+      };
+      saveFloor2MedListLocal();
+    }
     renderAll();
     renderFloor2Admin();
   });
+}
+
+function saveFloor2MedListLocal() {
+  try {
+    safeLS.setItem('floor2_medlist_v1', JSON.stringify({
+      items: floor2MedList,
+      meta: floor2ListMeta
+    }));
+  } catch (e) { /* ignore */ }
+}
+function loadFloor2MedListLocal() {
+  try {
+    const raw = safeLS.getItem('floor2_medlist_v1');
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.items)) {
+      floor2MedList = parsed.items;
+      floor2ListMeta = parsed.meta || { updatedAt: 0, author: '', filename: '', count: 0 };
+    }
+  } catch (e) { /* ignore */ }
+}
+
+// xlsx 파일 업로드 핸들러 — 백승준 약국장 전용
+function handleFloor2FileUpload(event) {
+  const file = event && event.target && event.target.files && event.target.files[0];
+  event.target.value = ''; // 같은 파일 재업로드 가능하게 리셋
+  if (!file) return;
+  if (!canEditFloor2List()) {
+    alert('⛔ 2층 재고 목록 업로드 권한이 없습니다.\n약국장(' + NOTICE_OWNER + ')만 가능합니다.');
+    return;
+  }
+  if (typeof XLSX === 'undefined') {
+    alert('엑셀 모듈(SheetJS) 로드 실패. 새로고침 후 다시 시도해 주세요.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array' });
+      const parsed = parseFloor2Xlsx(wb);
+      if (!parsed.length) {
+        alert('파일에서 의약품명을 찾지 못했습니다.\n양식을 확인해 주세요.');
+        return;
+      }
+      const ok = confirm(
+        '📂 ' + file.name + '\n\n' +
+        '추출된 의약품: ' + parsed.length + '개\n' +
+        '예시: ' + parsed.slice(0, 3).map(x => x.name).join(', ') + ' ...\n\n' +
+        '이 목록으로 2층 재고 의약품 리스트를 교체하시겠습니까?\n' +
+        '(모든 직원 기기에 실시간 반영됩니다)'
+      );
+      if (!ok) return;
+      uploadFloor2MedList(parsed, file.name);
+    } catch (err) {
+      alert('파일 파싱 실패: ' + (err && err.message ? err.message : err));
+    }
+  };
+  reader.onerror = function () { alert('파일 읽기 실패'); };
+  reader.readAsArrayBuffer(file);
+}
+
+// xlsx 워크북에서 의약품명 추출
+// 규칙:
+//   - Sheet1/Sheet2 스타일: 1열 이름, 2열 규격, 3열 수량 (수량 무시) + 5열 이름, 6열 규격, 7열 수량
+//   - Sheet4 스타일: (이름, 수량) 쌍이 빈 열 간격으로 반복, 1행은 카테고리 헤더
+//   - 한글 자모(ㄱㄴㄷ...) 같은 섹션 마커는 건너뜀
+function parseFloor2Xlsx(wb) {
+  const result = [];
+  const seen = new Set();
+  const sectionMarkers = /^[ㄱ-ㅎ]$/;
+  const catKeywords = ['안약','연고','로션','흡입','흡입제','기타','조제약','외용'];
+
+  wb.SheetNames.forEach(sheetName => {
+    const sheet = wb.Sheets[sheetName];
+    if (!sheet) return;
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    if (!rows.length) return;
+
+    // 카테고리 헤더 감지 (Sheet4 같은 구조)
+    // 1행에 '안약'/'연고'/'흡입제'/'기타' 등이 있으면 각 블록의 카테고리로 지정
+    const header0 = (rows[0] || []).map(c => String(c || '').trim());
+    const colCats = {}; // colIdx → cat
+    header0.forEach((h, idx) => {
+      const clean = h.replace(/\s+/g, '');
+      if (catKeywords.some(k => clean.includes(k))) {
+        colCats[idx] = clean;
+      }
+    });
+
+    // 기본 카테고리 판정 (시트명 기반)
+    const sheetCat = (sheetName === 'Sheet4' || /외용|안약|연고|흡입|기타/i.test(sheetName))
+      ? '' // 각 열 블록에서 개별 감지
+      : '조제약';
+
+    rows.forEach((row, rIdx) => {
+      if (!Array.isArray(row)) return;
+      // 데이터 패턴: (이름, 규격/수량, 수량) 3열 단위 또는 (이름, 수량) 2열 단위
+      // → "이름 같아 보이는 셀"을 전부 수집
+      row.forEach((cell, cIdx) => {
+        const val = String(cell || '').trim();
+        if (!val) return;
+        if (sectionMarkers.test(val)) return;           // ㄱ,ㄴ,ㄷ 건너뜀
+        if (val.length < 2) return;                     // 너무 짧은 셀
+        if (/^\d+(\.\d+)?$/.test(val)) return;          // 순수 숫자(수량) 건너뜀
+        if (/^[0-9,\s]+$/.test(val)) return;
+        // 카테고리 헤더 행은 건너뜀
+        if (rIdx === 0 && Object.keys(colCats).length) return;
+        // '품목','수량' 같은 헤더 키워드 건너뜀
+        if (/^(품목|수량|품명|이름|name|qty)$/i.test(val)) return;
+        // 셀이 "수량"으로 보이면 건너뜀 (바로 앞 셀이 이름이어야 하는 경우, 다음 셀이 수량)
+        // 이름 열은 보통 짝수번째 셀 아닌 것 — 간단히 "길이 >= 2 이고 숫자만 아니면 이름" 으로 처리
+        // 카테고리 결정: colCats가 있으면 가장 가까운 앞쪽 cat 사용, 없으면 sheetCat
+        let cat = sheetCat;
+        if (Object.keys(colCats).length) {
+          // cIdx 이하의 가장 큰 colCats 키를 cat으로
+          let best = -1;
+          Object.keys(colCats).forEach(k => {
+            const ki = Number(k);
+            if (ki <= cIdx && ki > best) best = ki;
+          });
+          if (best >= 0) cat = colCats[best];
+        }
+        // 이름 셀 다음 2개 셀 중 하나가 숫자 혹은 빈 셀이어야 "이름 셀" 가능성 높음
+        // 간단 휴리스틱: 현재 셀 기준 바로 다음 셀이 "수량"스럽거나 빈 셀이면 이름으로 인정
+        const next1 = String(row[cIdx + 1] || '').trim();
+        const next2 = String(row[cIdx + 2] || '').trim();
+        const nextIsNum = /^\d+(\.\d+)?$/.test(next1);
+        const next2IsNum = /^\d+(\.\d+)?$/.test(next2);
+        const nextIsQtyUnit = /(정|캡슐|ml|g|매|팩|box|바이알|앰플)/i.test(next1);
+        // 이 셀 자체가 의약품명 같은지: "이름" 패턴 (한글/영문 + 숫자/괄호 포함 가능)
+        const looksLikeName = /[가-힣]/.test(val) || /[a-zA-Z]{3,}/.test(val);
+        if (!looksLikeName) return;
+        // 다음 셀이 빈 셀 또는 숫자 또는 수량단위면 이 셀은 이름일 확률 높음
+        if (!next1 || nextIsNum || nextIsQtyUnit || next2IsNum) {
+          const key = normalizeMedName(val);
+          if (!key || seen.has(key)) return;
+          seen.add(key);
+          result.push({ name: val, cat: cat || '' });
+        }
+      });
+    });
+  });
+
+  return result;
+}
+
+// Firebase(또는 로컬)에 2층 재고 목록 저장
+function uploadFloor2MedList(items, filename) {
+  const payload = {
+    items: items,
+    updatedAt: Date.now(),
+    author: currentUser || NOTICE_OWNER,
+    authorUid: currentAuthUid || '',
+    filename: filename || '',
+    count: items.length
+  };
+  if (fbDb) {
+    fbDb.ref('floor2MedList').set(payload)
+      .then(() => {
+        alert('✅ 2층 재고 의약품 목록 업데이트 완료\n\n' +
+              '• 파일: ' + (filename || '-') + '\n' +
+              '• 항목 수: ' + items.length + '\n' +
+              '• 모든 직원 기기에 실시간 반영되었습니다.');
+      })
+      .catch(err => {
+        const msg = (err && err.message) ? err.message : String(err);
+        if (/PERMISSION_DENIED|Permission denied/i.test(msg)) {
+          // 권한 오류 시 로컬만 반영 + 규칙 안내
+          floor2MedList = items;
+          floor2ListMeta = { updatedAt: payload.updatedAt, author: payload.author, filename: payload.filename, count: items.length };
+          saveFloor2MedListLocal();
+          renderAll();
+          renderFloor2Admin();
+          alert('⛔ Firebase 규칙에서 /floor2MedList 경로 쓰기가 차단되어 있습니다.\n\n' +
+            '[해결 방법]\nFirebase 콘솔 → Realtime Database → 규칙 탭에 아래 추가 후 게시:\n\n' +
+            '"floor2MedList": {\n' +
+            '  ".read": "auth != null",\n' +
+            '  ".write": "auth != null && auth.uid === \'' + NOTICE_OWNER_UID + '\'"\n' +
+            '}\n\n' +
+            '(임시로 로컬에만 저장되었으며, 다른 직원 기기에는 반영되지 않았습니다.)');
+        } else {
+          alert('저장 실패: ' + msg);
+        }
+      });
+  } else {
+    floor2MedList = items;
+    floor2ListMeta = { updatedAt: payload.updatedAt, author: payload.author, filename: payload.filename, count: items.length };
+    saveFloor2MedListLocal();
+    renderAll();
+    renderFloor2Admin();
+    alert('✅ (로컬 모드) 2층 재고 목록 ' + items.length + '개 저장 완료.\nFirebase 연결 시 다른 직원에게도 반영됩니다.');
+  }
+}
+
+function confirmClearFloor2List() {
+  if (!canEditFloor2List()) { alert('⛔ 권한이 없습니다.'); return; }
+  if (!confirm('2층 재고 의약품 목록을 전부 비우시겠습니까?\n(모든 직원 기기에 반영됩니다)')) return;
+  uploadFloor2MedList([], '');
+}
+
+// 권한 체크 (공지사항과 동일 — 약국장 백승준만)
+function canEditFloor2List() {
+  if (typeof canEditNotice === 'function') return canEditNotice();
+  if (currentUser === '백승준') return true;
+  return false;
 }
 
 /* ============ 공지사항 (약국장 백승준 전용 편집) ============ */
@@ -4380,6 +4760,22 @@ function closeNoticeEditModal() {
   if (m) m.style.display = 'none';
 }
 
+function noticeSaveErrorMessage(err) {
+  const msg = (err && err.message) ? err.message : String(err || '');
+  if (/PERMISSION_DENIED|Permission denied/i.test(msg)) {
+    return '⛔ Firebase 규칙에서 /notice 경로 쓰기가 차단되어 있습니다.\n\n' +
+      '[해결 방법]\n' +
+      'Firebase 콘솔 → Realtime Database → 규칙(Rules) 탭에서\n' +
+      '아래 규칙을 추가하고 "게시"를 눌러주세요:\n\n' +
+      '"notice": {\n' +
+      '  ".read": "auth != null",\n' +
+      '  ".write": "auth != null && auth.uid === \'' + NOTICE_OWNER_UID + '\'"\n' +
+      '}\n\n' +
+      '(임시로 로컬에만 저장되었으며, 다른 직원 기기에는 반영되지 않았습니다.)';
+  }
+  return '저장 실패: ' + msg;
+}
+
 function saveNotice() {
   if (!canEditNotice()) {
     alert('⛔ 권한이 없습니다.');
@@ -4397,7 +4793,14 @@ function saveNotice() {
   if (fbDb) {
     fbDb.ref('notice').set(payload)
       .then(() => { closeNoticeEditModal(); })
-      .catch(err => { alert('저장 실패: ' + (err && err.message ? err.message : err)); });
+      .catch(err => {
+        // Firebase 실패 시 로컬에라도 저장 (사용자 입력 보호)
+        noticeState = payload;
+        saveNoticeToLS();
+        renderNoticeBox();
+        closeNoticeEditModal();
+        alert(noticeSaveErrorMessage(err));
+      });
   } else {
     // 오프라인: 로컬에만 반영
     noticeState = payload;
@@ -4414,7 +4817,13 @@ function clearNotice() {
   if (fbDb) {
     fbDb.ref('notice').set(payload)
       .then(() => { closeNoticeEditModal(); })
-      .catch(err => { alert('저장 실패: ' + (err && err.message ? err.message : err)); });
+      .catch(err => {
+        noticeState = payload;
+        saveNoticeToLS();
+        renderNoticeBox();
+        closeNoticeEditModal();
+        alert(noticeSaveErrorMessage(err));
+      });
   } else {
     noticeState = payload;
     saveNoticeToLS();
@@ -4423,249 +4832,103 @@ function clearNotice() {
   }
 }
 
-// ============ 2층 재고 관리 UI ============
+// ============ 2층 재고 의약품 목록 UI (조회 + 업로드) ============
 function renderFloor2Admin() {
+  renderFloor2Meta();
+  renderFloor2CatFilter();
+
   const host = document.getElementById('floor2AdminTable');
   if (!host) return;
   const q = ((document.getElementById('floor2Search')||{}).value || '').trim().toLowerCase();
   const fCat = ((document.getElementById('floor2FilterCat')||{}).value || '').trim();
-  const fStatus = ((document.getElementById('floor2FilterStatus')||{}).value || '').trim();
 
-  const rows = FLOOR2_STOCK
-    .map(item => {
-      const n = normalizeMedName(item.name);
-      const adj = getFloor2AdjustmentTotal(n);
-      const used = getFloor2OrderedTotal(n);
-      const cur = Number(item.qty) + adj - used;
-      return { item, adj, used, cur, n };
-    })
-    .filter(r => {
-      if (q && !r.item.name.toLowerCase().includes(q) && !normalizeMedName(r.item.name).includes(normalizeMedName(q))) return false;
-      if (fCat && r.item.cat !== fCat) return false;
-      if (fStatus === 'low' && r.cur > 0) return false;
-      if (fStatus === 'used' && r.used <= 0) return false;
-      if (fStatus === 'adjusted' && r.adj === 0) return false;
-      return true;
-    })
-    // 재고 부족한 순으로 정렬 (주문 빈도 높은 것이 위로)
-    .sort((a, b) => {
-      if (a.cur <= 0 && b.cur > 0) return -1;
-      if (b.cur <= 0 && a.cur > 0) return 1;
-      if (a.used !== b.used) return b.used - a.used;
-      return a.cur - b.cur;
-    });
+  const list = Array.isArray(floor2MedList) ? floor2MedList : [];
+  const rows = list.filter(item => {
+    if (!item || !item.name) return false;
+    if (fCat && (item.cat || '') !== fCat) return false;
+    if (q) {
+      const nm = String(item.name).toLowerCase();
+      const nmN = normalizeMedName(item.name);
+      const qN = normalizeMedName(q);
+      if (!nm.includes(q) && !nmN.includes(qN)) return false;
+    }
+    return true;
+  });
 
+  if (!list.length) {
+    host.innerHTML = '<div class="floor2-admin-empty">📭 2층 재고 의약품 목록이 비어 있습니다.<br>' +
+      (canEditFloor2List() ? '위 <b>📂 xlsx 파일 업로드</b> 버튼으로 목록을 가져오세요.' : '약국장(백승준)이 업로드할 때까지 기다려 주세요.') +
+      '</div>';
+    return;
+  }
   if (!rows.length) {
-    host.innerHTML = '<div class="floor2-admin-empty">조건에 맞는 항목이 없습니다.</div>';
+    host.innerHTML = '<div class="floor2-admin-empty">조건에 맞는 항목이 없습니다. (전체 ' + list.length + '개)</div>';
     return;
   }
 
-  // ▣ 권한 확인: 지정 직원만 조정 버튼 활성화, 그 외는 읽기 전용
-  const allowed = canAdjustFloor2();
-
-  let html = '';
-  if (!allowed) {
-    html += `<div style="padding:8px 10px; margin-bottom:8px; background:#fef3c7; border:1px solid #f59e0b; border-radius:6px; font-size:11.5px; color:#78350f;">
-      🔒 <b>읽기 전용</b> — 2층 재고 조정 권한자: <b>${FLOOR2_AUTHORIZED_USERS.join(' · ')}</b><br>
-      현재 로그인: <b>${escapeHtml(currentUser || '(미로그인)')}</b> · 조정이 필요하면 권한자에게 요청하세요.
-    </div>`;
-  }
-  html += '<div class="floor2-row head">';
-  html += '  <div>약품명</div>';
-  html += '  <div class="f2-num">기본</div>';
-  html += '  <div class="f2-num">주문↓</div>';
-  html += '  <div class="f2-num">보정</div>';
-  html += '  <div class="f2-num">현재</div>';
-  html += '  <div style="text-align:center;">보정</div>';
-  html += '</div>';
-
+  // 카테고리별로 그룹화해서 표시
+  const byCat = {};
   rows.forEach(r => {
-    const name = r.item.name;
-    const curCls = r.cur <= 0 ? 'low' : (r.cur <= Math.max(2, Math.round(Number(r.item.qty)*0.2)) ? 'mid' : '');
-    const btns = allowed
-      ? `<button class="f2-btn plus" onclick="promptFloor2Adjust(${JSON.stringify(name).replace(/"/g,'&quot;')}, 1)">📥 입고</button>
-         <button class="f2-btn minus" onclick="promptFloor2Adjust(${JSON.stringify(name).replace(/"/g,'&quot;')}, -1)">➖ 조정</button>`
-      : `<button class="f2-btn" disabled title="권한 없음" style="opacity:0.4; cursor:not-allowed;">🔒 잠김</button>`;
-    html += `<div class="floor2-row">
-      <div class="f2-name">${escapeHtml(name)}<span class="f2-cat">${escapeHtml(r.item.cat||'')}</span></div>
-      <div class="f2-num">${Number(r.item.qty)}</div>
-      <div class="f2-num" style="color:#7f1d1d;">${r.used > 0 ? '-' + r.used : '0'}</div>
-      <div class="f2-num" style="color:${r.adj>=0?'#065f46':'#7f1d1d'};">${r.adj>0?'+'+r.adj:(r.adj||'0')}</div>
-      <div class="f2-current ${curCls}">${r.cur}</div>
-      <div class="f2-actions">${btns}</div>
-    </div>`;
+    const c = r.cat || '(미분류)';
+    if (!byCat[c]) byCat[c] = [];
+    byCat[c].push(r);
+  });
+  const cats = Object.keys(byCat).sort();
+
+  let html = `<div style="font-size:11px; color:var(--text-muted); padding:4px 2px 8px;">총 <b>${list.length}</b>개 품목${q || fCat ? ` · 필터 결과 <b>${rows.length}</b>개` : ''}</div>`;
+  cats.forEach(cat => {
+    html += `<div style="margin-top:8px;">
+      <div style="font-size:11.5px; font-weight:700; color:#78350f; background:#fef3c7; padding:4px 10px; border-radius:5px; display:inline-block; margin-bottom:4px;">${escapeHtml(cat)} <span style="font-weight:500; color:#92400e;">${byCat[cat].length}개</span></div>
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:4px 8px; padding:4px 2px;">`;
+    byCat[cat].forEach(r => {
+      html += `<div style="font-size:11.5px; color:#1f2937; padding:3px 6px; background:#f9fafb; border-radius:4px; border:1px solid #f3f4f6; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(r.name)}">${escapeHtml(r.name)}</div>`;
+    });
+    html += '</div></div>';
   });
   host.innerHTML = html;
-
-  // 이력 모달이 열려있으면 같이 갱신
-  const histModal = document.getElementById('floor2HistModal');
-  if (histModal && histModal.style.display !== 'none') {
-    renderFloor2HistModal();
-  }
 }
 
-function promptFloor2Adjust(name, sign) {
-  // ▣ 권한 체크: 지정된 직원만 조정 가능
-  if (!canAdjustFloor2()) {
-    alert('⛔ 2층 재고 조정 권한이 없습니다.\n\n조정 권한자: ' + FLOOR2_AUTHORIZED_USERS.join(', ') +
-          '\n현재 로그인: ' + (currentUser || '(미로그인)') +
-          '\n\n권한자에게 요청해 주세요.');
-    return;
+// 마지막 업로드 정보 + 권한별 업로드 버튼 표시
+function renderFloor2Meta() {
+  const metaEl = document.getElementById('floor2UploadMeta');
+  const actions = document.getElementById('floor2UploadActions');
+  const readonly = document.getElementById('floor2UploadReadOnly');
+  if (!metaEl) return;
+  const m = floor2ListMeta || {};
+  const count = Array.isArray(floor2MedList) ? floor2MedList.length : 0;
+  let lines = [`📊 현재 등록 의약품: <b>${count}</b>개`];
+  if (m.updatedAt) {
+    const t = formatNoticeTime ? formatNoticeTime(m.updatedAt) : new Date(m.updatedAt).toLocaleString('ko-KR');
+    lines.push(`🕒 마지막 업데이트: <b>${t}</b>${m.author ? ` · ${escapeHtml(m.author)}` : ''}`);
+    if (m.filename) lines.push(`📂 파일: <span style="color:#6b7280;">${escapeHtml(m.filename)}</span>`);
+  } else {
+    lines.push('🕒 업로드 이력 없음 (초기 시드 데이터 사용 중)');
   }
-  const match = FLOOR2_STOCK.find(i => i.name === name);
-  if (!match) { alert('재고 항목을 찾을 수 없습니다: ' + name); return; }
-  const cur = getFloor2CurrentStock(match);
-  const action = sign > 0 ? '입고' : '조정(감소)';
-  const raw = prompt(
-    `【${match.name}】\n현재 재고: ${cur}\n\n${action} 수량을 입력하세요 (숫자만, 양수):\n` +
-    `• 입고(📥): 실제 입고된 수량\n• 조정(➖): 손실·수기조정 수량 (자동으로 마이너스 처리)`,
-    ''
-  );
-  if (raw === null) return;
-  const n = parseFloat(String(raw).trim());
-  if (!Number.isFinite(n) || n <= 0) {
-    alert('올바른 숫자를 입력하세요 (양수).');
-    return;
-  }
-  const delta = sign > 0 ? n : -n;
-  // ▣ 사유 입력 (선택) - "누가"는 로그인 이름으로 자동 기록, "왜"는 직접 입력
-  const who = currentUser || '(미상)';
-  const reasonHint = sign > 0
-    ? '예: "입고 - ' + todayStr() + '", "도매상 배송"'
-    : '예: "파손", "유효기간 임박 폐기", "재고실사 보정"';
-  const note = prompt(
-    '📝 사유 입력 (선택)\n\n' +
-    '• 누가: ' + who + ' (자동 기록)\n' +
-    '• 언제: ' + todayStr() + ' (자동 기록)\n' +
-    '• 품목: ' + match.name + '\n' +
-    '• 변동: ' + (sign > 0 ? '+' : '-') + n + '\n\n' +
-    '왜? (사유 · 비워도 됩니다)\n' + reasonHint,
-    ''
-  ) || '';
-  if (addFloor2Adjustment(match.name, delta, note)) {
-    // Firebase 모드는 리스너가 갱신, 로컬 모드는 addFloor2Adjustment가 renderAll 호출
-  }
+  metaEl.innerHTML = lines.join('<br>');
+
+  const allowed = canEditFloor2List();
+  if (actions) actions.style.display = allowed ? 'flex' : 'none';
+  if (readonly) readonly.style.display = allowed ? 'none' : 'block';
 }
 
-function openFloor2Adjustments() {
-  renderFloor2HistModal();
-  const m = document.getElementById('floor2HistModal');
-  if (m) m.style.display = 'flex';
-}
-function closeFloor2HistModal() {
-  const m = document.getElementById('floor2HistModal');
-  if (m) m.style.display = 'none';
-}
-function renderFloor2HistModal() {
-  const host = document.getElementById('floor2HistList');
-  if (!host) return;
-  if (!floor2Adjustments.length) {
-    host.innerHTML = '<div style="padding:20px; text-align:center; color:#6b7280;">보정 이력이 없습니다.</div>';
-    return;
-  }
-  const canUndo = canAdjustFloor2();
-  const headerNote = canUndo
-    ? '<div style="font-size:11px; color:#6b7280; padding:6px 2px 10px;">최근 100건 · ↩ 취소 버튼으로 해당 보정 되돌리기 가능 (반대 부호 보정 추가 방식)</div>'
-    : '<div style="font-size:11px; color:#991b1b; padding:6px 2px 10px;">⛔ 취소 권한은 ' + FLOOR2_AUTHORIZED_USERS.join('·') + '님만 사용 가능합니다.</div>';
-  const rows = floor2Adjustments
-    .slice().sort((a,b) => (b.ts||0) - (a.ts||0))
-    .slice(0, 100)
-    .map(a => {
-      const d = new Date(a.ts || 0);
-      const ts = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-      const sign = a.delta >= 0 ? '+' : '';
-      const isCancel = /↩\s*취소/.test(a.note || '');
-      const deltaColor = a.delta >= 0 ? '#065f46' : '#7f1d1d';
-      const bgColor = isCancel ? '#f3f4f6' : (a.delta >= 0 ? '#ecfdf5' : '#fef2f2');
-      const undoBtn = canUndo && !isCancel
-        ? `<button class="f2-btn" style="background:#fef3c7; color:#92400e; font-size:10.5px; padding:4px 8px; white-space:nowrap;" onclick="undoFloor2Adjustment('${escapeHtml(a.id)}')">↩ 취소</button>`
-        : '';
-      return `<div style="display:grid; grid-template-columns: 1fr auto; gap:8px; padding:8px 10px; background:${bgColor}; border-radius:6px; border:1px solid #e5e7eb; align-items:center;">
-        <div style="min-width:0;">
-          <div style="font-weight:700; font-size:12px; color:#111827; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-            ${escapeHtml(a.name)} <span style="color:${deltaColor}; font-weight:900;">${sign}${a.delta}</span>
-            ${isCancel ? '<span style="color:#6b7280; font-size:10px; font-weight:500;"> · (취소분)</span>' : ''}
-          </div>
-          <div style="font-size:10.5px; color:#4b5563; margin-top:2px;">
-            <b>${escapeHtml(a.author || '-')}</b> · ${ts}${a.note ? ' · ' + escapeHtml(a.note) : ''}
-          </div>
-        </div>
-        <div>${undoBtn}</div>
-      </div>`;
-    }).join('');
-  host.innerHTML = headerNote + rows;
-}
-function undoFloor2Adjustment(id) {
-  if (!canAdjustFloor2()) {
-    alert('⛔ 취소 권한이 없습니다. (' + FLOOR2_AUTHORIZED_USERS.join(', ') + '만 가능)');
-    return;
-  }
-  const target = floor2Adjustments.find(a => a.id === id);
-  if (!target) { alert('이력 항목을 찾을 수 없습니다.'); return; }
-  const d = new Date(target.ts || 0);
-  const ts = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-  const sign = target.delta >= 0 ? '+' : '';
-  if (!confirm(
-    '다음 보정을 취소하시겠습니까?\n\n' +
-    '• 품목: ' + target.name + '\n' +
-    '• 변동: ' + sign + target.delta + '\n' +
-    '• 작성: ' + (target.author || '-') + ' @ ' + ts + '\n' +
-    (target.note ? '• 사유: ' + target.note + '\n' : '') +
-    '\n→ 반대 부호 보정 ' + (target.delta >= 0 ? '-' : '+') + Math.abs(target.delta) +
-    ' 이(가) 추가되어 현재 재고가 원상복구됩니다.\n(이력은 감사용으로 남아있음)'
-  )) return;
-
-  const reverseDelta = -Number(target.delta);
-  const reverseNote = '↩ 취소: ' + (target.author || '-') + ' ' + ts +
-    (target.note ? ' (' + target.note + ')' : '');
-  if (addFloor2Adjustment(target.name, reverseDelta, reverseNote)) {
-    // 성공 시 모달 재렌더
-    setTimeout(() => renderFloor2HistModal(), 120);
-  }
-}
-
-function exportFloor2Report() {
-  if (typeof XLSX === 'undefined') { alert('엑셀 모듈 로드 실패'); return; }
-  const rows = FLOOR2_STOCK.map(item => {
-    const n = normalizeMedName(item.name);
-    const adj = getFloor2AdjustmentTotal(n);
-    const used = getFloor2OrderedTotal(n);
-    const cur = Number(item.qty) + adj - used;
-    return {
-      '카테고리': item.cat,
-      '약품명': item.name,
-      '기본재고': Number(item.qty),
-      '주문감소': used,
-      '수동보정': adj,
-      '현재재고': cur,
-      '상태': cur <= 0 ? '⚠소진' : (cur <= Math.max(2, Math.round(Number(item.qty)*0.2)) ? '부족' : '정상')
-    };
+// 카테고리 드롭다운 동적 생성
+function renderFloor2CatFilter() {
+  const sel = document.getElementById('floor2FilterCat');
+  if (!sel) return;
+  const current = sel.value;
+  const list = Array.isArray(floor2MedList) ? floor2MedList : [];
+  const cats = Array.from(new Set(list.map(x => (x && x.cat) || '').filter(Boolean))).sort();
+  let html = '<option value="">전체 카테고리</option>';
+  cats.forEach(c => {
+    html += `<option value="${escapeHtml(c)}"${current === c ? ' selected' : ''}>${escapeHtml(c)}</option>`;
   });
-  const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{wch:10},{wch:30},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10}];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, '2층재고');
-  // 보정이력 시트
-  if (floor2Adjustments.length) {
-    const adjRows = floor2Adjustments.slice().sort((a,b)=>(a.ts||0)-(b.ts||0)).map(a => ({
-      '일시': a.ts ? new Date(a.ts).toLocaleString('ko-KR') : '',
-      '약품명': a.name,
-      '변화량': a.delta,
-      '작성자': a.author || '',
-      '메모': a.note || ''
-    }));
-    const ws2 = XLSX.utils.json_to_sheet(adjRows);
-    ws2['!cols'] = [{wch:20},{wch:30},{wch:10},{wch:12},{wch:30}];
-    XLSX.utils.book_append_sheet(wb, ws2, '보정이력');
-  }
-  const filename = `2층재고리포트_${todayStr()}.xlsx`;
-  XLSX.writeFile(wb, filename);
+  sel.innerHTML = html;
 }
 
 // 관리 UI 필터 리스너
 (function () {
   const attach = () => {
-    ['floor2Search','floor2FilterCat','floor2FilterStatus'].forEach(id => {
+    ['floor2Search','floor2FilterCat'].forEach(id => {
       const el = document.getElementById(id);
       if (el && !el.__bound) {
         el.__bound = true;
@@ -5160,8 +5423,8 @@ try {
   tickClock();
   setInterval(tickClock, 1000);
 
-  // 2층 재고 보정 로컬 데이터 로드 (Firebase 연결 시 리스너로 덮어씀)
-  if (typeof loadFloor2AdjustmentsLocal === 'function') loadFloor2AdjustmentsLocal();
+  // 2층 재고 의약품 목록 로컬 캐시 로드 (Firebase 연결 시 리스너로 덮어씀)
+  if (typeof loadFloor2MedListLocal === 'function') loadFloor2MedListLocal();
 
   // Firebase 먼저 시도, 없으면 설정 화면 또는 로그인
   const fbReady = tryInitFirebase();
