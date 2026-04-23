@@ -2347,9 +2347,9 @@ body.pdf-rendering .a4-page {
             <button class="hist-btn" onclick="changePassword()">🔑 비밀번호 변경</button>
           </div>
         </div>
-        <div class="settings-card">
-          <h3>데이터 관리</h3>
-          <p>주의: 아래 작업은 되돌릴 수 없습니다.</p>
+        <div class="settings-card" id="dataMgmtCard" style="display:none;">
+          <h3>🗑 데이터 관리 <span style="font-size:11px;color:#991b1b;font-weight:400;">(약국장 전용)</span></h3>
+          <p style="color:#991b1b;">⚠️ 주의: 아래 작업은 되돌릴 수 없습니다. 모든 기기·클라우드에서 영구 삭제됩니다.</p>
           <div class="settings-row">
             <span>오늘 리스트 초기화</span>
             <button class="hist-btn danger" onclick="clearToday()">초기화</button>
@@ -3064,6 +3064,7 @@ function login(name) {
   if (typeof renderNoticeBox === 'function') renderNoticeBox();
   if (typeof renderEmployeesAdmin === 'function') renderEmployeesAdmin();
   if (typeof renderBackupMeta === 'function') renderBackupMeta();
+  if (typeof renderDataMgmtCard === 'function') renderDataMgmtCard();
   if (typeof seedEmployeesIfMissing === 'function') seedEmployeesIfMissing();
   if (typeof checkBackupReminder === 'function') checkBackupReminder();
 }
@@ -3779,7 +3780,17 @@ function closeDay() {
   exportXlsxFor(currentDate);
   addSystemMessage(`${currentUser}님이 ${currentDate} 리스트를 마감했습니다`);
 }
+function canManageData() {
+  // 데이터 관리(초기화·삭제)는 약국장(백승준)만 가능
+  if (typeof canEditNotice === 'function') return canEditNotice();
+  return currentUser === '백승준';
+}
+function renderDataMgmtCard() {
+  const card = document.getElementById('dataMgmtCard');
+  if (card) card.style.display = canManageData() ? 'block' : 'none';
+}
 function clearToday() {
+  if (!canManageData()) { alert('⛔ 데이터 관리 권한이 없습니다. 약국장(백승준)만 가능합니다.'); return; }
   if (!confirm(`오늘 작성된 리스트를 모두 지울까요?${fbDb?' (모든 기기에서 삭제됩니다)':''}`)) return;
   if (fbDb) {
     fbDb.ref(`days/${currentDate}`).remove();
@@ -3788,6 +3799,7 @@ function clearToday() {
   saveData(); renderAll();
 }
 function clearAll() {
+  if (!canManageData()) { alert('⛔ 데이터 관리 권한이 없습니다. 약국장(백승준)만 가능합니다.'); return; }
   if (!confirm(`전체 데이터를 삭제할까요? 되돌릴 수 없습니다.${fbDb?' (모든 기기와 클라우드에서 삭제됩니다)':''}`)) return;
   if (!confirm('정말 삭제할까요?')) return;
   if (fbDb) {
