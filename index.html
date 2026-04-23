@@ -1495,6 +1495,58 @@ body.pdf-rendering .a4-page {
 .f2-btn:hover { opacity: 0.85; }
 .floor2-admin-empty { padding: 18px; text-align: center; color: var(--text-muted); font-size: 12px; }
 
+/* 직원 관리 테이블 */
+.emp-table {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+.emp-row {
+  display: grid;
+  grid-template-columns: 100px 70px 1fr 140px;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.emp-row.head {
+  background: #f9fafb;
+  font-weight: 700;
+  color: #6b7280;
+  font-size: 11px;
+}
+.emp-row:last-child { border-bottom: none; }
+.emp-row .emp-name { font-weight: 600; color: #1f2937; }
+.emp-row .emp-email { font-family: monospace; font-size: 11px; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.emp-actions { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.emp-btn {
+  font-size: 11px; padding: 4px 8px; border-radius: 5px;
+  border: 1px solid #d1d5db; background: #fff; cursor: pointer; color: #374151;
+}
+.emp-btn:hover { background: #f9fafb; }
+.emp-btn.danger { color: #991b1b; border-color: #fecaca; background: #fef2f2; }
+.emp-btn.danger:hover { background: #fee2e2; }
+.emp-label {
+  display: block; font-size: 12px; font-weight: 600; color: #374151;
+  margin-bottom: 4px; margin-top: 10px;
+}
+.emp-input {
+  width: 100%; padding: 8px 10px;
+  border: 1.5px solid var(--border); border-radius: 6px;
+  font-family: inherit; font-size: 13px;
+  background: #fff; color: #1f2937;
+  box-sizing: border-box;
+}
+.emp-input:focus { border-color: var(--accent); outline: none; }
+.emp-input:disabled { background: #f9fafb; color: #6b7280; }
+@media (max-width: 640px) {
+  .emp-row { grid-template-columns: 80px 55px 1fr; }
+  .emp-row > div:nth-child(4) { grid-column: 1 / -1; justify-content: flex-start; margin-top: 2px; }
+}
+
+
 /* ===== Firebase 설정 오버레이 ===== */
 .fb-overlay {
   position: fixed; inset: 0;
@@ -2331,7 +2383,36 @@ body.pdf-rendering .a4-page {
           </div>
           <div id="floor2AdminTable" class="floor2-admin-table"></div>
         </div>
+                <div class="settings-card">
+          <h3>👥 직원 관리 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(Firebase 실시간 동기화)</span></h3>
+          <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+            이름·이메일·역할을 UI에서 관리. UID는 Firebase Console → Authentication에서 계정 생성 후 복사해 입력.
+          </p>
+          <div id="employeesTable" class="emp-table"></div>
+          <div id="employeesAddBtnRow" class="settings-row" style="margin-top:10px; display:none; gap:8px; align-items:center;">
+            <button class="hist-btn" onclick="openEmployeeAddModal()">➕ 직원 추가</button>
+            <span style="font-size:10.5px;color:var(--text-muted);">Firebase Console에서 Auth 계정 먼저 만들고 UID 확보</span>
+          </div>
+        </div>
         <div class="settings-card">
+          <h3>🗂 데이터 백업 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(주 1회 권장)</span></h3>
+          <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+            전체 주문·채팅·2층재고 목록·공지·직원목록을 하나의 xlsx 파일로 내려받습니다.
+          </p>
+          <div id="backupMeta" style="font-size:11.5px; color:#5d4a33; line-height:1.6; padding:8px 12px; background:#fffaf0; border:1px solid #e8d5b0; border-radius:8px; margin-bottom:8px;">-</div>
+          <div class="settings-row">
+            <button class="hist-btn" onclick="exportFullBackup()">📥 지금 백업 받기 (xlsx)</button>
+            <span style="font-size:10.5px;color:var(--text-muted);">7일마다 약국장 로그인 시 자동 알림</span>
+          </div>
+        </div>
+        <div class="settings-card">
+          <h3>🔗 Firebase 연결 상태</h3>
+          <p style="font-size:12px;color:var(--ok);margin-top:4px;">
+            ✅ <b>자동 연결 활성화</b> — 어느 컴퓨터·브라우저에서 접속해도 별도 설정 없이 바로 연결됩니다.
+          </p>
+          <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">Firebase 설정은 소스코드 상단에 박혀있어, 직원은 설정 화면을 볼 필요 없이 로그인만 하면 됩니다.</p>
+        </div>
+<div class="settings-card">
           <h3>업데이트 및 데이터 안내</h3>
           <p>이 앱은 단일 HTML 파일로 동작합니다. 기능 추가/개선 시 새 파일로 교체해도 Firebase 설정과 데이터는 유지됩니다.</p>
           <p style="margin-top:8px;"><b>데이터 저장 위치:</b></p>
@@ -2369,6 +2450,38 @@ body.pdf-rendering .a4-page {
   </aside>
 
   </div><!-- /.app-body -->
+</div>
+
+<!-- 직원 추가·수정 모달 -->
+<div class="modal-backdrop" id="empModal" style="display:none;" onclick="if(event.target===this)closeEmployeeModal()">
+  <div class="modal" style="max-width:520px; width:94%;">
+    <div class="modal-head">
+      <span id="empModalTitle">직원 관리</span>
+      <button class="modal-close" onclick="closeEmployeeModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:14px 18px;">
+      <input type="hidden" id="empModalMode" value="add" />
+      <label class="emp-label">Firebase UID <span style="color:#991b1b;">*</span></label>
+      <input type="text" class="emp-input" id="empModalUid" placeholder="Firebase Console → Authentication → 해당 사용자의 UID 복사" />
+      <div style="font-size:10.5px;color:var(--text-muted);margin:-4px 0 10px;padding-left:2px;">
+        💡 UID는 계정 생성 시 Firebase가 자동 발급 (예: bhgORSzZ23dlNUfZmDPBe3IsnPN2)
+      </div>
+      <label class="emp-label">이름 <span style="color:#991b1b;">*</span></label>
+      <input type="text" class="emp-input" id="empModalName" placeholder="홍길동" />
+      <label class="emp-label">로그인 이메일 <span style="color:#991b1b;">*</span></label>
+      <input type="text" class="emp-input" id="empModalEmail" placeholder="예: n@daeryeong.local" />
+      <label class="emp-label">역할</label>
+      <select class="emp-input" id="empModalRole">
+        <option value="약국장">약국장</option>
+        <option value="약사">약사</option>
+        <option value="직원" selected>직원</option>
+      </select>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn" onclick="closeEmployeeModal()">취소</button>
+      <button class="modal-btn" onclick="saveEmployee()">💾 저장</button>
+    </div>
+  </div>
 </div>
 
 <!-- 공지사항 보기 모달 -->
@@ -2447,10 +2560,10 @@ const EMBEDDED_FB_CONFIG = {
   appId: "1:838305314469:web:fb5f186ece30a00b5fff4c"
 };
 
-/* ============ 직원 UID ↔ 이름·이메일 매핑 (운영자 전용 수정) ============ */
+/* ============ 직원 UID ↔ 이름·이메일 매핑 (초기 시드 + Firebase 동기화) ============ */
 // Firebase Console → Authentication 에서 만든 계정의 UID
 // 직원이 추가/퇴사하면 이 표만 수정하면 됨
-const UID_NAME_MAP = {
+let UID_NAME_MAP = {
   'bhgORSzZ23dlNUfZmDPBe3IsnPN2': { name: '백승준', email: 'a@daeryeong.local', role: '약국장' },
   'sSZqMZOeorNxPsnsDd1VFISgDKI3': { name: '윤소망', email: 'b@daeryeong.local', role: '약사' },
   'wWeu4ox6mrMtQdSNt8K7LZsQkQV2': { name: '윤장훈', email: 'c@daeryeong.local', role: '약사' },
@@ -2463,13 +2576,19 @@ const UID_NAME_MAP = {
   'Ver4y0bDyZYZtXULq1Gd19bSkp62': { name: '임선영', email: 'j@daeryeong.local', role: '직원' },
   'umhmSXpFUkQ2RdOVTCyg1TvRGk03': { name: '한유진', email: 'k@daeryeong.local', role: '직원' },
 };
-// 역방향 인덱스 (이메일/이름 → UID)
-const EMAIL_UID_MAP = {};
-const NAME_UID_MAP = {};
-Object.entries(UID_NAME_MAP).forEach(([uid, info]) => {
-  EMAIL_UID_MAP[info.email.toLowerCase()] = uid;
-  NAME_UID_MAP[info.name] = uid;
-});
+// 역방향 인덱스 (이메일/이름 → UID) — 지도 변경 시마다 재빌드
+let EMAIL_UID_MAP = {};
+let NAME_UID_MAP = {};
+function rebuildEmployeeIndexes() {
+  EMAIL_UID_MAP = {};
+  NAME_UID_MAP = {};
+  Object.entries(UID_NAME_MAP).forEach(([uid, info]) => {
+    if (!info || !info.email || !info.name) return;
+    EMAIL_UID_MAP[info.email.toLowerCase()] = uid;
+    NAME_UID_MAP[info.name] = uid;
+  });
+}
+rebuildEmployeeIndexes();
 
 /* ============ 2층 재고 목록 업로드 권한 — 약국장(백승준)만 ============ */
 /* canEditFloor2List() 는 floor2MedList 관리 블록에서 정의됨 (공지사항 권한과 동일) */
@@ -2681,6 +2800,10 @@ function setupFirebaseForUser() {
   if (typeof setupNoticeListener === 'function') {
     setupNoticeListener();
   }
+  // 직원 목록 실시간 동기화
+  if (typeof setupEmployeesListener === 'function') {
+    setupEmployeesListener();
+  }
 }
 
 function detachFirebaseListeners() {
@@ -2702,6 +2825,10 @@ function detachFirebaseListeners() {
   if (typeof fbNoticeRef !== 'undefined' && fbNoticeRef) {
     try { fbNoticeRef.off(); } catch (e) {}
     fbNoticeRef = null;
+  }
+  if (typeof fbEmployeesRef !== 'undefined' && fbEmployeesRef) {
+    try { fbEmployeesRef.off(); } catch (e) {}
+    fbEmployeesRef = null;
   }
 }
 
@@ -2935,6 +3062,10 @@ function login(name) {
   updateConnectionUI();
   renderAll();
   if (typeof renderNoticeBox === 'function') renderNoticeBox();
+  if (typeof renderEmployeesAdmin === 'function') renderEmployeesAdmin();
+  if (typeof renderBackupMeta === 'function') renderBackupMeta();
+  if (typeof seedEmployeesIfMissing === 'function') seedEmployeesIfMissing();
+  if (typeof checkBackupReminder === 'function') checkBackupReminder();
 }
 
 async function logout() {
@@ -4804,6 +4935,319 @@ function clearNotice() {
     closeNoticeEditModal();
   }
 }
+
+/* ============ 직원 관리 (Firebase /employees 실시간 동기화) ============ */
+// 편집 권한: 약국장(백승준)만.
+// Firebase에 /employees 데이터 있으면 덮어씀. 비어있으면 현재 UID_NAME_MAP(시드) 유지.
+let fbEmployeesRef = null;
+
+function canEditEmployees() {
+  if (typeof canEditNotice === 'function') return canEditNotice();
+  return currentUser === '백승준';
+}
+
+function setupEmployeesListener() {
+  if (!fbDb) return;
+  if (fbEmployeesRef) { try { fbEmployeesRef.off(); } catch (e) {} }
+  fbEmployeesRef = fbDb.ref('employees');
+  fbEmployeesRef.on('value', snap => {
+    const val = snap.val();
+    if (val && typeof val === 'object' && Object.keys(val).length > 0) {
+      UID_NAME_MAP = {};
+      Object.entries(val).forEach(([uid, info]) => {
+        if (info && info.name && info.email) {
+          UID_NAME_MAP[uid] = {
+            name: String(info.name),
+            email: String(info.email),
+            role: String(info.role || '직원')
+          };
+        }
+      });
+      rebuildEmployeeIndexes();
+    }
+    renderEmployeesAdmin();
+    if (currentUser && currentAuthUid && UID_NAME_MAP[currentAuthUid]) {
+      const info = UID_NAME_MAP[currentAuthUid];
+      if (info.name !== currentUser) {
+        currentUser = info.name;
+        const nameEl = document.getElementById('userName');
+        if (nameEl) nameEl.textContent = info.name + (currentAuthUid ? ' 🔐' : ' ⚠️');
+      }
+    }
+  });
+}
+
+function seedEmployeesIfMissing() {
+  if (!fbDb || !canEditEmployees()) return;
+  fbDb.ref('employees').once('value').then(snap => {
+    const val = snap.val();
+    if (!val || Object.keys(val).length === 0) {
+      const payload = {};
+      Object.entries(UID_NAME_MAP).forEach(([uid, info]) => {
+        payload[uid] = {
+          name: info.name, email: info.email, role: info.role,
+          updatedAt: Date.now(), updatedBy: currentUser || '백승준'
+        };
+      });
+      fbDb.ref('employees').set(payload).catch(e => console.warn('직원 시드 업로드 실패:', e));
+    }
+  }).catch(() => {});
+}
+
+function renderEmployeesAdmin() {
+  const host = document.getElementById('employeesTable');
+  if (!host) return;
+  const allowed = canEditEmployees();
+  const entries = Object.entries(UID_NAME_MAP || {})
+    .map(([uid, info]) => ({ uid, ...info }))
+    .sort((a, b) => {
+      const roleOrder = { '약국장': 0, '약사': 1, '직원': 2 };
+      const ra = roleOrder[a.role] !== undefined ? roleOrder[a.role] : 9;
+      const rb = roleOrder[b.role] !== undefined ? roleOrder[b.role] : 9;
+      if (ra !== rb) return ra - rb;
+      return (a.name || '').localeCompare(b.name || '', 'ko');
+    });
+
+  let html = '';
+  if (!allowed) {
+    html += '<div style="padding:8px 10px; margin-bottom:8px; background:#fef3c7; border:1px solid #f59e0b; border-radius:6px; font-size:11.5px; color:#78350f;">🔒 <b>읽기 전용</b> — 편집 권한은 약국장(백승준)만 있습니다.</div>';
+  }
+  html += '<div class="emp-row head"><div>이름</div><div>역할</div><div>이메일</div><div style="text-align:center;">관리</div></div>';
+  entries.forEach(e => {
+    const roleStyle = e.role === '약국장' ? 'color:#c9763d;font-weight:800'
+                    : e.role === '약사' ? 'color:#0d9488;font-weight:700'
+                    : 'color:#6b7280;font-weight:600';
+    const btns = allowed
+      ? `<button class="emp-btn" onclick="openEmployeeEditModal('${e.uid}')">✏️ 수정</button><button class="emp-btn danger" onclick="deleteEmployee('${e.uid}')">🗑 삭제</button>`
+      : '';
+    html += `<div class="emp-row"><div class="emp-name">${escapeHtml(e.name)}</div><div style="${roleStyle}; font-size:11px;">${escapeHtml(e.role || '-')}</div><div class="emp-email" title="UID: ${escapeHtml(e.uid)}">${escapeHtml(e.email || '-')}</div><div class="emp-actions">${btns}</div></div>`;
+  });
+  host.innerHTML = html;
+  const addBtnRow = document.getElementById('employeesAddBtnRow');
+  if (addBtnRow) addBtnRow.style.display = allowed ? 'flex' : 'none';
+}
+
+function openEmployeeAddModal() {
+  if (!canEditEmployees()) { alert('⛔ 권한 없음'); return; }
+  document.getElementById('empModalTitle').textContent = '+ 직원 추가';
+  document.getElementById('empModalMode').value = 'add';
+  document.getElementById('empModalUid').value = '';
+  document.getElementById('empModalUid').disabled = false;
+  document.getElementById('empModalName').value = '';
+  document.getElementById('empModalEmail').value = '';
+  document.getElementById('empModalRole').value = '직원';
+  document.getElementById('empModal').style.display = 'flex';
+}
+
+function openEmployeeEditModal(uid) {
+  if (!canEditEmployees()) { alert('⛔ 권한 없음'); return; }
+  const info = UID_NAME_MAP[uid];
+  if (!info) { alert('직원 정보를 찾을 수 없습니다'); return; }
+  document.getElementById('empModalTitle').textContent = '✏️ 직원 정보 수정';
+  document.getElementById('empModalMode').value = 'edit';
+  document.getElementById('empModalUid').value = uid;
+  document.getElementById('empModalUid').disabled = true;
+  document.getElementById('empModalName').value = info.name || '';
+  document.getElementById('empModalEmail').value = info.email || '';
+  document.getElementById('empModalRole').value = info.role || '직원';
+  document.getElementById('empModal').style.display = 'flex';
+}
+
+function closeEmployeeModal() {
+  const m = document.getElementById('empModal');
+  if (m) m.style.display = 'none';
+}
+
+function saveEmployee() {
+  if (!canEditEmployees()) { alert('⛔ 권한 없음'); return; }
+  const mode = document.getElementById('empModalMode').value;
+  const uid = (document.getElementById('empModalUid').value || '').trim();
+  const name = (document.getElementById('empModalName').value || '').trim();
+  const email = (document.getElementById('empModalEmail').value || '').trim();
+  const role = (document.getElementById('empModalRole').value || '직원').trim();
+
+  if (!uid) { alert('UID를 입력하세요.\n\n(Firebase Console → Authentication → Users에서 복사)'); return; }
+  if (!name) { alert('이름을 입력하세요.'); return; }
+  if (!email) { alert('이메일을 입력하세요.'); return; }
+  if (mode === 'add' && UID_NAME_MAP[uid]) {
+    alert('이미 등록된 UID입니다. 수정 모드로 여시거나 다른 UID를 쓰세요.');
+    return;
+  }
+
+  const payload = { name: name, email: email, role: role, updatedAt: Date.now(), updatedBy: currentUser || '백승준' };
+  if (fbDb) {
+    fbDb.ref('employees/' + uid).set(payload)
+      .then(() => {
+        closeEmployeeModal();
+        alert('✅ 저장 완료. 모든 직원 기기에 실시간 반영됩니다.');
+      })
+      .catch(err => {
+        const msg = (err && err.message) ? err.message : String(err);
+        if (/PERMISSION_DENIED/i.test(msg)) {
+          alert('⛔ Firebase 규칙에서 /employees 쓰기 차단.\n\n규칙에 추가:\n"employees": {\n  ".read": "auth != null",\n  ".write": "auth != null && auth.uid === \'bhgORSzZ23dlNUfZmDPBe3IsnPN2\'"\n}');
+        } else {
+          alert('저장 실패: ' + msg);
+        }
+      });
+  } else {
+    UID_NAME_MAP[uid] = { name: name, email: email, role: role };
+    rebuildEmployeeIndexes();
+    renderEmployeesAdmin();
+    closeEmployeeModal();
+    alert('(로컬 모드) 저장됨. Firebase 연결 시 자동 반영됩니다.');
+  }
+}
+
+function deleteEmployee(uid) {
+  if (!canEditEmployees()) { alert('⛔ 권한 없음'); return; }
+  const info = UID_NAME_MAP[uid];
+  if (!info) return;
+  if (info.name === '백승준') {
+    alert('약국장 계정은 삭제할 수 없습니다.');
+    return;
+  }
+  if (!confirm('【' + info.name + '】 (' + info.role + ') 직원을 목록에서 삭제하시겠습니까?\n\n※ Firebase Auth 계정 자체는 삭제되지 않습니다. Firebase Console에서 별도 삭제하세요.')) return;
+  if (fbDb) {
+    fbDb.ref('employees/' + uid).remove()
+      .then(() => alert('삭제 완료'))
+      .catch(err => alert('삭제 실패: ' + (err.message || err)));
+  } else {
+    delete UID_NAME_MAP[uid];
+    rebuildEmployeeIndexes();
+    renderEmployeesAdmin();
+  }
+}
+
+/* ============ 데이터 백업 (xlsx 내보내기) ============ */
+const BACKUP_STORAGE_KEY = 'dr_pharm_last_backup';
+const BACKUP_REMIND_DAYS = 7;
+
+function exportFullBackup() {
+  if (typeof XLSX === 'undefined') {
+    alert('엑셀 모듈(SheetJS) 로드 실패. 새로고침 후 재시도.');
+    return;
+  }
+  try {
+    const wb = XLSX.utils.book_new();
+
+    const orderRows = [];
+    Object.entries(allData || {}).forEach(([date, day]) => {
+      (day && day.items || []).forEach(it => {
+        orderRows.push({
+          '날짜': date, '시간': it.time || '', '의약품명': it.name || '',
+          '규격': it.spec || '', '갯수': it.qty || '', '비고': it.note || '',
+          '작성자': it.author || '', '수정여부': it.edited ? 'Y' : ''
+        });
+      });
+    });
+    orderRows.sort((a, b) => (a['날짜'] + a['시간']).localeCompare(b['날짜'] + b['시간']));
+    const ws1 = XLSX.utils.json_to_sheet(orderRows);
+    ws1['!cols'] = [{wch:12},{wch:8},{wch:30},{wch:12},{wch:8},{wch:20},{wch:10},{wch:8}];
+    XLSX.utils.book_append_sheet(wb, ws1, '주문내역');
+
+    const msgRows = [];
+    Object.entries(allData || {}).forEach(([date, day]) => {
+      (day && day.messages || []).forEach(m => {
+        const d = new Date(m.timestamp || 0);
+        const time = d.getFullYear() ? (String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0')) : '';
+        msgRows.push({
+          '날짜': date, '시간': time, '작성자': m.author || '',
+          '내용': m.text || '', '유형': m.system ? '시스템' : '일반'
+        });
+      });
+    });
+    msgRows.sort((a, b) => (a['날짜'] + a['시간']).localeCompare(b['날짜'] + b['시간']));
+    const ws2 = XLSX.utils.json_to_sheet(msgRows);
+    ws2['!cols'] = [{wch:12},{wch:8},{wch:10},{wch:40},{wch:8}];
+    XLSX.utils.book_append_sheet(wb, ws2, '채팅');
+
+    const floor2Rows = (Array.isArray(floor2MedList) ? floor2MedList : []).map(x => ({
+      '카테고리': x.cat || '', '의약품명': x.name || ''
+    }));
+    const ws3 = XLSX.utils.json_to_sheet(floor2Rows);
+    ws3['!cols'] = [{wch:12},{wch:40}];
+    XLSX.utils.book_append_sheet(wb, ws3, '2층재고목록');
+
+    const noticeRow = [{
+      '공지내용': (typeof noticeState !== 'undefined' && noticeState.text) || '',
+      '최종수정자': (typeof noticeState !== 'undefined' && noticeState.author) || '',
+      '최종수정시각': (typeof noticeState !== 'undefined' && noticeState.updatedAt) ? new Date(noticeState.updatedAt).toLocaleString('ko-KR') : ''
+    }];
+    const ws4 = XLSX.utils.json_to_sheet(noticeRow);
+    ws4['!cols'] = [{wch:60},{wch:12},{wch:20}];
+    XLSX.utils.book_append_sheet(wb, ws4, '공지사항');
+
+    const empRows = Object.entries(UID_NAME_MAP || {}).map(([uid, info]) => ({
+      '이름': info.name, '역할': info.role || '', '이메일': info.email || '', 'UID': uid
+    }));
+    const ws5 = XLSX.utils.json_to_sheet(empRows);
+    ws5['!cols'] = [{wch:10},{wch:10},{wch:25},{wch:32}];
+    XLSX.utils.book_append_sheet(wb, ws5, '직원목록');
+
+    const metaRow = [{
+      '백업일시': new Date().toLocaleString('ko-KR'),
+      '백업작성자': currentUser || '',
+      '총 주문 건수': orderRows.length,
+      '총 채팅 건수': msgRows.length,
+      '2층 재고 품목 수': floor2Rows.length,
+      '직원 수': empRows.length,
+      'Firebase 프로젝트': (fbConfig && fbConfig.projectId) || '-'
+    }];
+    const ws6 = XLSX.utils.json_to_sheet(metaRow);
+    XLSX.utils.book_append_sheet(wb, ws6, '백업정보');
+
+    const todayISO = new Date().toISOString().slice(0,10);
+    const filename = '대령약국_백업_' + todayISO + '.xlsx';
+    XLSX.writeFile(wb, filename);
+
+    try {
+      safeLS.setItem(BACKUP_STORAGE_KEY, JSON.stringify({
+        at: Date.now(), by: currentUser || '', filename: filename,
+        counts: { orders: orderRows.length, messages: msgRows.length, floor2: floor2Rows.length }
+      }));
+    } catch (e) {}
+    renderBackupMeta();
+
+    alert('✅ 백업 완료\n\n파일: ' + filename + '\n• 주문 ' + orderRows.length + '건\n• 채팅 ' + msgRows.length + '건\n• 2층재고 ' + floor2Rows.length + '개\n• 직원 ' + empRows.length + '명');
+  } catch (err) {
+    alert('백업 실패: ' + (err && err.message ? err.message : err));
+    console.error(err);
+  }
+}
+
+function renderBackupMeta() {
+  const el = document.getElementById('backupMeta');
+  if (!el) return;
+  let last = null;
+  try { last = JSON.parse(safeLS.getItem(BACKUP_STORAGE_KEY) || 'null'); } catch(e){}
+  if (!last || !last.at) {
+    el.innerHTML = '🗂 <b>마지막 백업:</b> <span style="color:#991b1b;">기록 없음</span> — 지금 내려받기를 권장합니다.';
+    return;
+  }
+  const days = Math.floor((Date.now() - last.at) / 86400000);
+  const dStr = days === 0 ? '오늘' : (days + '일 전');
+  const col = days >= BACKUP_REMIND_DAYS ? '#991b1b' : (days >= 3 ? '#92400e' : '#065f46');
+  const c = last.counts || {};
+  el.innerHTML = '🗂 <b>마지막 백업:</b> <span style="color:' + col + ';">' + dStr + '</span> · ' + new Date(last.at).toLocaleString('ko-KR') + (last.by ? ' · ' + escapeHtml(last.by) : '') +
+    '<br><span style="font-size:10.5px; color:var(--text-muted);">파일: ' + escapeHtml(last.filename || '-') + ' (주문 ' + (c.orders||0) + ' · 채팅 ' + (c.messages||0) + ' · 2층재고 ' + (c.floor2||0) + ')</span>';
+}
+
+function checkBackupReminder() {
+  if (!canEditEmployees()) return;
+  let last = null;
+  try { last = JSON.parse(safeLS.getItem(BACKUP_STORAGE_KEY) || 'null'); } catch(e){}
+  const now = Date.now();
+  const needs = !last || !last.at || (now - last.at) >= BACKUP_REMIND_DAYS * 86400000;
+  if (!needs) return;
+  const daysSince = last && last.at ? Math.floor((now - last.at) / 86400000) : 999;
+  const daysTxt = (!last || !last.at) ? '아직 한 번도 백업을 받지 않으셨습니다' : ('마지막 백업 후 ' + daysSince + '일이 지났습니다');
+  setTimeout(() => {
+    if (confirm('🗂 데이터 백업 알림\n\n' + daysTxt + '.\n\n지금 전체 데이터를 xlsx로 내려받으시겠습니까?\n(설정 탭에서 언제든 수동으로도 가능)')) {
+      exportFullBackup();
+    }
+  }, 2500);
+}
+
 
 // ============ 2층 재고 의약품 목록 UI (조회 + 업로드) ============
 function renderFloor2Admin() {
