@@ -818,20 +818,17 @@ body {
 }
 
 /* ================= 자동완성 ================= */
+/* 입력창 바로 위에 위치 (인라인 흐름 유지로 모바일에서 잘림 방지) */
 .autocomplete-dropdown {
   display: none;
-  position: absolute;
-  bottom: 100%;
-  left: 8px;
-  right: 8px;
   background: white;
   border: 1px solid var(--border-strong);
-  border-bottom: none;
-  border-radius: 10px 10px 0 0;
+  border-radius: 10px;
   box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
   max-height: 260px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  margin-bottom: 6px;
   z-index: 50;
 }
 .autocomplete-item {
@@ -2527,9 +2524,9 @@ body.pdf-rendering .a4-page {
       </div>
       <div class="chat-messages" id="chatMessages"></div>
       <div class="chat-input-area">
-        <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
-        <div class="floor2-hint" id="floor2Hint" style="display:none;"></div>
         <div class="chip-preview" id="chipPreview" style="display:none;"></div>
+        <div class="floor2-hint" id="floor2Hint" style="display:none;"></div>
+        <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
         <div class="input-help">형식: <b>의약품명 규격 갯수 비고</b> &nbsp; (공백 1칸=다음칸 · <b>공백 2칸=빈칸 건너뛰기</b>) &nbsp; <span style="color:var(--text-muted);">※ 칩 탭=변경 · × 탭=해당 필드 제거</span></div>
         <div class="chat-input-row">
           <textarea class="chat-input" id="chatInput" placeholder="예: 타이레놀정500미리 500정 1개 급송"></textarea>
@@ -6112,6 +6109,9 @@ function showAutocomplete(input) {
       </div>`;
     }).join('');
   dd.style.display = 'block';
+  // 자동완성이 보이는 동안엔 칩 프리뷰를 숨겨 화면 확보 + 충돌 방지
+  const chipEl = document.getElementById('chipPreview');
+  if (chipEl) chipEl.style.display = 'none';
   acActiveIdx = -1;
   dd.querySelectorAll('.autocomplete-item').forEach(el => {
     // 모바일 탭 반응성: mousedown + touchstart 양쪽
@@ -6177,6 +6177,8 @@ function hideAutocomplete() {
   const dd = document.getElementById('autocompleteDropdown');
   if (dd) dd.style.display = 'none';
   acActiveIdx = -1;
+  // 자동완성 닫히면 칩 프리뷰 복원 (입력창에 내용 있으면 표시됨)
+  if (typeof renderChipPreview === 'function') renderChipPreview();
 }
 
 // ============ 검색 / 필터 ============
