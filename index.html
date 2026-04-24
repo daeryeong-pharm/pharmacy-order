@@ -5802,15 +5802,28 @@ function renderBackupMeta() {
 
 function checkBackupReminder() {
   if (!canEditEmployees()) return;
+  const now = Date.now();
+  const INTERVAL_MS = BACKUP_REMIND_DAYS * 86400000;
+
+  // 1) 최근 알림 표시 후 7일 이내면 스킵 (취소한 경우에도 당분간 조용히)
+  let lastReminded = 0;
+  try { lastReminded = Number(safeLS.getItem('dr_pharm_backup_reminded_at') || '0'); } catch(e){}
+  if (lastReminded && (now - lastReminded) < INTERVAL_MS) return;
+
+  // 2) 백업 이력 전혀 없으면 알림 안 함 (수동으로 1회 백업 받기 시작하면 그때부터 작동)
   let last = null;
   try { last = JSON.parse(safeLS.getItem(BACKUP_STORAGE_KEY) || 'null'); } catch(e){}
-  const now = Date.now();
-  const needs = !last || !last.at || (now - last.at) >= BACKUP_REMIND_DAYS * 86400000;
-  if (!needs) return;
-  const daysSince = last && last.at ? Math.floor((now - last.at) / 86400000) : 999;
-  const daysTxt = (!last || !last.at) ? '아직 한 번도 백업을 받지 않으셨습니다' : ('마지막 백업 후 ' + daysSince + '일이 지났습니다');
+  if (!last || !last.at) return;
+
+  // 3) 마지막 백업 후 7일 미만이면 스킵
+  if ((now - last.at) < INTERVAL_MS) return;
+
+  // 알림 띄움 + 표시 시각 기록 (사용자가 취소해도 7일간 조용)
+  try { safeLS.setItem('dr_pharm_backup_reminded_at', String(now)); } catch(e){}
+
+  const daysSince = Math.floor((now - last.at) / 86400000);
   setTimeout(() => {
-    if (confirm('🗂 데이터 백업 알림\n\n' + daysTxt + '.\n\n지금 전체 데이터를 xlsx로 내려받으시겠습니까?\n(설정 탭에서 언제든 수동으로도 가능)')) {
+    if (confirm('🗂 데이터 백업 알림\n\n마지막 백업 후 ' + daysSince + '일이 지났습니다.\n\n지금 전체 데이터를 xlsx로 내려받으시겠습니까?\n\n(취소해도 7일 후 자동 알림 · 설정 탭에서 언제든 수동 가능)')) {
       exportFullBackup();
     }
   }, 2500);
