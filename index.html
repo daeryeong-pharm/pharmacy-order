@@ -2273,6 +2273,7 @@ body.pdf-rendering .a4-page {
     <div class="tab" data-tab="export">내보내기</div>
     <div class="tab" data-tab="history">날짜별 기록</div>
     <div class="tab" data-tab="floor2">📦 2층재고</div>
+    <div class="tab" data-tab="meddict">📘 약품사전</div>
     <div class="tab" data-tab="settings">설정</div>
     <div class="tab refresh-tab" data-tab="refresh" title="채팅과 리스트를 즉시 동기화"><span class="refresh-icon">🔄</span>새로고침</div>
   </nav>
@@ -2410,6 +2411,39 @@ body.pdf-rendering .a4-page {
       </div>
     </div>
 
+    <!-- 약품 사전 탭 -->
+    <div class="tab-panel" id="panel-meddict">
+      <div class="settings-panel">
+        <div class="settings-card" id="medDictCard">
+          <h3>📘 약품 사전 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(주문 이력 기반 자동 구축)</span></h3>
+          <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+            최근 180일 주문 이력을 분석해 약품 계열·변형·규격·수량·비고 조합을 학습합니다.<br>
+            각 주문 전송 시 실시간 반영되며, 모든 직원 자동완성에 최상위로 노출됩니다.
+          </p>
+          <div id="medDictStats" style="font-size:11.5px; color:#5d4a33; line-height:1.6; padding:8px 12px; background:#fffaf0; border:1px solid #e8d5b0; border-radius:8px; margin-bottom:8px;">-</div>
+          <div class="settings-row">
+            <button class="hist-btn" onclick="manualRebuildMedDict()">🔄 사전 재구축 (180일 전체 재분석)</button>
+            <span style="font-size:10.5px;color:var(--text-muted);">신규 주문은 자동 학습되므로 평소엔 불필요</span>
+          </div>
+        </div>
+        <div class="settings-card">
+          <h3>🎓 수동 사전 학습 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(모든 직원 입력 가능)</span></h3>
+          <p style="font-size:11.5px;color:var(--text-muted);margin-bottom:8px;line-height:1.5;">
+            자주 주문하는 조합을 직접 입력해 사전에 추가합니다. 추가된 조합은 즉시 모든 직원의 자동완성에 노출됩니다.<br>
+            <b>형식:</b> <code>의약품명 규격 갯수 비고</code> &nbsp; <b>예시:</b> <code>립스타플러스10/10 30정 1개 급송</code>
+          </p>
+          <div style="display:flex;gap:6px;margin-bottom:10px;">
+            <input type="text" id="manualLearnInput" class="emp-input" style="flex:1;font-size:13px;" placeholder="예: 립스타플러스10/10 30정 1개 급송" />
+            <button class="hist-btn" style="white-space:nowrap;" onclick="addManualMedEntry()">➕ 사전에 추가</button>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">
+            📚 <b>최근 추가된 학습 항목</b> (최대 30건) <span style="margin-left:6px;color:#9ca3af;">— 본인이 추가한 항목은 🗑로 삭제 가능</span>
+          </div>
+          <div id="manualEntriesList" style="display:flex;flex-direction:column;gap:0;max-height:50vh;overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- 설정 탭 -->
     <div class="tab-panel" id="panel-settings">
       <div class="settings-panel">
@@ -2469,18 +2503,6 @@ body.pdf-rendering .a4-page {
           <div id="employeesAddBtnRow" class="settings-row" style="margin-top:10px; display:none; gap:8px; align-items:center;">
             <button class="hist-btn" onclick="openEmployeeAddModal()">➕ 직원 추가</button>
             <span style="font-size:10.5px;color:var(--text-muted);">Firebase Console에서 Auth 계정 먼저 만들고 UID 확보</span>
-          </div>
-        </div>
-        <div class="settings-card" id="medDictCard">
-          <h3>📘 약품 사전 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(주문 이력 기반 자동 구축)</span></h3>
-          <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
-            최근 180일 주문 이력을 분석해 약품 계열·변형·규격·수량·비고 조합을 학습합니다.<br>
-            각 주문 전송 시 실시간 반영되며, 모든 직원 자동완성에 최상위로 노출됩니다.
-          </p>
-          <div id="medDictStats" style="font-size:11.5px; color:#5d4a33; line-height:1.6; padding:8px 12px; background:#fffaf0; border:1px solid #e8d5b0; border-radius:8px; margin-bottom:8px;">-</div>
-          <div class="settings-row">
-            <button class="hist-btn" onclick="manualRebuildMedDict()">🔄 사전 재구축 (180일 전체 재분석)</button>
-            <span style="font-size:10.5px;color:var(--text-muted);">신규 주문은 자동 학습되므로 평소엔 불필요</span>
           </div>
         </div>
         <div class="settings-card">
@@ -2908,6 +2930,10 @@ function setupFirebaseForUser() {
   // 직원 목록 실시간 동기화
   if (typeof setupEmployeesListener === 'function') {
     setupEmployeesListener();
+  }
+  // 수동 사전 학습 실시간 동기화
+  if (typeof setupManualMedTemplatesListener === 'function') {
+    setupManualMedTemplatesListener();
   }
 }
 
@@ -3957,6 +3983,11 @@ function switchTab(name) {
     // 2층재고 탭 진입 시 즉시 렌더
     if (typeof renderFloor2Admin === 'function') renderFloor2Admin();
     if (typeof renderFloor2Meta === 'function') renderFloor2Meta();
+  }
+  if (name === 'meddict') {
+    // 약품 사전 탭 진입 시 렌더
+    if (typeof renderMedDictAdmin === 'function') renderMedDictAdmin();
+    if (typeof renderManualEntriesList === 'function') renderManualEntriesList();
   }
   if (name === 'settings') {
     updateSettingsFirebaseInfo();
@@ -5492,6 +5523,14 @@ function applyChipPicker(field, value) {
 
 /* ============ 약품 사전 관리 UI (백승준 전용) ============ */
 function renderMedDictAdmin() {
+  // 재구축 버튼은 약국장만 보이게
+  const card = document.getElementById('medDictCard');
+  const allowed = (typeof canEditEmployees === 'function') ? canEditEmployees() : (currentUser === '백승준');
+  if (card) {
+    const rebuildRow = card.querySelector('.settings-row');
+    if (rebuildRow) rebuildRow.style.display = allowed ? 'flex' : 'none';
+  }
+
   const el = document.getElementById('medDictStats');
   if (!el) return;
   const s = getMedDictStats();
@@ -5500,6 +5539,180 @@ function renderMedDictAdmin() {
     '📘 <b>계열 약품:</b> ' + s.baseCount + '종 · ' +
     '<b>조합 템플릿:</b> ' + s.templateCount + '개<br>' +
     '<span style="font-size:10.5px;color:var(--text-muted);">분석된 총 주문: ' + s.totalOrdersAnalyzed + '건 · 최근 ' + MED_DICT_WINDOW_DAYS + '일 · 재구축: ' + when + '</span>';
+}
+
+/* ============ 수동 사전 학습 (Firebase /manualMedTemplates) ============ */
+// 모든 직원이 추가 가능, 자기가 추가한 것 + 백승준은 모두 삭제 가능.
+// 추가된 항목은 로컬 medDict에 즉시 반영되고 Firebase 통해 모든 기기에 동기화됨.
+
+let manualMedTemplates = []; // [{id, name, spec, qty, note, addedBy, addedByUid, addedAt}]
+let fbManualMedTemplatesRef = null;
+
+function setupManualMedTemplatesListener() {
+  if (!fbDb) return;
+  if (fbManualMedTemplatesRef) { try { fbManualMedTemplatesRef.off(); } catch(e){} }
+  fbManualMedTemplatesRef = fbDb.ref('manualMedTemplates');
+  fbManualMedTemplatesRef.on('value', snap => {
+    const val = snap.val() || {};
+    manualMedTemplates = Object.entries(val)
+      .map(([id, v]) => ({ id, ...v }))
+      .filter(x => x && x.name)
+      .sort((a, b) => (b.addedAt||0) - (a.addedAt||0));
+    // 학습 항목들을 medDict에 머지 (display용)
+    mergeManualIntoMedDict();
+    renderManualEntriesList();
+    if (typeof renderMedDictAdmin === 'function') renderMedDictAdmin();
+  });
+}
+
+// 수동 학습 항목들을 medDict.templates에 합쳐서 자동완성에 노출
+function mergeManualIntoMedDict() {
+  if (!medDict || !medDict.templates) medDict = { bases: {}, templates: [], lastBuild: 0 };
+  manualMedTemplates.forEach(m => {
+    let tpl = null;
+    for (let i=0;i<medDict.templates.length;i++) {
+      const t = medDict.templates[i];
+      if (t.name===m.name && t.spec===m.spec && t.qty===m.qty && t.note===m.note) { tpl=t; break; }
+    }
+    if (tpl) {
+      // 이미 있는 조합이면 manual count 보강
+      tpl.count = (tpl.count||0) + 1;
+      tpl.lastUsed = Math.max(tpl.lastUsed||0, m.addedAt||0);
+      tpl.manual = true;
+    } else {
+      medDict.templates.push({
+        name: m.name, spec: m.spec||'', qty: m.qty||'', note: m.note||'',
+        count: 1, lastUsed: m.addedAt||Date.now(), manual: true
+      });
+    }
+    // base/variant 갱신
+    const bv = extractBaseAndVariant(m.name);
+    if (bv.base) {
+      const bnorm = normalizeBaseName(bv.base);
+      if (!medDict.bases[bnorm]) {
+        medDict.bases[bnorm] = { displayName: bv.base, variants:{}, specs:{}, qtys:{}, notes:{}, count:0, fullNames:{} };
+      }
+      const b = medDict.bases[bnorm];
+      b.count = (b.count||0) + 1;
+      b.fullNames[m.name] = (b.fullNames[m.name]||0) + 1;
+      if (bv.dose) b.variants[bv.dose] = (b.variants[bv.dose]||0) + 1;
+      if (m.spec) b.specs[m.spec] = (b.specs[m.spec]||0) + 1;
+      if (m.qty)  b.qtys[m.qty]   = (b.qtys[m.qty]||0)   + 1;
+      if (m.note) b.notes[m.note] = (b.notes[m.note]||0) + 1;
+    }
+  });
+  medDict.templates.sort((a,b) => (b.count||0)-(a.count||0));
+  saveMedDictLocal();
+}
+
+function addManualMedEntry() {
+  const inp = document.getElementById('manualLearnInput');
+  if (!inp) return;
+  const text = (inp.value || '').trim();
+  if (!text) {
+    alert('의약품 조합을 입력하세요. 예) 립스타플러스10/10 30정 1개 급송');
+    return;
+  }
+  let parsed;
+  try { parsed = parseMedication(text); } catch(e){ parsed=null; }
+  if (!parsed || !parsed.name) {
+    alert('의약품명을 인식할 수 없습니다.\n형식: 의약품명 규격 갯수 비고\n예시: 립스타플러스10/10 30정 1개 급송');
+    return;
+  }
+  if (parsed.name.length < 2) {
+    alert('의약품명은 2글자 이상이어야 합니다.');
+    return;
+  }
+  const payload = {
+    name: parsed.name,
+    spec: parsed.spec || '',
+    qty:  parsed.qty  || '',
+    note: parsed.note || '',
+    addedBy: currentUser || '',
+    addedByUid: currentAuthUid || '',
+    addedAt: Date.now()
+  };
+
+  if (fbDb) {
+    fbDb.ref('manualMedTemplates').push(payload)
+      .then(() => {
+        inp.value = '';
+        // toast 대신 입력칸 placeholder로 피드백
+        const orig = inp.placeholder;
+        inp.placeholder = '✅ 사전 추가 완료';
+        setTimeout(() => { inp.placeholder = orig; }, 2000);
+      })
+      .catch(err => {
+        const msg = (err && err.message) ? err.message : String(err);
+        if (/PERMISSION_DENIED/i.test(msg)) {
+          alert('⛔ Firebase 규칙에서 /manualMedTemplates 쓰기 차단.\n\n규칙에 추가:\n"manualMedTemplates": {\n  ".read": "auth != null",\n  "$id": {\n    ".write": "auth != null"\n  }\n}');
+        } else {
+          alert('추가 실패: ' + msg);
+        }
+      });
+  } else {
+    // 로컬 모드: 임시로 메모리에만 추가
+    payload.id = 'local-' + Date.now() + '-' + Math.random().toString(36).slice(2,7);
+    manualMedTemplates.unshift(payload);
+    mergeManualIntoMedDict();
+    renderManualEntriesList();
+    inp.value = '';
+    alert('(로컬 모드) 사전 추가됨. Firebase 연결 시 다른 기기에도 반영됩니다.');
+  }
+}
+
+function deleteManualMedEntry(id) {
+  // 본인이 추가한 항목 또는 약국장만 삭제 가능
+  const entry = manualMedTemplates.find(x => x.id === id);
+  if (!entry) return;
+  const isMine = entry.addedByUid && currentAuthUid && entry.addedByUid === currentAuthUid;
+  const isOwner = (typeof canEditEmployees === 'function') && canEditEmployees();
+  if (!isMine && !isOwner) {
+    alert('⛔ 본인이 추가한 항목 또는 약국장만 삭제 가능합니다.');
+    return;
+  }
+  if (!confirm(`다음 사전 항목을 삭제하시겠습니까?\n\n${entry.name}${entry.spec?' '+entry.spec:''}${entry.qty?' '+entry.qty:''}${entry.note?' '+entry.note:''}`)) return;
+  if (fbDb) {
+    fbDb.ref('manualMedTemplates/' + id).remove()
+      .catch(err => alert('삭제 실패: ' + (err.message||err)));
+  } else {
+    manualMedTemplates = manualMedTemplates.filter(x => x.id !== id);
+    renderManualEntriesList();
+  }
+}
+
+function renderManualEntriesList() {
+  const host = document.getElementById('manualEntriesList');
+  if (!host) return;
+  if (!manualMedTemplates.length) {
+    host.innerHTML = '<div style="padding:12px;text-align:center;color:#9ca3af;font-size:11.5px;">아직 수동 추가된 항목이 없습니다.</div>';
+    return;
+  }
+  const top = manualMedTemplates.slice(0, 30);
+  const isOwner = (typeof canEditEmployees === 'function') && canEditEmployees();
+  host.innerHTML = top.map(e => {
+    const d = new Date(e.addedAt||0);
+    const ts = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const isMine = e.addedByUid && currentAuthUid && e.addedByUid === currentAuthUid;
+    const canDel = isMine || isOwner;
+    const delBtn = canDel ? `<button class="emp-btn danger" style="margin-left:auto;" onclick="deleteManualMedEntry('${escapeHtml(e.id)}')">🗑</button>` : '';
+    const parts = [];
+    if (e.spec) parts.push(`<span class="ac-tmpl-part">📦${escapeHtml(e.spec)}</span>`);
+    if (e.qty)  parts.push(`<span class="ac-tmpl-part">#${escapeHtml(e.qty)}</span>`);
+    if (e.note) parts.push(`<span class="ac-tmpl-part">📝${escapeHtml(e.note)}</span>`);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border:1px solid var(--border);border-radius:6px;font-size:12px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;color:#1f2937;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+          ${escapeHtml(e.name)}
+          <span style="font-weight:500;margin-left:4px;">${parts.join(' ')}</span>
+        </div>
+        <div style="font-size:10.5px;color:#6b7280;margin-top:2px;">
+          <b>${escapeHtml(e.addedBy||'-')}</b> · ${ts}
+        </div>
+      </div>
+      ${delBtn}
+    </div>`;
+  }).join('<div style="height:4px;"></div>');
 }
 
 function manualRebuildMedDict() {
