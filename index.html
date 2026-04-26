@@ -2272,6 +2272,7 @@ body.pdf-rendering .a4-page {
     <div class="tab active" data-tab="work">주문 리스트</div>
     <div class="tab" data-tab="export">내보내기</div>
     <div class="tab" data-tab="history">날짜별 기록</div>
+    <div class="tab" data-tab="floor2">📦 2층재고</div>
     <div class="tab" data-tab="settings">설정</div>
     <div class="tab refresh-tab" data-tab="refresh" title="채팅과 리스트를 즉시 동기화"><span class="refresh-icon">🔄</span>새로고침</div>
   </nav>
@@ -2379,6 +2380,36 @@ body.pdf-rendering .a4-page {
       </div>
     </div>
 
+    <!-- 2층재고 의약품 목록 탭 -->
+    <div class="tab-panel" id="panel-floor2">
+      <div class="settings-panel">
+        <div class="settings-card">
+          <h3>📦 2층 재고 의약품 목록 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(주문 시 ⚠ 표시용)</span></h3>
+          <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+            2층에 보관 중인 의약품 <b>이름만</b> 관리 (수량 추적 없음). 이 목록에 있는 약품을 주문 입력하면 자동으로 경고 표시가 뜹니다.
+          </p>
+          <div id="floor2UploadCard" class="floor2-upload-card">
+            <div id="floor2UploadMeta" class="floor2-upload-meta">-</div>
+            <div id="floor2UploadActions" class="floor2-upload-actions" style="display:none;">
+              <input type="file" id="floor2FileInput" accept=".xlsx,.xls" style="display:none;" onchange="handleFloor2FileUpload(event)" />
+              <button class="hist-btn" onclick="document.getElementById('floor2FileInput').click()">📂 xlsx 파일 업로드</button>
+              <button class="hist-btn danger" onclick="confirmClearFloor2List()" title="모든 목록을 비웁니다">🗑 전체 비우기</button>
+            </div>
+            <div id="floor2UploadReadOnly" class="floor2-upload-readonly" style="display:none;">
+              🔒 <b>읽기 전용</b> — 목록 업데이트는 약국장(백승준)만 가능합니다.
+            </div>
+          </div>
+          <div class="floor2-admin-controls" style="margin-top:10px;">
+            <input type="search" id="floor2Search" placeholder="🔍 약품명으로 찾기" />
+            <select id="floor2FilterCat">
+              <option value="">전체 카테고리</option>
+            </select>
+          </div>
+          <div id="floor2AdminTable" class="floor2-admin-table"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- 설정 탭 -->
     <div class="tab-panel" id="panel-settings">
       <div class="settings-panel">
@@ -2428,30 +2459,6 @@ body.pdf-rendering .a4-page {
             <span>전체 데이터 삭제</span>
             <button class="hist-btn danger" onclick="clearAll()">전체 삭제</button>
           </div>
-        </div>
-        <div class="settings-card">
-          <h3>📦 2층 재고 의약품 목록 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(주문 시 ⚠ 표시용)</span></h3>
-          <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
-            2층에 보관 중인 의약품 <b>이름만</b> 관리 (수량 추적 없음). 이 목록에 있는 약품을 주문 입력하면 자동으로 경고 표시가 뜹니다.
-          </p>
-          <div id="floor2UploadCard" class="floor2-upload-card">
-            <div id="floor2UploadMeta" class="floor2-upload-meta">-</div>
-            <div id="floor2UploadActions" class="floor2-upload-actions" style="display:none;">
-              <input type="file" id="floor2FileInput" accept=".xlsx,.xls" style="display:none;" onchange="handleFloor2FileUpload(event)" />
-              <button class="hist-btn" onclick="document.getElementById('floor2FileInput').click()">📂 xlsx 파일 업로드</button>
-              <button class="hist-btn danger" onclick="confirmClearFloor2List()" title="모든 목록을 비웁니다">🗑 전체 비우기</button>
-            </div>
-            <div id="floor2UploadReadOnly" class="floor2-upload-readonly" style="display:none;">
-              🔒 <b>읽기 전용</b> — 목록 업데이트는 약국장(백승준)만 가능합니다.
-            </div>
-          </div>
-          <div class="floor2-admin-controls" style="margin-top:10px;">
-            <input type="search" id="floor2Search" placeholder="🔍 약품명으로 찾기" />
-            <select id="floor2FilterCat">
-              <option value="">전체 카테고리</option>
-            </select>
-          </div>
-          <div id="floor2AdminTable" class="floor2-admin-table"></div>
         </div>
                 <div class="settings-card">
           <h3>👥 직원 관리 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(Firebase 실시간 동기화)</span></h3>
@@ -3946,6 +3953,11 @@ function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-'+name));
   if (name === 'history') renderHistory();
+  if (name === 'floor2') {
+    // 2층재고 탭 진입 시 즉시 렌더
+    if (typeof renderFloor2Admin === 'function') renderFloor2Admin();
+    if (typeof renderFloor2Meta === 'function') renderFloor2Meta();
+  }
   if (name === 'settings') {
     updateSettingsFirebaseInfo();
     // 약국장 전용 카드들 재렌더 (권한 체크 재실행)
@@ -3953,7 +3965,6 @@ function switchTab(name) {
     if (typeof renderEmployeesAdmin === 'function') renderEmployeesAdmin();
     if (typeof renderBackupMeta === 'function') renderBackupMeta();
     if (typeof renderDataMgmtCard === 'function') renderDataMgmtCard();
-    if (typeof renderFloor2Meta === 'function') renderFloor2Meta();
   }
   updateMobileToggleVisibility();
 }
