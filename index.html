@@ -1565,6 +1565,46 @@ body.pdf-rendering .a4-page {
 .f2-btn:hover { opacity: 0.85; }
 .floor2-admin-empty { padding: 18px; text-align: center; color: var(--text-muted); font-size: 12px; }
 
+/* ============ 반품현황 대시보드 ============ */
+.returns-dashboard { display: flex; flex-direction: column; gap: 12px; }
+.ret-stats { display: flex; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: #fffaf0; border: 1px solid #e8d5b0; border-radius: 8px; font-size: 12px; margin-bottom: 8px; }
+.ret-stat-item { padding: 4px 10px; background: #fff; border-radius: 14px; border: 1px solid #e5e7eb; }
+.ret-stat-pending { color: #6b7280; }
+.ret-stat-processing { color: #92400e; background: #fef3c7; border-color: #fcd34d; }
+.ret-stat-done { color: #065f46; background: #d1fae5; border-color: #6ee7b7; }
+.ret-empty { padding: 30px; text-align: center; color: var(--text-muted); font-size: 12px; background: #fafafa; border: 1px dashed var(--border); border-radius: 8px; }
+.ret-platform-card { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #fff; }
+.ret-platform-card.direct { border-color: #c9763d; }
+.ret-platform-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: linear-gradient(90deg, #fffaf0 0%, #fff4e0 100%); border-bottom: 1px solid var(--border); }
+.ret-platform-card.direct .ret-platform-head { background: linear-gradient(90deg, #fff5e1 0%, #ffebc9 100%); }
+.ret-platform-name { font-weight: 700; font-size: 13px; color: #5d4a33; }
+.ret-platform-count { font-size: 11px; color: #8a5a2b; background: #fff; padding: 2px 8px; border-radius: 10px; }
+.ret-type-section { padding: 6px 8px; }
+.ret-type-section + .ret-type-section { border-top: 1px dashed var(--border); }
+.ret-type-head { font-size: 11.5px; font-weight: 700; color: #4b5563; padding: 6px 4px; }
+.ret-type-cnt { color: #9ca3af; font-weight: 500; margin-left: 4px; }
+.ret-type-body { display: flex; flex-direction: column; gap: 4px; }
+.ret-item { padding: 8px 10px; background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 12px; }
+.ret-item-special { background: #fffbeb; }
+.ret-item-row1 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 3px; }
+.ret-item-num { color: #9ca3af; font-weight: 600; min-width: 20px; }
+.ret-item-name { font-weight: 600; color: #1f2937; flex: 1; min-width: 0; word-break: break-word; }
+.ret-cat-badge { padding: 1px 6px; font-size: 10px; border-radius: 8px; font-weight: 700; }
+.ret-item-row2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-left: 26px; font-size: 11.5px; color: #4b5563; margin-bottom: 4px; }
+.ret-item-spec { color: #6b7280; }
+.ret-item-qty { color: #1f2937; }
+.ret-item-note { color: #92400e; background: #fef3c7; padding: 1px 6px; border-radius: 4px; font-size: 10.5px; }
+.ret-item-row3 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding-left: 26px; }
+.ret-item-status-group { display: inline-flex; gap: 3px; }
+.ret-status-btn { padding: 3px 8px; font-size: 10.5px; border: 1px solid; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.12s; background: #fff; font-family: inherit; }
+.ret-status-btn.active { font-weight: 800; }
+.ret-status-btn:hover { transform: translateY(-1px); }
+.ret-status-pill { padding: 3px 10px; font-size: 10.5px; border-radius: 12px; font-weight: 700; }
+.ret-item-meta { font-size: 10.5px; color: #9ca3af; margin-left: auto; }
+.ret-icon-btn { background: none; border: 1px solid #e5e7eb; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 11px; color: #6b7280; }
+.ret-icon-btn:hover { background: #f9fafb; color: #1f2937; }
+.ret-icon-btn.danger:hover { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+
 /* 직원 관리 테이블 */
 .emp-table {
   border: 1px solid var(--border);
@@ -2274,6 +2314,7 @@ body.pdf-rendering .a4-page {
     <div class="tab" data-tab="history">날짜별 기록</div>
     <div class="tab" data-tab="floor2">📦 2층재고</div>
     <div class="tab" data-tab="meddict">📘 약품사전</div>
+    <div class="tab" data-tab="returns">🔁 반품현황</div>
     <div class="tab" data-tab="settings">설정</div>
     <div class="tab refresh-tab" data-tab="refresh" title="채팅과 리스트를 즉시 동기화"><span class="refresh-icon">🔄</span>새로고침</div>
   </nav>
@@ -2444,6 +2485,43 @@ body.pdf-rendering .a4-page {
       </div>
     </div>
 
+    <!-- 반품현황 탭 -->
+    <div class="tab-panel" id="panel-returns">
+      <div class="settings-panel">
+        <div class="settings-card">
+          <h3>🔁 반품현황 대시보드 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(반품 담당자: 김종희)</span></h3>
+          <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+            플랫폼별로 그룹화된 반품 의약품 현황. 모든 직원이 정보 조회 가능 · 추가·수정·상태변경은 김종희(반품 담당자)와 약국장만.
+          </p>
+
+          <div id="returnsReadonlyBanner" style="padding:8px 10px;margin-bottom:8px;background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;font-size:11.5px;color:#78350f;display:none;">
+            🔒 <b>읽기 전용</b> — 반품 관리는 <b>김종희</b>(반품 담당자) 또는 <b>백승준</b>(약국장)만 가능합니다.
+          </div>
+
+          <div class="settings-row" style="flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+            <button id="returnAddBtn" class="hist-btn" onclick="openReturnAddModal()" style="display:none;">➕ 새 반품 추가</button>
+            <input type="search" id="returnsSearch" class="emp-input" style="flex:1;min-width:160px;font-size:12px;padding:6px 10px;" placeholder="🔍 의약품명·플랫폼 검색" oninput="renderReturnsDashboard()" />
+            <select id="returnsFilterType" class="emp-input" style="flex:0 0 auto;width:100px;font-size:12px;padding:6px 10px;" onchange="renderReturnsDashboard()">
+              <option value="">전체 종류</option>
+              <option value="원통">📦 원통</option>
+              <option value="낱알">💊 낱알</option>
+            </select>
+            <select id="returnsFilterStatus" class="emp-input" style="flex:0 0 auto;width:110px;font-size:12px;padding:6px 10px;" onchange="renderReturnsDashboard()">
+              <option value="">전체 상태</option>
+              <option value="예정">⏳ 예정</option>
+              <option value="처리중">🔄 처리중</option>
+              <option value="완료">✅ 완료</option>
+            </select>
+            <select id="returnsFilterPlatform" class="emp-input" style="flex:0 0 auto;width:160px;font-size:12px;padding:6px 10px;" onchange="renderReturnsDashboard()">
+              <option value="">전체 플랫폼</option>
+            </select>
+          </div>
+
+          <div id="returnsDashboard" class="returns-dashboard"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- 설정 탭 -->
     <div class="tab-panel" id="panel-settings">
       <div class="settings-panel">
@@ -2566,6 +2644,72 @@ body.pdf-rendering .a4-page {
   </aside>
 
   </div><!-- /.app-body -->
+</div>
+
+<!-- 반품 항목 추가/수정 모달 -->
+<div class="modal-backdrop" id="returnModal" style="display:none;" onclick="if(event.target===this)closeReturnModal()">
+  <div class="modal" style="max-width:580px; width:94%;">
+    <div class="modal-head">
+      <span id="returnModalTitle">반품 항목 추가</span>
+      <button class="modal-close" onclick="closeReturnModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:14px 18px;">
+      <input type="hidden" id="returnModalMode" value="add" />
+      <input type="hidden" id="returnModalId" value="" />
+
+      <label class="emp-label">📦 종류 <span style="color:#991b1b;">*</span></label>
+      <select class="emp-input" id="returnModalType" onchange="updateReturnModalLabels()">
+        <option value="원통">원통반품 (의약품명 / 규격 / 갯수)</option>
+        <option value="낱알">낱알반품 (의약품명 / 낱알갯수)</option>
+      </select>
+
+      <label class="emp-label">🏪 플랫폼 <span style="color:#991b1b;">*</span></label>
+      <select class="emp-input" id="returnModalPlatform" onchange="document.getElementById('returnModalPlatformCustom').style.display=this.value==='__custom__'?'block':'none'">
+              <option value="광동몰[KDshop]">광동몰[KDshop]</option>
+              <option value="한미몰[HMPmall]">한미몰[HMPmall]</option>
+              <option value="대웅몰[TheSHOP]">대웅몰[TheSHOP]</option>
+              <option value="일동몰">일동몰</option>
+              <option value="백제약품[직거래]">백제약품[직거래]</option>
+              <option value="한신약품[직거래]">한신약품[직거래]</option>
+              <option value="건화약품[직거래]">건화약품[직거래]</option>
+              <option value="대전지오팜[직거래]">대전지오팜[직거래]</option>
+              <option value="동원[직거래]">동원[직거래]</option>
+              <option value="지오영[직거래]">지오영[직거래]</option>
+        <option value="__custom__">✏️ 직접 입력...</option>
+      </select>
+      <input type="text" id="returnModalPlatformCustom" class="emp-input" placeholder="플랫폼명 직접 입력" style="display:none;margin-top:6px;" />
+
+      <label class="emp-label">💊 의약품명 <span style="color:#991b1b;">*</span></label>
+      <input type="text" class="emp-input" id="returnModalName" placeholder="예: 립스타플러스10/10" />
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label class="emp-label" id="returnModalSpecLabel">규격</label>
+          <input type="text" class="emp-input" id="returnModalSpec" placeholder="예: 30정" />
+        </div>
+        <div>
+          <label class="emp-label" id="returnModalQtyLabel">갯수 <span style="color:#991b1b;">*</span></label>
+          <input type="text" class="emp-input" id="returnModalQty" placeholder="예: 3개" />
+        </div>
+      </div>
+
+      <label class="emp-label">📝 비고</label>
+      <input type="text" class="emp-input" id="returnModalNote" placeholder="유효기간 임박 / 처방 변경 등" />
+
+      <label class="emp-label">🏷 카테고리 <span style="font-size:10.5px;color:var(--text-muted);font-weight:400;">(특별 관리 의약품)</span></label>
+      <select class="emp-input" id="returnModalCategory">
+        <option value="일반">일반</option>
+        <option value="향정">🟣 향정신성의약품</option>
+        <option value="마약">🟡 마약류</option>
+        <option value="고가">🔴 고가약 (항암제 등)</option>
+        <option value="생물학">🔵 생물학적의약품 (인슐린 등)</option>
+      </select>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn" onclick="closeReturnModal()">취소</button>
+      <button class="modal-btn" onclick="saveReturnItem()">💾 저장</button>
+    </div>
+  </div>
 </div>
 
 <!-- 칩 교체 피커 모달 -->
@@ -2935,6 +3079,10 @@ function setupFirebaseForUser() {
   if (typeof setupManualMedTemplatesListener === 'function') {
     setupManualMedTemplatesListener();
   }
+  // 반품현황 실시간 동기화
+  if (typeof setupReturnsListener === 'function') {
+    setupReturnsListener();
+  }
 }
 
 function detachFirebaseListeners() {
@@ -2960,6 +3108,14 @@ function detachFirebaseListeners() {
   if (typeof fbEmployeesRef !== 'undefined' && fbEmployeesRef) {
     try { fbEmployeesRef.off(); } catch (e) {}
     fbEmployeesRef = null;
+  }
+  if (typeof fbManualMedTemplatesRef !== 'undefined' && fbManualMedTemplatesRef) {
+    try { fbManualMedTemplatesRef.off(); } catch (e) {}
+    fbManualMedTemplatesRef = null;
+  }
+  if (typeof fbReturnsRef !== 'undefined' && fbReturnsRef) {
+    try { fbReturnsRef.off(); } catch (e) {}
+    fbReturnsRef = null;
   }
 }
 
@@ -3988,6 +4144,10 @@ function switchTab(name) {
     // 약품 사전 탭 진입 시 렌더
     if (typeof renderMedDictAdmin === 'function') renderMedDictAdmin();
     if (typeof renderManualEntriesList === 'function') renderManualEntriesList();
+  }
+  if (name === 'returns') {
+    if (typeof renderReturnsFilters === 'function') renderReturnsFilters();
+    if (typeof renderReturnsDashboard === 'function') renderReturnsDashboard();
   }
   if (name === 'settings') {
     updateSettingsFirebaseInfo();
@@ -5539,6 +5699,376 @@ function renderMedDictAdmin() {
     '📘 <b>계열 약품:</b> ' + s.baseCount + '종 · ' +
     '<b>조합 템플릿:</b> ' + s.templateCount + '개<br>' +
     '<span style="font-size:10.5px;color:var(--text-muted);">분석된 총 주문: ' + s.totalOrdersAnalyzed + '건 · 최근 ' + MED_DICT_WINDOW_DAYS + '일 · 재구축: ' + when + '</span>';
+}
+
+/* ============ 반품현황 대시보드 (Firebase /returns) ============ */
+// 권한: 김종희 + 백승준만 추가/수정/삭제. 나머지 직원은 읽기 전용.
+// 데이터 구조: { id, type, platform, name, spec, qty, note, category, status, createdBy/At, statusUpdatedBy/At }
+
+const RETURN_OWNER_NAME = '김종희';
+const RETURN_OWNER_UID  = 'LYwdQYPMrDgnv1F5PRYJa2HbAC32';
+const RETURN_PHARMACIST_UID = 'bhgORSzZ23dlNUfZmDPBe3IsnPN2'; // 약국장도 관리 가능
+
+const RETURN_PLATFORMS = [
+  '광동몰[KDshop]',
+  '한미몰[HMPmall]',
+  '대웅몰[TheSHOP]',
+  '일동몰',
+  '백제약품[직거래]',
+  '한신약품[직거래]',
+  '건화약품[직거래]',
+  '대전지오팜[직거래]',
+  '동원[직거래]',
+  '지오영[직거래]'
+];
+
+const RETURN_CATEGORIES = [
+  { value: '일반',   label: '일반',          color: '#6b7280', bg: '#f3f4f6' },
+  { value: '향정',   label: '향정신성',      color: '#a21caf', bg: '#fae8ff' },
+  { value: '마약',   label: '마약류',        color: '#7c2d12', bg: '#fef3c7' },
+  { value: '고가',   label: '고가약(항암)',  color: '#991b1b', bg: '#fee2e2' },
+  { value: '생물학', label: '생물학(인슐린)', color: '#1e40af', bg: '#dbeafe' }
+];
+
+const RETURN_STATUSES = [
+  { value: '예정',   label: '예정',   color: '#6b7280', bg: '#f3f4f6' },
+  { value: '처리중', label: '처리중', color: '#92400e', bg: '#fef3c7' },
+  { value: '완료',   label: '완료',   color: '#065f46', bg: '#d1fae5' }
+];
+
+let returnsList = [];
+let fbReturnsRef = null;
+
+function canManageReturns() {
+  if (currentUser === RETURN_OWNER_NAME) return true;
+  if (currentUser === '백승준') return true;
+  if (currentAuthUid === RETURN_OWNER_UID) return true;
+  if (currentAuthUid === RETURN_PHARMACIST_UID) return true;
+  return false;
+}
+
+function setupReturnsListener() {
+  if (!fbDb) return;
+  if (fbReturnsRef) { try { fbReturnsRef.off(); } catch(e){} }
+  fbReturnsRef = fbDb.ref('returns');
+  fbReturnsRef.on('value', snap => {
+    const val = snap.val() || {};
+    returnsList = Object.entries(val)
+      .map(([id, v]) => ({ id, ...v }))
+      .filter(x => x && x.name)
+      .sort((a, b) => (b.createdAt||0) - (a.createdAt||0));
+    if (typeof renderReturnsDashboard === 'function') renderReturnsDashboard();
+  });
+}
+
+// === 반품 추가 ===
+function openReturnAddModal() {
+  if (!canManageReturns()) {
+    alert('⛔ 반품 관리 권한 없음.\n반품 담당자(김종희) 또는 약국장만 추가 가능.');
+    return;
+  }
+  document.getElementById('returnModalTitle').textContent = '➕ 반품 항목 추가';
+  document.getElementById('returnModalMode').value = 'add';
+  document.getElementById('returnModalId').value = '';
+  document.getElementById('returnModalType').value = '원통';
+  document.getElementById('returnModalPlatform').value = RETURN_PLATFORMS[0] || '';
+  document.getElementById('returnModalPlatformCustom').value = '';
+  document.getElementById('returnModalName').value = '';
+  document.getElementById('returnModalSpec').value = '';
+  document.getElementById('returnModalQty').value = '';
+  document.getElementById('returnModalNote').value = '';
+  document.getElementById('returnModalCategory').value = '일반';
+  updateReturnModalLabels();
+  document.getElementById('returnModal').style.display = 'flex';
+}
+
+function openReturnEditModal(id) {
+  if (!canManageReturns()) { alert('⛔ 권한 없음'); return; }
+  const item = returnsList.find(x => x.id === id);
+  if (!item) { alert('항목을 찾을 수 없습니다.'); return; }
+  document.getElementById('returnModalTitle').textContent = '✏️ 반품 항목 수정';
+  document.getElementById('returnModalMode').value = 'edit';
+  document.getElementById('returnModalId').value = id;
+  document.getElementById('returnModalType').value = item.type || '원통';
+  // 플랫폼: 기본 목록에 있으면 드롭다운, 아니면 수동
+  if (RETURN_PLATFORMS.indexOf(item.platform) >= 0) {
+    document.getElementById('returnModalPlatform').value = item.platform;
+    document.getElementById('returnModalPlatformCustom').value = '';
+  } else {
+    document.getElementById('returnModalPlatform').value = '__custom__';
+    document.getElementById('returnModalPlatformCustom').value = item.platform || '';
+  }
+  document.getElementById('returnModalName').value = item.name || '';
+  document.getElementById('returnModalSpec').value = item.spec || '';
+  document.getElementById('returnModalQty').value = item.qty || '';
+  document.getElementById('returnModalNote').value = item.note || '';
+  document.getElementById('returnModalCategory').value = item.category || '일반';
+  updateReturnModalLabels();
+  document.getElementById('returnModal').style.display = 'flex';
+}
+
+function closeReturnModal() {
+  const m = document.getElementById('returnModal');
+  if (m) m.style.display = 'none';
+}
+
+// 종류(원통/낱알)에 따라 라벨 변경
+function updateReturnModalLabels() {
+  const type = document.getElementById('returnModalType').value;
+  const specLabel = document.getElementById('returnModalSpecLabel');
+  const qtyLabel = document.getElementById('returnModalQtyLabel');
+  const specInput = document.getElementById('returnModalSpec');
+  const qtyInput = document.getElementById('returnModalQty');
+  if (type === '낱알') {
+    if (specLabel) specLabel.textContent = '구분 (낱알 고정)';
+    if (qtyLabel) qtyLabel.textContent = '낱알갯수';
+    if (specInput) { specInput.value = '낱알'; specInput.disabled = true; }
+    if (qtyInput) qtyInput.placeholder = '예: 15알';
+  } else {
+    if (specLabel) specLabel.textContent = '규격';
+    if (qtyLabel) qtyLabel.textContent = '갯수';
+    if (specInput) { specInput.disabled = false; if (specInput.value === '낱알') specInput.value = ''; }
+    if (qtyInput) qtyInput.placeholder = '예: 3개';
+  }
+}
+
+function saveReturnItem() {
+  if (!canManageReturns()) { alert('⛔ 권한 없음'); return; }
+  const mode = document.getElementById('returnModalMode').value;
+  const id = document.getElementById('returnModalId').value;
+  const type = document.getElementById('returnModalType').value;
+  let platform = document.getElementById('returnModalPlatform').value;
+  if (platform === '__custom__') {
+    platform = (document.getElementById('returnModalPlatformCustom').value || '').trim();
+  }
+  const name = (document.getElementById('returnModalName').value || '').trim();
+  const spec = (document.getElementById('returnModalSpec').value || '').trim();
+  const qty  = (document.getElementById('returnModalQty').value || '').trim();
+  const note = (document.getElementById('returnModalNote').value || '').trim();
+  const category = document.getElementById('returnModalCategory').value || '일반';
+
+  if (!platform) { alert('플랫폼을 선택하거나 직접 입력하세요.'); return; }
+  if (!name) { alert('의약품명을 입력하세요.'); return; }
+  if (!qty) { alert(type === '낱알' ? '낱알갯수를 입력하세요.' : '갯수를 입력하세요.'); return; }
+
+  const now = Date.now();
+  if (mode === 'add') {
+    const payload = {
+      type: type,
+      platform: platform,
+      name: name,
+      spec: type === '낱알' ? '낱알' : spec,
+      qty: qty,
+      note: note,
+      category: category,
+      status: '예정',
+      createdBy: currentUser || '',
+      createdByUid: currentAuthUid || '',
+      createdAt: now,
+      statusUpdatedAt: now,
+      statusUpdatedBy: currentUser || ''
+    };
+    if (fbDb) {
+      fbDb.ref('returns').push(payload)
+        .then(() => closeReturnModal())
+        .catch(err => alert('저장 실패: ' + (err.message||err)));
+    } else {
+      payload.id = 'local-' + now;
+      returnsList.unshift(payload);
+      renderReturnsDashboard();
+      closeReturnModal();
+    }
+  } else { // edit
+    const updates = {
+      type, platform, name,
+      spec: type === '낱알' ? '낱알' : spec,
+      qty, note, category,
+      statusUpdatedAt: now,
+      statusUpdatedBy: currentUser || ''
+    };
+    if (fbDb) {
+      fbDb.ref('returns/' + id).update(updates)
+        .then(() => closeReturnModal())
+        .catch(err => alert('수정 실패: ' + (err.message||err)));
+    } else {
+      const idx = returnsList.findIndex(x => x.id === id);
+      if (idx >= 0) Object.assign(returnsList[idx], updates);
+      renderReturnsDashboard();
+      closeReturnModal();
+    }
+  }
+}
+
+function changeReturnStatus(id, newStatus) {
+  if (!canManageReturns()) { alert('⛔ 상태 변경은 반품 담당자만 가능'); return; }
+  const item = returnsList.find(x => x.id === id);
+  if (!item) return;
+  const updates = {
+    status: newStatus,
+    statusUpdatedAt: Date.now(),
+    statusUpdatedBy: currentUser || ''
+  };
+  if (fbDb) {
+    fbDb.ref('returns/' + id).update(updates)
+      .catch(err => alert('상태 변경 실패: ' + (err.message||err)));
+  } else {
+    Object.assign(item, updates);
+    renderReturnsDashboard();
+  }
+}
+
+function deleteReturnItem(id) {
+  if (!canManageReturns()) { alert('⛔ 권한 없음'); return; }
+  const item = returnsList.find(x => x.id === id);
+  if (!item) return;
+  if (!confirm(`다음 반품 항목을 삭제하시겠습니까?\n\n${item.platform} · ${item.type}\n${item.name} ${item.spec||''} ${item.qty||''}`)) return;
+  if (fbDb) {
+    fbDb.ref('returns/' + id).remove()
+      .catch(err => alert('삭제 실패: ' + (err.message||err)));
+  } else {
+    returnsList = returnsList.filter(x => x.id !== id);
+    renderReturnsDashboard();
+  }
+}
+
+function getReturnCategoryStyle(cat) {
+  const c = RETURN_CATEGORIES.find(x => x.value === cat);
+  return c || RETURN_CATEGORIES[0];
+}
+function getReturnStatusStyle(st) {
+  const s = RETURN_STATUSES.find(x => x.value === st);
+  return s || RETURN_STATUSES[0];
+}
+
+// === 메인 대시보드 렌더 ===
+function renderReturnsDashboard() {
+  const host = document.getElementById('returnsDashboard');
+  if (!host) return;
+  const allowed = canManageReturns();
+  const filterStatus = (document.getElementById('returnsFilterStatus')||{}).value || '';
+  const filterPlatform = (document.getElementById('returnsFilterPlatform')||{}).value || '';
+  const filterType = (document.getElementById('returnsFilterType')||{}).value || '';
+  const search = ((document.getElementById('returnsSearch')||{}).value || '').trim().toLowerCase();
+
+  // 통계
+  const total = returnsList.length;
+  const cnt = { 예정: 0, 처리중: 0, 완료: 0 };
+  returnsList.forEach(it => { if (cnt.hasOwnProperty(it.status||'예정')) cnt[it.status||'예정']++; });
+  const statsHtml = `
+    <div class="ret-stats">
+      <span class="ret-stat-item">📊 총 <b>${total}</b>건</span>
+      <span class="ret-stat-item ret-stat-pending">⏳ 예정 <b>${cnt['예정']}</b></span>
+      <span class="ret-stat-item ret-stat-processing">🔄 처리중 <b>${cnt['처리중']}</b></span>
+      <span class="ret-stat-item ret-stat-done">✅ 완료 <b>${cnt['완료']}</b></span>
+    </div>
+  `;
+
+  // 필터 적용
+  let filtered = returnsList.filter(it => {
+    if (filterStatus && (it.status || '예정') !== filterStatus) return false;
+    if (filterPlatform && it.platform !== filterPlatform) return false;
+    if (filterType && it.type !== filterType) return false;
+    if (search) {
+      const hay = ((it.name||'') + ' ' + (it.spec||'') + ' ' + (it.qty||'') + ' ' + (it.note||'') + ' ' + (it.platform||'')).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // 플랫폼별 그룹화
+  const byPlatform = {};
+  filtered.forEach(it => {
+    const p = it.platform || '(미지정)';
+    if (!byPlatform[p]) byPlatform[p] = { 원통: [], 낱알: [] };
+    const t = (it.type === '낱알') ? '낱알' : '원통';
+    byPlatform[p][t].push(it);
+  });
+  const platforms = Object.keys(byPlatform).sort();
+
+  let bodyHtml = '';
+  if (!filtered.length) {
+    bodyHtml = '<div class="ret-empty">조건에 맞는 반품 항목이 없습니다.</div>';
+  } else {
+    bodyHtml = platforms.map(p => {
+      const g = byPlatform[p];
+      const total_p = g['원통'].length + g['낱알'].length;
+      const isDirect = p.includes('직거래');
+      return `
+      <div class="ret-platform-card${isDirect ? ' direct' : ''}">
+        <div class="ret-platform-head">
+          <span class="ret-platform-name">🏪 ${escapeHtml(p)}</span>
+          <span class="ret-platform-count">${total_p}건</span>
+        </div>
+        ${g['원통'].length ? renderReturnGroup('원통', '📦', g['원통'], allowed) : ''}
+        ${g['낱알'].length ? renderReturnGroup('낱알', '💊', g['낱알'], allowed) : ''}
+      </div>
+      `;
+    }).join('');
+  }
+
+  host.innerHTML = statsHtml + bodyHtml;
+
+  // 새 반품 추가 버튼은 권한자만 표시
+  const addBtn = document.getElementById('returnAddBtn');
+  if (addBtn) addBtn.style.display = allowed ? 'inline-block' : 'none';
+  const readonlyBanner = document.getElementById('returnsReadonlyBanner');
+  if (readonlyBanner) readonlyBanner.style.display = allowed ? 'none' : 'block';
+}
+
+function renderReturnGroup(typeName, icon, items, allowed) {
+  const itemsHtml = items.map((it, idx) => {
+    const cat = getReturnCategoryStyle(it.category||'일반');
+    const st  = getReturnStatusStyle(it.status||'예정');
+    const catBadge = cat.value !== '일반'
+      ? `<span class="ret-cat-badge" style="background:${cat.bg};color:${cat.color};">${escapeHtml(cat.label)}</span>` : '';
+    const statusBtns = allowed ? RETURN_STATUSES.map(s =>
+      `<button class="ret-status-btn${(it.status||'예정')===s.value?' active':''}" style="background:${(it.status||'예정')===s.value?s.bg:'#fff'};color:${s.color};border-color:${s.color};" onclick="changeReturnStatus('${escapeHtml(it.id)}','${s.value}')">${escapeHtml(s.label)}</button>`
+    ).join('') : `<span class="ret-status-pill" style="background:${st.bg};color:${st.color};">${escapeHtml(st.label)}</span>`;
+    const editBtn = allowed
+      ? `<button class="ret-icon-btn" title="수정" onclick="openReturnEditModal('${escapeHtml(it.id)}')">✏️</button>
+         <button class="ret-icon-btn danger" title="삭제" onclick="deleteReturnItem('${escapeHtml(it.id)}')">🗑</button>`
+      : '';
+    const updTime = it.statusUpdatedAt ? new Date(it.statusUpdatedAt).toLocaleString('ko-KR', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '';
+    return `
+      <div class="ret-item${cat.value!=='일반'?' ret-item-special':''}" style="${cat.value!=='일반'?'border-left:4px solid '+cat.color+';':''}">
+        <div class="ret-item-row1">
+          <span class="ret-item-num">${idx+1}.</span>
+          <span class="ret-item-name" style="${cat.value!=='일반'?'color:'+cat.color+';font-weight:700;':''}">${escapeHtml(it.name)}</span>
+          ${catBadge}
+        </div>
+        <div class="ret-item-row2">
+          <span class="ret-item-spec">${escapeHtml(it.spec||'-')}</span>
+          <span class="ret-item-qty"><b>${escapeHtml(it.qty||'-')}</b></span>
+          ${it.note ? `<span class="ret-item-note">📝 ${escapeHtml(it.note)}</span>` : ''}
+        </div>
+        <div class="ret-item-row3">
+          <span class="ret-item-status-group">${statusBtns}</span>
+          <span class="ret-item-meta">${escapeHtml(it.statusUpdatedBy||it.createdBy||'-')} · ${updTime}</span>
+          ${editBtn}
+        </div>
+      </div>
+    `;
+  }).join('');
+  return `
+    <div class="ret-type-section">
+      <div class="ret-type-head">${icon} ${typeName}반품 <span class="ret-type-cnt">(${items.length}건)</span></div>
+      <div class="ret-type-body">${itemsHtml}</div>
+    </div>
+  `;
+}
+
+// 필터 드롭다운 옵션 동적 생성
+function renderReturnsFilters() {
+  const platSel = document.getElementById('returnsFilterPlatform');
+  if (platSel) {
+    const cur = platSel.value;
+    const platsInUse = Array.from(new Set(returnsList.map(x => x.platform).filter(Boolean))).sort();
+    let html = '<option value="">전체 플랫폼</option>';
+    platsInUse.forEach(p => {
+      html += `<option value="${escapeHtml(p)}"${cur===p?' selected':''}>${escapeHtml(p)}</option>`;
+    });
+    platSel.innerHTML = html;
+  }
 }
 
 /* ============ 수동 사전 학습 (Firebase /manualMedTemplates) ============ */
