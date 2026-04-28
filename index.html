@@ -1280,8 +1280,8 @@ body.pdf-rendering .a4-page {
 .a4-col { display: flex; flex-direction: column; }
 .a4-row {
   display: grid;
-  /* 번호 | 의약품명(최대확장) | 규격 | 갯수 | 비고 | 작성자 | 시간 | 💰금액 */
-  grid-template-columns: 18px minmax(0,3.6fr) 34px 26px minmax(0,0.4fr) 30px 26px 58px;
+  /* 번호 | 의약품명 | 규격(↑) | 갯수(↑) | 비고(↓) | 작성자(↓) | 시간(↓) | 💰금액(↓) */
+  grid-template-columns: 18px minmax(0,3.6fr) 42px 34px minmax(0,0.32fr) 26px 22px 50px;
   align-items: center;
   border-bottom: 1px dotted #ccc;
   padding: 5px 3px;
@@ -1289,35 +1289,38 @@ body.pdf-rendering .a4-page {
   min-height: 28px;
   gap: 3px;
 }
-/* 의약품명 외 모든 컬럼: 의약품명 대비 약 70% 크기 */
-.a4-row > .row-spec,
-.a4-row > .row-qty,
-.a4-row > .row-note,
-.a4-row > .row-author,
-.a4-row > .row-time {
-  font-size: 7.7px;
-  color: #4b5563;
-  line-height: 1.2;
-}
+/* 규격·갯수: 의약품명 대비 약 86% (잘 보이게 크게) */
 .a4-row > .row-spec,
 .a4-row > .row-qty {
+  font-size: 9.5px;
+  color: #1f2937;
+  font-weight: 600;
+  line-height: 1.2;
   text-align: center;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.a4-row > .row-note span { font-size: 7.7px; }
+/* 비고·작성자·시간: 의약품명 대비 약 58% (작게) */
+.a4-row > .row-note,
+.a4-row > .row-author,
+.a4-row > .row-time {
+  font-size: 6.4px;
+  color: #6b7280;
+  line-height: 1.2;
+}
+.a4-row > .row-note span { font-size: 6.4px; }
 .a4-row > .row-author { text-align: center; }
 .a4-row > .row-time { text-align: center; font-variant-numeric: tabular-nums; }
 .a4-row.head .h-spec,
-.a4-row.head .h-qty,
+.a4-row.head .h-qty { font-size: 10px; font-weight: 700; }
 .a4-row.head .h-note,
 .a4-row.head .h-author,
-.a4-row.head .h-time { font-size: 9px; }
+.a4-row.head .h-time { font-size: 8px; }
 .a4-row .row-amount {
   text-align: right;
-  font-size: 7.7px;          /* 70% of 11px */
+  font-size: 6.4px;          /* 약 58% — 작게 (의약품명 가독성 우선) */
   color: #065f46;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -1329,11 +1332,11 @@ body.pdf-rendering .a4-page {
 .a4-row .row-amount.missing {
   color: #92400e;
   font-weight: 600;
-  font-size: 7px;
+  font-size: 5.8px;
   cursor: pointer;
 }
 .a4-row .row-amount.missing:hover { background: #fef3c7; }
-.a4-row.head .row-amount { color: var(--text); font-size: 9px; font-weight: 700; }
+.a4-row.head .row-amount { color: var(--text); font-size: 8px; font-weight: 700; }
 .a4-row.head {
   background: #f0ede4;
   font-weight: 700;
@@ -2184,26 +2187,26 @@ body.pdf-rendering .a4-page {
     column-gap: 0;
   }
   .a4-row {
-    /* 모바일: 의약품명 최대 확장, 나머지 컬럼 축소 + 금액 컬럼 */
-    grid-template-columns: 12px minmax(0,5fr) minmax(0,0.5fr) minmax(0,0.5fr) minmax(0,0.4fr) minmax(0,0.45fr) minmax(0,0.4fr) minmax(0,0.75fr);
+    /* 모바일: 규격·갯수 키우고, 비고/작성자/시간/금액 축소 */
+    grid-template-columns: 12px minmax(0,5fr) minmax(0,0.62fr) minmax(0,0.62fr) minmax(0,0.32fr) minmax(0,0.36fr) minmax(0,0.32fr) minmax(0,0.6fr);
     font-size: 10.5px;
     padding: 6px 1px;
     gap: 2px;
     min-height: 30px;
   }
-  .a4-row .row-amount { font-size: 7.4px; }
-  .a4-row .row-amount.missing { font-size: 7px; }
-  .a4-row.head .row-amount { font-size: 8.5px; }
   .a4-row > .row-spec,
-  .a4-row > .row-qty,
+  .a4-row > .row-qty { font-size: 9px; font-weight: 600; }
   .a4-row > .row-note,
   .a4-row > .row-author,
-  .a4-row > .row-time { font-size: 7.2px; }
+  .a4-row > .row-time { font-size: 6px; }
+  .a4-row .row-amount { font-size: 6px; }
+  .a4-row .row-amount.missing { font-size: 5.6px; }
   .a4-row.head .h-spec,
-  .a4-row.head .h-qty,
+  .a4-row.head .h-qty { font-size: 9.5px; }
   .a4-row.head .h-note,
   .a4-row.head .h-author,
-  .a4-row.head .h-time { font-size: 8px; }
+  .a4-row.head .h-time { font-size: 7px; }
+  .a4-row.head .row-amount { font-size: 7.5px; }
   /* 모바일: 이름 외의 셀은 한 줄 고정 ellipsis */
   .a4-row > div {
     overflow: hidden;
@@ -2347,7 +2350,7 @@ body.pdf-rendering .a4-page {
 /* 매우 작은 화면 (≤380px) */
 @media (max-width: 380px) {
   .header-center { font-size: 10px; }
-  .a4-row { grid-template-columns: 14px 1fr 30px 24px 0.4fr 26px 22px 0.65fr; font-size: 10px; }
+  .a4-row { grid-template-columns: 13px 1fr 36px 30px 0.32fr 22px 18px 0.5fr; font-size: 10px; }
   .a4-row.head { font-size: 10px; }
   .tab { padding: 12px 10px; font-size: 12px; }
 }
