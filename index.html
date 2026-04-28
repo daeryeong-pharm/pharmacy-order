@@ -1281,22 +1281,35 @@ body.pdf-rendering .a4-page {
 .a4-row {
   display: grid;
   /* 번호 | 의약품명 | 규격(↑) | 갯수(↑) | 비고(↓) | 작성자(↓) | 시간(↓) | 💰금액(↓) */
-  grid-template-columns: 18px minmax(0,3.6fr) 42px 34px minmax(0,0.32fr) 26px 22px 50px;
+  grid-template-columns: 18px minmax(0,3.6fr) 38px 30px minmax(0,0.36fr) 28px 20px 46px;
   align-items: center;
   border-bottom: 1px dotted #ccc;
   padding: 5px 3px;
   font-size: 11px;
   min-height: 28px;
-  gap: 3px;
+  gap: 1px;                    /* ↓ 칼럼 사이 여백 최소화 (3px→1px) */
 }
-/* 규격·갯수: 의약품명 대비 약 86% (잘 보이게 크게) */
-.a4-row > .row-spec,
+/* 규격: 우측 정렬 → 갯수 셀과 시각적으로 인접 */
+.a4-row > .row-spec {
+  font-size: 9.5px;
+  color: #1f2937;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: right;
+  padding-right: 1px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 갯수: 좌측 정렬 → 규격 셀과 시각적으로 인접 */
 .a4-row > .row-qty {
   font-size: 9.5px;
   color: #1f2937;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.2;
-  text-align: center;
+  text-align: left;
+  padding-left: 2px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
@@ -1312,22 +1325,32 @@ body.pdf-rendering .a4-page {
 }
 .a4-row > .row-note span { font-size: 6.4px; }
 .a4-row > .row-author { text-align: center; }
-.a4-row > .row-time { text-align: center; font-variant-numeric: tabular-nums; }
+/* 시간: 우측 정렬 → 금액 셀과 시각적으로 인접 */
+.a4-row > .row-time {
+  text-align: right;
+  padding-right: 1px;
+  font-variant-numeric: tabular-nums;
+}
+/* 비고는 좌측 정렬 (작성자와 시각적 분리) */
+.a4-row > .row-note { padding-left: 2px; }
+/* 작성자 좌측에 약간의 시각적 여백 (비고와 분리) */
+.a4-row > .row-author { margin-left: 2px; }
 .a4-row.head .h-spec,
 .a4-row.head .h-qty { font-size: 10px; font-weight: 700; }
 .a4-row.head .h-note,
 .a4-row.head .h-author,
 .a4-row.head .h-time { font-size: 8px; }
 .a4-row .row-amount {
-  text-align: right;
-  font-size: 6.4px;          /* 약 58% — 작게 (의약품명 가독성 우선) */
+  text-align: left;            /* 좌측 정렬 → 시간 셀과 시각적으로 인접 */
+  font-size: 6.4px;
   color: #065f46;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-right: 2px;
+  padding-left: 1px;
+  padding-right: 1px;
 }
 .a4-row .row-amount.missing {
   color: #92400e;
@@ -2187,11 +2210,11 @@ body.pdf-rendering .a4-page {
     column-gap: 0;
   }
   .a4-row {
-    /* 모바일: 규격·갯수 키우고, 비고/작성자/시간/금액 축소 */
-    grid-template-columns: 12px minmax(0,5fr) minmax(0,0.62fr) minmax(0,0.62fr) minmax(0,0.32fr) minmax(0,0.36fr) minmax(0,0.32fr) minmax(0,0.6fr);
+    /* 모바일: 규격·갯수 키우고, 비고/작성자/시간/금액 축소, 칼럼 간격 최소 */
+    grid-template-columns: 12px minmax(0,5fr) minmax(0,0.6fr) minmax(0,0.55fr) minmax(0,0.36fr) minmax(0,0.36fr) minmax(0,0.3fr) minmax(0,0.55fr);
     font-size: 10.5px;
     padding: 6px 1px;
-    gap: 2px;
+    gap: 1px;
     min-height: 30px;
   }
   .a4-row > .row-spec,
