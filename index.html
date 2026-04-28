@@ -2753,15 +2753,11 @@ body.pdf-rendering .a4-page {
 
           <div class="settings-row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px;">
             <button id="paymentAddBtn" class="hist-btn" onclick="openPaymentAddModal()" style="display:none;">➕ 새 결제 추가</button>
+            <button class="hist-btn" onclick="exportPaymentsXlsx()" title="현재 필터 조건에 맞는 항목을 엑셀로 내보내기">📊 Excel 내보내기</button>
+            <button class="hist-btn" onclick="exportPaymentsPdf()" title="현재 필터 조건에 맞는 항목을 PDF로 내보내기">📄 PDF 내보내기</button>
             <input type="search" id="paymentsSearch" class="emp-input" style="flex:1;min-width:140px;font-size:12px;padding:6px 10px;" placeholder="🔍 결제사·비고 검색" oninput="renderPaymentsList()" />
-            <select id="paymentsFilterMethod" class="emp-input" style="flex:0 0 auto;width:110px;font-size:12px;padding:6px 10px;" onchange="renderPaymentsList()">
+            <select id="paymentsFilterMethod" class="emp-input" style="flex:0 0 auto;width:140px;font-size:12px;padding:6px 10px;" onchange="renderPaymentsList()">
               <option value="">전체 방법</option>
-              <option value="카드">💳 카드</option>
-              <option value="계좌이체">🏦 계좌이체</option>
-              <option value="현금">💵 현금</option>
-              <option value="어음">📜 어음</option>
-              <option value="카카오페이">🟡 카카오페이</option>
-              <option value="기타">⚪ 기타</option>
             </select>
             <select id="paymentsFilterVendor" class="emp-input" style="flex:0 0 auto;width:140px;font-size:12px;padding:6px 10px;" onchange="renderPaymentsList()">
               <option value="">전체 결제사</option>
@@ -2985,14 +2981,13 @@ body.pdf-rendering .a4-page {
         </div>
         <div>
           <label class="emp-label">결제방법</label>
-          <select class="emp-input" id="paymentMethod">
+          <select class="emp-input" id="paymentMethod" onchange="onPaymentMethodChange()">
             <option value="카드">💳 카드</option>
             <option value="계좌이체">🏦 계좌이체</option>
-            <option value="현금">💵 현금</option>
-            <option value="어음">📜 어음</option>
-            <option value="카카오페이">🟡 카카오페이</option>
             <option value="기타">⚪ 기타</option>
+            <option value="__custom__">✏️ 직접 입력...</option>
           </select>
+          <input type="text" class="emp-input" id="paymentMethodCustom" placeholder="결제방법 직접 입력" style="display:none;margin-top:6px;font-size:12px;" />
         </div>
       </div>
 
@@ -6208,11 +6203,15 @@ const PAYMENT_OWNER_UIDS = ['bhgORSzZ23dlNUfZmDPBe3IsnPN2', 'LYwdQYPMrDgnv1F5PRY
 const PAYMENT_METHODS = [
   { value: '카드',     label: '💳 카드',    color: '#1d4ed8', bg: '#dbeafe' },
   { value: '계좌이체', label: '🏦 계좌이체', color: '#065f46', bg: '#d1fae5' },
-  { value: '현금',     label: '💵 현금',    color: '#92400e', bg: '#fef3c7' },
-  { value: '어음',     label: '📜 어음',    color: '#7c2d12', bg: '#fed7aa' },
-  { value: '카카오페이', label: '🟡 카카오페이', color: '#854d0e', bg: '#fef9c3' },
   { value: '기타',     label: '⚪ 기타',    color: '#6b7280', bg: '#f3f4f6' }
 ];
+// 직접 입력된 결제방법은 미리 정의되지 않은 임의 문자열. 표시 색상은 자동 할당.
+function getPaymentMethodStyleAuto(m) {
+  const found = PAYMENT_METHODS.find(x => x.value === m);
+  if (found) return found;
+  // 직접 입력된 값에는 보라색 계열 자동 할당
+  return { value: m, label: '✏️ ' + m, color: '#7c3aed', bg: '#ede9fe' };
+}
 
 let paymentsList = [];
 let fbPaymentsRef = null;
@@ -6239,7 +6238,7 @@ function setupPaymentsListener() {
 }
 
 function getPaymentMethodStyle(m) {
-  return PAYMENT_METHODS.find(x => x.value === m) || PAYMENT_METHODS[PAYMENT_METHODS.length - 1];
+  return getPaymentMethodStyleAuto(m);
 }
 
 function getPaymentChartMonth() {
@@ -6267,6 +6266,8 @@ function openPaymentAddModal() {
   document.getElementById('paymentVendor').value = '';
   document.getElementById('paymentAmount').value = '';
   document.getElementById('paymentMethod').value = '카드';
+  document.getElementById('paymentMethodCustom').style.display = 'none';
+  document.getElementById('paymentMethodCustom').value = '';
   // 기본 결제일시: 현재
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -6285,7 +6286,17 @@ function openPaymentEditModal(id) {
   document.getElementById('paymentModalId').value = id;
   document.getElementById('paymentVendor').value = p.vendor || '';
   document.getElementById('paymentAmount').value = p.amount || '';
-  document.getElementById('paymentMethod').value = p.method || '카드';
+  // 결제방법: 사전 정의된 값이면 select, 아니면 직접입력 모드
+  const presetMethods = PAYMENT_METHODS.map(x => x.value);
+  if (presetMethods.indexOf(p.method) >= 0) {
+    document.getElementById('paymentMethod').value = p.method;
+    document.getElementById('paymentMethodCustom').style.display = 'none';
+    document.getElementById('paymentMethodCustom').value = '';
+  } else {
+    document.getElementById('paymentMethod').value = '__custom__';
+    document.getElementById('paymentMethodCustom').style.display = 'block';
+    document.getElementById('paymentMethodCustom').value = p.method || '';
+  }
   if (p.paidAt) {
     const d = new Date(p.paidAt);
     const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -6318,7 +6329,11 @@ function savePayment() {
   const vendor = (document.getElementById('paymentVendor').value || '').trim();
   const amountRaw = (document.getElementById('paymentAmount').value || '').replace(/[,\s원]/g, '');
   const amount = parseFloat(amountRaw);
-  const method = document.getElementById('paymentMethod').value || '카드';
+  let method = document.getElementById('paymentMethod').value || '카드';
+  if (method === '__custom__') {
+    method = (document.getElementById('paymentMethodCustom').value || '').trim();
+    if (!method) { alert('직접 입력할 결제방법을 입력하세요.'); return; }
+  }
   const dateStr = document.getElementById('paymentDate').value;
   const note = (document.getElementById('paymentNote').value || '').trim();
 
@@ -6357,6 +6372,126 @@ function savePayment() {
       closePaymentModal();
     }
   }
+}
+
+// === 결제방법 직접입력 토글 ===
+function onPaymentMethodChange() {
+  const sel = document.getElementById('paymentMethod');
+  const cust = document.getElementById('paymentMethodCustom');
+  if (!sel || !cust) return;
+  if (sel.value === '__custom__') {
+    cust.style.display = 'block';
+    setTimeout(() => { try { cust.focus(); } catch(e){} }, 50);
+  } else {
+    cust.style.display = 'none';
+    cust.value = '';
+  }
+}
+
+// === Excel 내보내기 (현재 필터 결과) ===
+function exportPaymentsXlsx() {
+  if (typeof XLSX === 'undefined') { alert('엑셀 모듈 로드 실패'); return; }
+  const filtered = getCurrentlyFilteredPayments();
+  if (!filtered.length) { alert('내보낼 결제 내역이 없습니다.'); return; }
+  const rows = filtered.map(p => {
+    const d = new Date(p.paidAt || 0);
+    const dStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    const tStr = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    return {
+      '결제일': dStr, '결제시각': tStr,
+      '결제사': p.vendor || '', '결제금액': p.amount || 0,
+      '결제방법': p.method || '', '비고': p.note || '',
+      '작성자': p.createdBy || '', '등록일시': p.createdAt ? new Date(p.createdAt).toLocaleString('ko-KR') : ''
+    };
+  });
+  const total = rows.reduce((s, r) => s + (r['결제금액'] || 0), 0);
+  rows.push({ '결제일': '', '결제시각': '', '결제사': '【합계】', '결제금액': total, '결제방법': filtered.length + '건', '비고': '', '작성자': '', '등록일시': new Date().toLocaleString('ko-KR') });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:11},{wch:7},{wch:18},{wch:13},{wch:11},{wch:25},{wch:10},{wch:18}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '결제내역');
+  const todayISO = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, '대령약국_결제내역_' + todayISO + '.xlsx');
+}
+
+// === PDF 내보내기 (필터 결과를 임시 테이블로 그려서 캡처) ===
+async function exportPaymentsPdf() {
+  if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') { alert('PDF 모듈 로드 실패'); return; }
+  if (typeof html2canvas === 'undefined') { alert('html2canvas 로드 실패'); return; }
+  const filtered = getCurrentlyFilteredPayments();
+  if (!filtered.length) { alert('내보낼 결제 내역이 없습니다.'); return; }
+
+  // 임시 컨테이너에 인쇄용 표 생성
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:760px;background:#fff;padding:20px;font-family:"Noto Sans KR",sans-serif;color:#000;';
+  let total = 0;
+  let html = '<h2 style="text-align:center;margin:0 0 4px;">대령약국 결제내역</h2>';
+  html += '<div style="text-align:center;font-size:11px;color:#555;margin-bottom:10px;">출력일: ' + new Date().toLocaleString('ko-KR') + ' · 총 ' + filtered.length + '건</div>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+  html += '<thead><tr style="background:#f0ede4;"><th style="border:1px solid #888;padding:5px;width:80px;">결제일</th><th style="border:1px solid #888;padding:5px;width:50px;">시각</th><th style="border:1px solid #888;padding:5px;">결제사</th><th style="border:1px solid #888;padding:5px;width:90px;">금액</th><th style="border:1px solid #888;padding:5px;width:80px;">방법</th><th style="border:1px solid #888;padding:5px;">비고</th></tr></thead><tbody>';
+  filtered.forEach(p => {
+    total += p.amount || 0;
+    const d = new Date(p.paidAt || 0);
+    const dStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    const tStr = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    html += '<tr><td style="border:1px solid #aaa;padding:4px 6px;">' + dStr + '</td><td style="border:1px solid #aaa;padding:4px 6px;text-align:center;">' + tStr + '</td><td style="border:1px solid #aaa;padding:4px 6px;">' + escapeHtml(p.vendor||'') + '</td><td style="border:1px solid #aaa;padding:4px 6px;text-align:right;">₩' + (p.amount||0).toLocaleString() + '</td><td style="border:1px solid #aaa;padding:4px 6px;text-align:center;">' + escapeHtml(p.method||'') + '</td><td style="border:1px solid #aaa;padding:4px 6px;font-size:10px;">' + escapeHtml(p.note||'') + '</td></tr>';
+  });
+  html += '<tr style="background:#fffaf0;font-weight:700;"><td colspan="3" style="border:1px solid #888;padding:6px;text-align:right;">합계</td><td style="border:1px solid #888;padding:6px;text-align:right;color:#7c3aed;">₩' + total.toLocaleString() + '</td><td colspan="2" style="border:1px solid #888;padding:6px;text-align:center;">' + filtered.length + '건</td></tr>';
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+  document.body.appendChild(wrap);
+  try {
+    const canvas = await html2canvas(wrap, { scale: 2, backgroundColor: '#ffffff' });
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf || window;
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = pdf.internal.pageSize.getHeight();
+    const ratio = canvas.height / canvas.width;
+    let imgW = pdfW - 20, imgH = imgW * ratio;
+    if (imgH > pdfH - 20) {
+      // 페이지 분할
+      const pageHeightPx = (canvas.width * (pdfH - 20)) / (pdfW - 20);
+      let yOffset = 0;
+      while (yOffset < canvas.height) {
+        const slice = document.createElement('canvas');
+        slice.width = canvas.width;
+        slice.height = Math.min(pageHeightPx, canvas.height - yOffset);
+        slice.getContext('2d').drawImage(canvas, 0, yOffset, canvas.width, slice.height, 0, 0, canvas.width, slice.height);
+        const sliceData = slice.toDataURL('image/png');
+        const sliceH = (slice.height / canvas.width) * imgW;
+        if (yOffset > 0) pdf.addPage();
+        pdf.addImage(sliceData, 'PNG', 10, 10, imgW, sliceH);
+        yOffset += pageHeightPx;
+      }
+    } else {
+      pdf.addImage(imgData, 'PNG', 10, 10, imgW, imgH);
+    }
+    pdf.save('대령약국_결제내역_' + new Date().toISOString().slice(0,10) + '.pdf');
+  } catch (e) {
+    alert('PDF 생성 실패: ' + (e.message || e));
+    console.error(e);
+  } finally {
+    document.body.removeChild(wrap);
+  }
+}
+
+// 현재 필터/검색 적용된 결제 내역 (최근 6개월)
+function getCurrentlyFilteredPayments() {
+  const q = ((document.getElementById('paymentsSearch')||{}).value || '').trim().toLowerCase();
+  const fM = ((document.getElementById('paymentsFilterMethod')||{}).value || '').trim();
+  const fV = ((document.getElementById('paymentsFilterVendor')||{}).value || '').trim();
+  const sixMonthsAgo = Date.now() - 180 * 86400000;
+  return paymentsList.filter(p => {
+    if ((p.paidAt || 0) < sixMonthsAgo) return false;
+    if (fM && p.method !== fM) return false;
+    if (fV && p.vendor !== fV) return false;
+    if (q) {
+      const hay = ((p.vendor||'') + ' ' + (p.note||'') + ' ' + (p.method||'')).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
 }
 
 function deletePayment(id) {
@@ -6430,6 +6565,19 @@ function renderPaymentsList() {
     const vendors = Array.from(new Set(paymentsList.map(p => p.vendor).filter(Boolean))).sort();
     vendorSel.innerHTML = '<option value="">전체 결제사</option>' +
       vendors.map(v => `<option value="${escapeHtml(v)}"${cur===v?' selected':''}>${escapeHtml(v)}</option>`).join('');
+  }
+  // 결제방법 필터 옵션 갱신 (사전 정의 + 실제 사용된 직접입력 값)
+  const methodSel = document.getElementById('paymentsFilterMethod');
+  if (methodSel) {
+    const curM = methodSel.value;
+    const usedMethods = new Set(paymentsList.map(p => p.method).filter(Boolean));
+    PAYMENT_METHODS.forEach(m => usedMethods.add(m.value));
+    const sorted = Array.from(usedMethods).sort();
+    methodSel.innerHTML = '<option value="">전체 방법</option>' +
+      sorted.map(m => {
+        const lbl = (PAYMENT_METHODS.find(x => x.value === m) || { label: '✏️ ' + m }).label;
+        return `<option value="${escapeHtml(m)}"${curM===m?' selected':''}>${escapeHtml(lbl)}</option>`;
+      }).join('');
   }
 
   // 권한별 추가 버튼
