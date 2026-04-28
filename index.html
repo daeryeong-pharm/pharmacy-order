@@ -1280,8 +1280,8 @@ body.pdf-rendering .a4-page {
 .a4-col { display: flex; flex-direction: column; }
 .a4-row {
   display: grid;
-  /* 번호 | 의약품명(80%) | 규격(↑) | 갯수(↑) | 비고(↓) | 작성자(↓) | 시간(↓) | 💰금액(↑10%) */
-  grid-template-columns: 18px minmax(0,2.88fr) 40px 32px minmax(0,0.4fr) 30px 22px 52px;
+  /* 번호 | 의약품명(추가 80% 축소) | 규격↔갯수(여백2배) | 비고 | 작성자 | 시간 | 금액(↑20%) */
+  grid-template-columns: 18px minmax(0,2.30fr) 40px 32px minmax(0,0.45fr) 32px 24px 60px;
   align-items: center;
   border-bottom: 1px dotted #ccc;
   padding: 5px 3px;
@@ -1317,7 +1317,7 @@ body.pdf-rendering .a4-page {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* 갯수: 좌측 정렬 + 노란 배경 강조 + 규격과 약간의 시각적 분리 */
+/* 갯수: 좌측 정렬 + 노란 배경 강조 + 규격과 명확히 분리 */
 .a4-row > .row-qty {
   font-size: 10px;
   color: #78350f;
@@ -1325,7 +1325,7 @@ body.pdf-rendering .a4-page {
   line-height: 1.2;
   text-align: left;
   padding: 1px 2px 1px 4px;
-  margin-left: 3px;            /* ↑ 규격과의 사이 여백 살짝 확보 */
+  margin-left: 6px;            /* ↑ 규격↔갯수 사이 여백 2배 (3→6) */
   background: #fef3c7;
   border-radius: 3px;
   font-variant-numeric: tabular-nums;
@@ -1353,38 +1353,43 @@ body.pdf-rendering .a4-page {
 .a4-row > .row-note { padding-left: 2px; }
 /* 작성자 좌측에 약간의 시각적 여백 (비고와 분리) */
 .a4-row > .row-author { margin-left: 2px; }
-.a4-row.head .h-spec,
+/* 헤더 칼럼 — 본문 셀과 정렬·시작점 맞춤 */
+.a4-row.head .h-spec {
+  font-size: 10px;
+  font-weight: 700;
+  text-align: right;           /* 본문 row-spec과 동일 */
+  padding-right: 3px;
+}
 .a4-row.head .h-qty {
   font-size: 10px;
   font-weight: 700;
-  background: transparent;     /* head는 배경 없음 */
-  text-align: center;
-  padding: 0;
-  margin: 0;
+  text-align: left;            /* 본문 row-qty와 동일 */
+  padding-left: 4px;
+  margin-left: 6px;            /* row-qty와 같은 시작점 */
 }
-.a4-row.head .h-note,
-.a4-row.head .h-author,
-.a4-row.head .h-time { font-size: 8px; }
+.a4-row.head .h-note { font-size: 8px; padding-left: 2px; }
+.a4-row.head .h-author { font-size: 8px; margin-left: 2px; text-align: center; }
+.a4-row.head .h-time { font-size: 8px; text-align: right; padding-right: 1px; }
 .a4-row .row-amount {
   text-align: left;
-  font-size: 7.05px;           /* ↑ 약 10% 확대 (6.4 → 7.05) */
+  font-size: 8.46px;           /* ↑ 약 20% 확대 (이전 7.05 × 1.2) */
   color: #065f46;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-left: 1px;
+  padding-left: 2px;
   padding-right: 1px;
 }
 .a4-row .row-amount.missing {
   color: #92400e;
   font-weight: 600;
-  font-size: 6.4px;
+  font-size: 7.5px;
   cursor: pointer;
 }
 .a4-row .row-amount.missing:hover { background: #fef3c7; }
-.a4-row.head .row-amount { color: var(--text); font-size: 8.8px; font-weight: 700; }
+.a4-row.head .row-amount { color: var(--text); font-size: 9.5px; font-weight: 700; }
 .a4-row.head {
   background: #f0ede4;
   font-weight: 700;
@@ -1487,14 +1492,9 @@ body.pdf-rendering .a4-page {
   word-break: break-word;
   line-height: 1.25;
 }
-.row-spec { color: var(--text-soft); font-size: 10px; }
-.row-qty { font-weight: 600; text-align: right; padding-right: 4px; }
-/* 헤더 정렬 (데스크톱 기본: 갯수 오른쪽, 작성자·시간 가운데) */
-.a4-row.head .h-qty { text-align: right; padding-right: 4px; }
-.a4-row.head .h-author,
-.a4-row.head .h-time { text-align: center; }
+/* (구) 옛날 row-spec/row-qty/row-author/row-time 스타일 제거됨.
+   현재는 위 .a4-row > .row-* 규칙(노란 배경 등)이 적용됨. */
 .row-note {
-  font-size: 10px; color: var(--text-muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   display: flex; align-items: center; gap: 4px;
 }
@@ -1507,20 +1507,8 @@ body.pdf-rendering .a4-page {
 }
 .flag.dup { background: var(--warn); color: white; }
 .flag.sus { background: var(--danger); color: white; }
-.row-author {
-  font-size: 10px;
-  color: var(--text-soft);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.row-time {
-  font-size: 10px;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  white-space: nowrap;
-}
+.row-author { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-time { font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .a4-footer {
   margin-top: 12px;
