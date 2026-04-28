@@ -1280,36 +1280,54 @@ body.pdf-rendering .a4-page {
 .a4-col { display: flex; flex-direction: column; }
 .a4-row {
   display: grid;
-  /* 번호 | 의약품명 | 규격(↑) | 갯수(↑) | 비고(↓) | 작성자(↓) | 시간(↓) | 💰금액(↓) */
-  grid-template-columns: 18px minmax(0,3.6fr) 38px 30px minmax(0,0.36fr) 28px 20px 46px;
+  /* 번호 | 의약품명(80%) | 규격(↑) | 갯수(↑) | 비고(↓) | 작성자(↓) | 시간(↓) | 💰금액(↑10%) */
+  grid-template-columns: 18px minmax(0,2.88fr) 40px 32px minmax(0,0.4fr) 30px 22px 52px;
   align-items: center;
   border-bottom: 1px dotted #ccc;
   padding: 5px 3px;
   font-size: 11px;
   min-height: 28px;
-  gap: 1px;                    /* ↓ 칼럼 사이 여백 최소화 (3px→1px) */
+  gap: 1px;
 }
-/* 규격: 우측 정렬 → 갯수 셀과 시각적으로 인접 */
+/* 의약품명: 데스크톱에서도 2줄까지 줄바꿈 허용 */
+.a4-row > .row-name {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: clip;
+}
+/* 규격: 우측 정렬 + 노란 배경 강조 */
 .a4-row > .row-spec {
-  font-size: 9.5px;
-  color: #1f2937;
+  font-size: 10px;
+  color: #78350f;
   font-weight: 700;
   line-height: 1.2;
   text-align: right;
-  padding-right: 1px;
+  padding: 1px 3px 1px 2px;
+  background: #fef9c3;
+  border-radius: 3px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* 갯수: 좌측 정렬 → 규격 셀과 시각적으로 인접 */
+/* 갯수: 좌측 정렬 + 노란 배경 강조 + 규격과 약간의 시각적 분리 */
 .a4-row > .row-qty {
-  font-size: 9.5px;
-  color: #1f2937;
-  font-weight: 700;
+  font-size: 10px;
+  color: #78350f;
+  font-weight: 800;
   line-height: 1.2;
   text-align: left;
-  padding-left: 2px;
+  padding: 1px 2px 1px 4px;
+  margin-left: 3px;            /* ↑ 규격과의 사이 여백 살짝 확보 */
+  background: #fef3c7;
+  border-radius: 3px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
@@ -1336,13 +1354,20 @@ body.pdf-rendering .a4-page {
 /* 작성자 좌측에 약간의 시각적 여백 (비고와 분리) */
 .a4-row > .row-author { margin-left: 2px; }
 .a4-row.head .h-spec,
-.a4-row.head .h-qty { font-size: 10px; font-weight: 700; }
+.a4-row.head .h-qty {
+  font-size: 10px;
+  font-weight: 700;
+  background: transparent;     /* head는 배경 없음 */
+  text-align: center;
+  padding: 0;
+  margin: 0;
+}
 .a4-row.head .h-note,
 .a4-row.head .h-author,
 .a4-row.head .h-time { font-size: 8px; }
 .a4-row .row-amount {
-  text-align: left;            /* 좌측 정렬 → 시간 셀과 시각적으로 인접 */
-  font-size: 6.4px;
+  text-align: left;
+  font-size: 7.05px;           /* ↑ 약 10% 확대 (6.4 → 7.05) */
   color: #065f46;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -1355,11 +1380,11 @@ body.pdf-rendering .a4-page {
 .a4-row .row-amount.missing {
   color: #92400e;
   font-weight: 600;
-  font-size: 5.8px;
+  font-size: 6.4px;
   cursor: pointer;
 }
 .a4-row .row-amount.missing:hover { background: #fef3c7; }
-.a4-row.head .row-amount { color: var(--text); font-size: 8px; font-weight: 700; }
+.a4-row.head .row-amount { color: var(--text); font-size: 8.8px; font-weight: 700; }
 .a4-row.head {
   background: #f0ede4;
   font-weight: 700;
@@ -2218,12 +2243,12 @@ body.pdf-rendering .a4-page {
     min-height: 30px;
   }
   .a4-row > .row-spec,
-  .a4-row > .row-qty { font-size: 9px; font-weight: 600; }
+  .a4-row > .row-qty { font-size: 9.5px; font-weight: 700; }
   .a4-row > .row-note,
   .a4-row > .row-author,
   .a4-row > .row-time { font-size: 6px; }
-  .a4-row .row-amount { font-size: 6px; }
-  .a4-row .row-amount.missing { font-size: 5.6px; }
+  .a4-row .row-amount { font-size: 6.6px; }
+  .a4-row .row-amount.missing { font-size: 6.2px; }
   .a4-row.head .h-spec,
   .a4-row.head .h-qty { font-size: 9.5px; }
   .a4-row.head .h-note,
