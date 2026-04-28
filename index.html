@@ -1280,8 +1280,8 @@ body.pdf-rendering .a4-page {
 .a4-col { display: flex; flex-direction: column; }
 .a4-row {
   display: grid;
-  /* 번호 | 의약품명 | 규격 | 갯수 | 비고 | 작성자(축소) | 시간(축소) | 💰금액(신규) */
-  grid-template-columns: 20px minmax(0,2.6fr) 44px 38px minmax(0,0.5fr) 36px 32px 64px;
+  /* 번호 | 의약품명(최대확장) | 규격 | 갯수 | 비고 | 작성자 | 시간 | 💰금액 */
+  grid-template-columns: 18px minmax(0,3.6fr) 34px 26px minmax(0,0.4fr) 30px 26px 58px;
   align-items: center;
   border-bottom: 1px dotted #ccc;
   padding: 5px 3px;
@@ -1289,6 +1289,32 @@ body.pdf-rendering .a4-page {
   min-height: 28px;
   gap: 3px;
 }
+/* 의약품명 외 모든 컬럼: 의약품명 대비 약 70% 크기 */
+.a4-row > .row-spec,
+.a4-row > .row-qty,
+.a4-row > .row-note,
+.a4-row > .row-author,
+.a4-row > .row-time {
+  font-size: 7.7px;
+  color: #4b5563;
+  line-height: 1.2;
+}
+.a4-row > .row-spec,
+.a4-row > .row-qty {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.a4-row > .row-note span { font-size: 7.7px; }
+.a4-row > .row-author { text-align: center; }
+.a4-row > .row-time { text-align: center; font-variant-numeric: tabular-nums; }
+.a4-row.head .h-spec,
+.a4-row.head .h-qty,
+.a4-row.head .h-note,
+.a4-row.head .h-author,
+.a4-row.head .h-time { font-size: 9px; }
 .a4-row .row-amount {
   text-align: right;
   font-size: 7.7px;          /* 70% of 11px */
@@ -2102,8 +2128,8 @@ body.pdf-rendering .a4-page {
     column-gap: 0;
   }
   .a4-row {
-    /* 모바일: 의약품명 + 작성자/시간 축소 + 금액 컬럼 추가 */
-    grid-template-columns: 14px minmax(0,4fr) minmax(0,0.6fr) minmax(0,0.7fr) minmax(0,0.5fr) minmax(0,0.55fr) minmax(0,0.55fr) minmax(0,0.85fr);
+    /* 모바일: 의약품명 최대 확장, 나머지 컬럼 축소 + 금액 컬럼 */
+    grid-template-columns: 12px minmax(0,5fr) minmax(0,0.5fr) minmax(0,0.5fr) minmax(0,0.4fr) minmax(0,0.45fr) minmax(0,0.4fr) minmax(0,0.75fr);
     font-size: 10.5px;
     padding: 6px 1px;
     gap: 2px;
@@ -2112,6 +2138,16 @@ body.pdf-rendering .a4-page {
   .a4-row .row-amount { font-size: 7.4px; }
   .a4-row .row-amount.missing { font-size: 7px; }
   .a4-row.head .row-amount { font-size: 8.5px; }
+  .a4-row > .row-spec,
+  .a4-row > .row-qty,
+  .a4-row > .row-note,
+  .a4-row > .row-author,
+  .a4-row > .row-time { font-size: 7.2px; }
+  .a4-row.head .h-spec,
+  .a4-row.head .h-qty,
+  .a4-row.head .h-note,
+  .a4-row.head .h-author,
+  .a4-row.head .h-time { font-size: 8px; }
   /* 모바일: 이름 외의 셀은 한 줄 고정 ellipsis */
   .a4-row > div {
     overflow: hidden;
@@ -2255,7 +2291,7 @@ body.pdf-rendering .a4-page {
 /* 매우 작은 화면 (≤380px) */
 @media (max-width: 380px) {
   .header-center { font-size: 10px; }
-  .a4-row { grid-template-columns: 18px 1fr 44px 38px 0.5fr 32px 28px 0.7fr; font-size: 10px; }
+  .a4-row { grid-template-columns: 14px 1fr 30px 24px 0.4fr 26px 22px 0.65fr; font-size: 10px; }
   .a4-row.head { font-size: 10px; }
   .tab { padding: 12px 10px; font-size: 12px; }
 }
