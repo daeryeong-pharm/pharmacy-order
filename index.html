@@ -1605,6 +1605,32 @@ body.pdf-rendering .a4-page {
 .ret-icon-btn:hover { background: #f9fafb; color: #1f2937; }
 .ret-icon-btn.danger:hover { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
 
+/* 주문 행에 단가 배지 표시 */
+.row-price-badge {
+  display: inline-block; margin-left: 6px;
+  padding: 1px 7px; font-size: 10px; font-weight: 700;
+  background: #ecfdf5; color: #065f46;
+  border: 1px solid #a7f3d0; border-radius: 10px;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.row-price-badge.missing {
+  background: #fef3c7; color: #92400e; border-color: #fcd34d;
+  cursor: pointer;
+}
+.row-price-badge.missing:hover { background: #fde68a; }
+
+/* ============ 의약품 단가 목록 ============ */
+.med-prices-list { display: flex; flex-direction: column; gap: 2px; max-height: 60vh; overflow-y: auto; }
+.med-price-row { display: grid; grid-template-columns: 1fr 90px 110px; gap: 8px; padding: 6px 10px; background: #fff; border: 1px solid #f3f4f6; border-radius: 5px; font-size: 11.5px; align-items: center; }
+.med-price-row:hover { background: #fafafa; }
+.med-price-row .mp-name { color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.med-price-row .mp-unit { color: #6b7280; font-size: 10.5px; text-align: center; background: #f3f4f6; padding: 2px 6px; border-radius: 8px; }
+.med-price-row .mp-price { color: #065f46; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  .med-price-row { grid-template-columns: 1fr 70px 90px; font-size: 11px; }
+  .med-price-row .mp-unit { font-size: 9.5px; }
+}
+
 /* 직원 관리 테이블 */
 .emp-table {
   border: 1px solid var(--border);
@@ -2303,6 +2329,8 @@ body.pdf-rendering .a4-page {
       <div class="dash-card top"><div class="dash-label">최다 약품</div><div class="dash-val" id="dashTop">-</div></div>
       <div class="dash-card top"><div class="dash-label">최다 작성자</div><div class="dash-val" id="dashTopAuthor">-</div></div>
       <div class="dash-card danger"><div class="dash-label">급송 주문</div><div class="dash-val" id="dashRush">0</div></div>
+      <div class="dash-card top"><div class="dash-label">💰 오늘 매출</div><div class="dash-val small" id="dashAmount">-</div></div>
+      <div class="dash-card warn"><div class="dash-label">⚠ 단가 미등록</div><div class="dash-val" id="dashMissingPrice">0</div></div>
       <div class="dash-card"><div class="dash-label">최근 입력</div><div class="dash-val small" id="dashLast">-</div></div>
     </div>
   </div>
@@ -2315,6 +2343,7 @@ body.pdf-rendering .a4-page {
     <div class="tab" data-tab="floor2">📦 2층재고</div>
     <div class="tab" data-tab="meddict">📘 약품사전</div>
     <div class="tab" data-tab="returns">🔁 반품현황</div>
+    <div class="tab" data-tab="prices">💰 단가</div>
     <div class="tab" data-tab="settings">설정</div>
     <div class="tab refresh-tab" data-tab="refresh" title="채팅과 리스트를 즉시 동기화"><span class="refresh-icon">🔄</span>새로고침</div>
   </nav>
@@ -2522,6 +2551,37 @@ body.pdf-rendering .a4-page {
       </div>
     </div>
 
+    <!-- 단가 탭 -->
+    <div class="tab-panel" id="panel-prices">
+      <div class="settings-panel">
+        <div class="settings-card">
+          <h3>💰 의약품 단가 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(처방조제 시스템 추출 데이터)</span></h3>
+          <p style="font-size:11.5px;color:var(--text-muted);margin-bottom:8px;line-height:1.5;">
+            약국 처방조제 시스템에서 추출한 1년치 약품·1정 단가입니다. 주문 입력 시 자동 매칭되어 금액·일일 합계가 표시됩니다.<br>
+            <b>업로드 양식:</b> 1번열=약품명 / 2번열=단가 (.xls/.xlsx) · 매월 갱신 권장
+          </p>
+
+          <div id="medPricesMeta" style="font-size:11.5px;color:#5d4a33;line-height:1.7;padding:10px 14px;background:#fffaf0;border:1px solid #e8d5b0;border-radius:8px;margin-bottom:8px;">-</div>
+
+          <div id="medPricesReadonly" style="display:none;padding:8px 10px;background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;font-size:11.5px;color:#78350f;margin-bottom:8px;">
+            🔒 <b>업로드는 약국장만</b> — 단가표는 모든 직원이 조회 가능. 미등록 약품은 누구나 즉석 입력 가능.
+          </div>
+
+          <div id="medPricesActions" class="settings-row" style="margin-bottom:10px;display:none;flex-wrap:wrap;gap:6px;">
+            <input type="file" id="medPricesFileInput" accept=".xlsx,.xls" style="display:none;" onchange="handleMedPriceFileUpload(event)" />
+            <button class="hist-btn" onclick="document.getElementById('medPricesFileInput').click()">📂 단가표 업로드 (.xls/.xlsx)</button>
+            <span style="font-size:10.5px;color:var(--text-muted);">매월 또는 신약 입고 시 갱신</span>
+          </div>
+
+          <div style="display:flex;gap:6px;margin-bottom:10px;">
+            <input type="search" id="medPricesSearch" class="emp-input" style="flex:1;font-size:12px;padding:6px 10px;" placeholder="🔍 의약품명 검색" oninput="renderMedPricesAdmin()" />
+          </div>
+
+          <div id="medPricesList"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- 설정 탭 -->
     <div class="tab-panel" id="panel-settings">
       <div class="settings-panel">
@@ -2708,6 +2768,33 @@ body.pdf-rendering .a4-page {
     <div class="modal-foot">
       <button class="modal-btn" onclick="closeReturnModal()">취소</button>
       <button class="modal-btn" onclick="saveReturnItem()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 단가 즉석 입력 모달 (모든 직원 가능) -->
+<div class="modal-backdrop" id="missingPriceModal" style="display:none;" onclick="if(event.target===this)closeMissingPriceModal()">
+  <div class="modal" style="max-width:460px; width:94%;">
+    <div class="modal-head">
+      <span>💰 단가 즉석 입력</span>
+      <button class="modal-close" onclick="closeMissingPriceModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:14px 18px;">
+      <p style="font-size:11.5px;color:var(--text-muted);margin-bottom:12px;line-height:1.5;">
+        ⚠️ 단가표에 없는 약품입니다.<br>
+        지금 단가를 입력하면 <b>다음 주문부터 자동 적용</b>되고 모든 직원에게 즉시 공유됩니다.
+      </p>
+      <div style="font-weight:700;font-size:14px;color:#1f2937;padding:10px 12px;background:#fffaf0;border:1px solid #e8d5b0;border-radius:6px;margin-bottom:12px;" id="missingPriceName"></div>
+      <label class="emp-label">단가 (1정/1캡슐/1병당, 원)</label>
+      <input type="number" class="emp-input" id="missingPriceInput" placeholder="예: 1250" min="0" step="1" />
+      <div style="font-size:10.5px;color:var(--text-muted);margin-top:8px;line-height:1.5;">
+        💡 <b>1정 가격 기준</b>으로 입력. 예: 30정 박스가 ₩37,500이면 → ₩1,250 입력.<br>
+        💡 액제·연고·점안액 등은 <b>1병/1통 가격</b> 입력.
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn" onclick="closeMissingPriceModal()">취소</button>
+      <button class="modal-btn" onclick="saveMissingPrice()">💾 저장 + 공유</button>
     </div>
   </div>
 </div>
@@ -3083,6 +3170,10 @@ function setupFirebaseForUser() {
   if (typeof setupReturnsListener === 'function') {
     setupReturnsListener();
   }
+  // 의약품 단가 실시간 동기화
+  if (typeof setupMedPricesListener === 'function') {
+    setupMedPricesListener();
+  }
 }
 
 function detachFirebaseListeners() {
@@ -3116,6 +3207,10 @@ function detachFirebaseListeners() {
   if (typeof fbReturnsRef !== 'undefined' && fbReturnsRef) {
     try { fbReturnsRef.off(); } catch (e) {}
     fbReturnsRef = null;
+  }
+  if (typeof fbMedPricesRef !== 'undefined' && fbMedPricesRef) {
+    try { fbMedPricesRef.off(); } catch (e) {}
+    fbMedPricesRef = null;
   }
 }
 
@@ -3834,11 +3929,24 @@ function renderA4() {
         const itemId = it.id || '';
         const dupTitle = isDup ? ' · 주문중복' : '';
         const floor2Title = isFloor2 ? ' · ⚠ 2층재고' : '';
-        const titleAttr = (isMine ? '탭하여 수정/삭제 (본인 작성)' : `${it.author||''}님이 작성 — 본인만 수정 가능`) + dupTitle + floor2Title;
+        // 💰 단가 매칭 + 금액 계산
+        let priceBadge = '';
+        let priceTitle = '';
+        if (typeof calcOrderAmount === 'function') {
+          const r = calcOrderAmount(it);
+          if (r && r.totalAmount != null) {
+            priceBadge = `<span class="row-price-badge" title="${escapeHtml(r.calc||'')}">${typeof fmtWon==='function'?fmtWon(r.totalAmount):'₩'+Math.round(r.totalAmount).toLocaleString()}</span>`;
+            priceTitle = ' · 💰 ' + (r.calc||'');
+          } else if (medPrices && medPrices.items && medPrices.items.length > 0) {
+            // 단가표 있는데 매칭 실패 → 미등록 배지
+            priceBadge = `<span class="row-price-badge missing" title="단가 미등록 — 클릭하여 즉석 입력" onclick="event.stopPropagation();openMissingPriceModal('${escapeHtml(it.name||'')}','${escapeHtml(it.spec||'')}','${escapeHtml(it.qty||'')}')">⚠ 단가</span>`;
+          }
+        }
+        const titleAttr = (isMine ? '탭하여 수정/삭제 (본인 작성)' : `${it.author||''}님이 작성 — 본인만 수정 가능`) + dupTitle + floor2Title + priceTitle;
         const editIcon = isMine ? '<span class="edit-mark" title="수정 가능">✏️</span>' : '';
         html += `<div class="a4-row ${editableCls} ${baseCls}" data-itemid="${escapeHtml(itemId)}" title="${escapeHtml(titleAttr)}">
           <div class="row-num">${displayNum}${editIcon}</div>
-          <div class="row-name">${floor2Badge}${escapeHtml(it.name||'-')}${dupSup}</div>
+          <div class="row-name">${floor2Badge}${escapeHtml(it.name||'-')}${dupSup}${priceBadge}</div>
           <div class="row-spec">${escapeHtml(it.spec||'-')}</div>
           <div class="row-qty">${escapeHtml(it.qty||'-')}</div>
           <div class="row-note"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(it.note||'')}</span></div>
@@ -4149,6 +4257,9 @@ function switchTab(name) {
     if (typeof renderReturnsFilters === 'function') renderReturnsFilters();
     if (typeof renderReturnsDashboard === 'function') renderReturnsDashboard();
   }
+  if (name === 'prices') {
+    if (typeof renderMedPricesAdmin === 'function') renderMedPricesAdmin();
+  }
   if (name === 'settings') {
     updateSettingsFirebaseInfo();
     // 약국장 전용 카드들 재렌더 (권한 체크 재실행)
@@ -4377,6 +4488,14 @@ function renderDashboard() {
   if ($f2) $f2.textContent = floor2Count;
   const $last = document.getElementById('dashLast');
   if ($last) $last.textContent = lastText;
+  // 💰 오늘 매출 합계 + 미등록 카운트
+  if (typeof calcDailyTotalAmount === 'function') {
+    const totals = calcDailyTotalAmount(currentDate);
+    const $amt = document.getElementById('dashAmount');
+    if ($amt) $amt.textContent = totals.total > 0 ? (typeof fmtWon === 'function' ? fmtWon(totals.total) : '₩' + Math.round(totals.total).toLocaleString()) : '-';
+    const $mp = document.getElementById('dashMissingPrice');
+    if ($mp) $mp.textContent = totals.missing;
+  }
 }
 
 function truncate(s, n) {
@@ -5699,6 +5818,388 @@ function renderMedDictAdmin() {
     '📘 <b>계열 약품:</b> ' + s.baseCount + '종 · ' +
     '<b>조합 템플릿:</b> ' + s.templateCount + '개<br>' +
     '<span style="font-size:10.5px;color:var(--text-muted);">분석된 총 주문: ' + s.totalOrdersAnalyzed + '건 · 최근 ' + MED_DICT_WINDOW_DAYS + '일 · 재구축: ' + when + '</span>';
+}
+
+/* ============ 의약품 단가 (Firebase /medPrices) ============ */
+// 약국 처방조제 시스템에서 추출한 1년치 약품·단가 xlsx 업로드 (백승준만).
+// 단가는 1정/1캡슐/1병당 가격 기준.
+// 모든 직원이 단가·총금액·일일 매출 조회 가능.
+// 매칭 실패 시 모든 직원이 즉석 입력 가능.
+
+const PRICES_CACHE_KEY = 'dr_pharm_med_prices_v1';
+let medPrices = { items: [], meta: { lastUpload: 0, uploader: '', filename: '', count: 0 } };
+let fbMedPricesRef = null;
+let medPricesIndexNorm = {}; // { normalizedKey: priceItem } — 빠른 검색용
+
+function loadMedPricesLocal() {
+  try {
+    const raw = safeLS.getItem(PRICES_CACHE_KEY);
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (p && Array.isArray(p.items)) medPrices = p;
+      buildPriceIndex();
+    }
+  } catch (e) {}
+}
+function saveMedPricesLocal() {
+  try { safeLS.setItem(PRICES_CACHE_KEY, JSON.stringify(medPrices)); } catch(e){}
+}
+
+function setupMedPricesListener() {
+  if (!fbDb) return;
+  if (fbMedPricesRef) { try { fbMedPricesRef.off(); } catch(e){} }
+  fbMedPricesRef = fbDb.ref('medPrices');
+  fbMedPricesRef.on('value', snap => {
+    const val = snap.val() || {};
+    if (val.items && typeof val.items === 'object') {
+      const arr = Array.isArray(val.items) ? val.items : Object.values(val.items);
+      medPrices = {
+        items: arr.filter(x => x && x.name).map(x => ({ name: x.name, price: Number(x.price)||0, unit: x.unit||'', source: x.source||'' })),
+        meta: val.meta || { lastUpload: 0, uploader: '', filename: '', count: 0 }
+      };
+      buildPriceIndex();
+      saveMedPricesLocal();
+    }
+    if (typeof renderMedPricesAdmin === 'function') renderMedPricesAdmin();
+    if (typeof renderAll === 'function') renderAll();
+  });
+}
+
+// 빠른 매칭을 위한 인덱스 생성
+function buildPriceIndex() {
+  medPricesIndexNorm = {};
+  if (!medPrices || !Array.isArray(medPrices.items)) return;
+  medPrices.items.forEach(p => {
+    if (!p || !p.name) return;
+    const k = normalizeMedName(p.name);
+    medPricesIndexNorm[k] = p;
+  });
+}
+
+// === 약품명에서 단위 정보 추출 ===
+function detectPriceUnit(name) {
+  if (!name) return { type: 'pill', packSize: 1 };
+  const s = String(name);
+  // 후행 _(...) 부분 추출
+  const m = s.match(/_\(([^)]+)\)\s*$/);
+  if (m) {
+    const u = m[1];
+    // (NN정 또는 NN캡슐) 박스 단위 (NN > 1)
+    const boxM = u.match(/(?:^|\/)(\d+)\s*정\s*$/);
+    if (boxM) {
+      const n = parseInt(boxM[1], 10);
+      if (n === 1) return { type: 'pill', packSize: 1 };
+      return { type: 'box', packSize: n };
+    }
+    const capBoxM = u.match(/(?:^|\/)(\d+)\s*캡슐\s*$/);
+    if (capBoxM) {
+      const n = parseInt(capBoxM[1], 10);
+      if (n === 1) return { type: 'pill', packSize: 1 };
+      return { type: 'box', packSize: n };
+    }
+    if (/\/1정\)?$|^1정$|^1캡슐$|\/1캡슐\)?$/.test(u)) return { type: 'pill', packSize: 1 };
+    if (/mL|ml|cc/i.test(u)) return { type: 'bottle', unit: 'ml' };
+    if (/회/.test(u)) return { type: 'inhaler' };
+    if (/g\b|\d+g\)?$|\/\d+g\)?/.test(u)) return { type: 'tube', unit: 'g' };
+    if (/통|개|장|캔|매|회용|회분|병/.test(u)) return { type: 'package' };
+    if (/캡슐|정/.test(u)) return { type: 'pill', packSize: 1 };
+    return { type: 'package' };
+  }
+  // 후행 _(...) 없으면 이름으로 추정
+  if (/액$|시럽$|연고$|크림$|로션$|점안|흡입|스프레이|겔$|패취|패치|좌제$|좌약$/.test(s)) return { type: 'bottle' };
+  if (/정$|캡슐$/.test(s)) return { type: 'pill', packSize: 1 };
+  return { type: 'pill', packSize: 1 };
+}
+
+// === 주문 항목에 매칭되는 단가 찾기 ===
+function findPriceForOrder(orderItem) {
+  if (!orderItem || !orderItem.name) return null;
+  const q = normalizeMedName(orderItem.name);
+  if (!q || q.length < 2) return null;
+
+  // 1) 정확 일치
+  if (medPricesIndexNorm[q]) return medPricesIndexNorm[q];
+
+  // 2) 접두 일치 (사용자가 짧게 친 경우)
+  const keys = Object.keys(medPricesIndexNorm);
+  for (const k of keys) {
+    if (k === q) return medPricesIndexNorm[k];
+  }
+  for (const k of keys) {
+    if (k.startsWith(q) && q.length >= 3) return medPricesIndexNorm[k];
+  }
+  // 3) 부분 일치 (사용자 입력이 DB 항목 안에 포함)
+  if (q.length >= 4) {
+    for (const k of keys) {
+      if (k.includes(q)) return medPricesIndexNorm[k];
+    }
+    // 4) DB 항목이 사용자 입력 안에 포함 (DB 짧은 이름 → 풀네임 입력)
+    for (const k of keys) {
+      if (k.length >= 4 && q.includes(k)) return medPricesIndexNorm[k];
+    }
+  }
+  return null;
+}
+
+// === 주문 항목의 총 금액 계산 ===
+// orderItem: { name, spec, qty, note }
+// 반환: { unitPrice, totalPills, totalAmount, calc, matched } 또는 null
+function calcOrderAmount(orderItem) {
+  const priceItem = findPriceForOrder(orderItem);
+  if (!priceItem) return null;
+  const orderQtyN = parseFirstNumber(orderItem.qty);
+  if (orderQtyN <= 0) return { matched: priceItem, unitPrice: priceItem.price, totalAmount: null, calc: '갯수 인식 실패' };
+  const unitInfo = detectPriceUnit(priceItem.name);
+
+  if (unitInfo.type === 'pill') {
+    // 정/캡슐: 규격(NN정) × 갯수 × 1정당 단가
+    const specPills = parseFirstNumber(orderItem.spec);
+    if (specPills <= 0) {
+      // 규격 없음 — 기본값 1정으로 처리
+      const total = 1 * orderQtyN * priceItem.price;
+      return { matched: priceItem, unitPrice: priceItem.price, totalPills: orderQtyN, totalAmount: total, calc: orderQtyN + ' × ₩' + priceItem.price + ' (규격 미입력 → 1정 가정)' };
+    }
+    const totalPills = specPills * orderQtyN;
+    const total = totalPills * priceItem.price;
+    return { matched: priceItem, unitPrice: priceItem.price, totalPills: totalPills, totalAmount: total, calc: specPills + '정 × ' + orderQtyN + '개 × ₩' + priceItem.price };
+  }
+
+  if (unitInfo.type === 'box') {
+    // 박스 단위 (28정 박스 1개 가격)
+    const total = orderQtyN * priceItem.price;
+    return { matched: priceItem, unitPrice: priceItem.price, totalPills: unitInfo.packSize * orderQtyN, totalAmount: total, calc: orderQtyN + '박스 × ₩' + priceItem.price + ' (박스당 ' + unitInfo.packSize + '정)' };
+  }
+
+  // bottle / inhaler / tube / package: 갯수만 곱함
+  const total = orderQtyN * priceItem.price;
+  return { matched: priceItem, unitPrice: priceItem.price, totalPills: orderQtyN, totalAmount: total, calc: orderQtyN + '개 × ₩' + priceItem.price };
+}
+
+// 문자열에서 첫 정수 추출 (예: "30정" → 30, "100mL" → 100, "" → 0)
+function parseFirstNumber(s) {
+  if (s == null) return 0;
+  const m = String(s).match(/(\d+(?:\.\d+)?)/);
+  return m ? parseFloat(m[1]) : 0;
+}
+
+// === xlsx 업로드 핸들러 ===
+function handleMedPriceFileUpload(event) {
+  const file = event && event.target && event.target.files && event.target.files[0];
+  if (event.target) event.target.value = '';
+  if (!file) return;
+  if (!canEditMedPrices()) {
+    alert('⛔ 단가표 업로드는 약국장(백승준)만 가능합니다.');
+    return;
+  }
+  if (typeof XLSX === 'undefined') { alert('엑셀 모듈 로드 실패'); return; }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array' });
+      const items = parseMedPricesXlsx(wb);
+      if (!items.length) { alert('엑셀에서 단가를 찾지 못했습니다.\n\n양식: [약품명, 단가] 컬럼'); return; }
+      if (!confirm('📂 ' + file.name + '\n\n총 ' + items.length + '건의 단가를 업로드합니다.\n샘플: ' + items.slice(0,3).map(x => x.name + ' ₩' + x.price).join(', ') + '\n\n진행할까요?')) return;
+      uploadMedPrices(items, file.name);
+    } catch(err) {
+      alert('파싱 실패: ' + (err.message || err));
+    }
+  };
+  reader.onerror = () => alert('파일 읽기 실패');
+  reader.readAsArrayBuffer(file);
+}
+
+function parseMedPricesXlsx(wb) {
+  const out = [];
+  const seen = new Set();
+  wb.SheetNames.forEach(sheetName => {
+    const sheet = wb.Sheets[sheetName];
+    if (!sheet) return;
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    rows.forEach(row => {
+      if (!Array.isArray(row) || row.length < 2) return;
+      const nameCell = String(row[0] || '').trim();
+      const priceVal = row[1];
+      if (!nameCell || !priceVal) return;
+      // 헤더 스킵
+      if (nameCell === '약품명' || nameCell.includes('처방약품목록') || nameCell === '단가') return;
+      // 단가 숫자 변환
+      let price;
+      if (typeof priceVal === 'number') price = priceVal;
+      else {
+        const cleaned = String(priceVal).replace(/[^\d.\-]/g, '');
+        price = parseFloat(cleaned);
+      }
+      if (!isFinite(price) || price <= 0) return;
+      // 중복 제거 (같은 이름 첫 항목만)
+      const k = normalizeMedName(nameCell);
+      if (seen.has(k)) return;
+      seen.add(k);
+      out.push({ name: nameCell, price: Math.round(price), unit: '', source: '' });
+    });
+  });
+  return out;
+}
+
+function uploadMedPrices(items, filename) {
+  const meta = { lastUpload: Date.now(), uploader: currentUser || '', filename: filename || '', count: items.length };
+  const payload = { items, meta };
+  if (fbDb) {
+    fbDb.ref('medPrices').set(payload)
+      .then(() => alert('✅ 단가표 업로드 완료\n\n• 파일: ' + filename + '\n• 총 ' + items.length + '건\n\n모든 직원 기기에 즉시 반영됩니다.'))
+      .catch(err => {
+        const msg = err && err.message ? err.message : String(err);
+        if (/PERMISSION_DENIED/i.test(msg)) {
+          alert('⛔ Firebase 규칙에서 /medPrices 쓰기 차단.\n\n규칙에 추가:\n"medPrices": {\n  ".write": "auth != null"\n}');
+        } else alert('저장 실패: ' + msg);
+      });
+  } else {
+    medPrices = payload;
+    buildPriceIndex();
+    saveMedPricesLocal();
+    if (typeof renderMedPricesAdmin === 'function') renderMedPricesAdmin();
+    if (typeof renderAll === 'function') renderAll();
+    alert('(로컬) ' + items.length + '건 저장됨');
+  }
+}
+
+function canEditMedPrices() {
+  if (typeof canEditNotice === 'function') return canEditNotice();
+  return currentUser === '백승준';
+}
+
+// === 즉석 단가 입력 (모든 직원 가능) ===
+let _missingPriceContext = null; // 현재 처리 중인 미매칭 항목
+
+function openMissingPriceModal(name, spec, qty) {
+  _missingPriceContext = { name, spec, qty };
+  document.getElementById('missingPriceName').textContent = name + (spec ? ' (' + spec + ')' : '');
+  document.getElementById('missingPriceInput').value = '';
+  document.getElementById('missingPriceModal').style.display = 'flex';
+  setTimeout(() => { try { document.getElementById('missingPriceInput').focus(); } catch(e){} }, 80);
+}
+function closeMissingPriceModal() {
+  const m = document.getElementById('missingPriceModal');
+  if (m) m.style.display = 'none';
+  _missingPriceContext = null;
+}
+function saveMissingPrice() {
+  const ctx = _missingPriceContext;
+  if (!ctx || !ctx.name) { closeMissingPriceModal(); return; }
+  const raw = (document.getElementById('missingPriceInput').value || '').replace(/[,\s원]/g, '');
+  const price = parseFloat(raw);
+  if (!isFinite(price) || price <= 0) { alert('단가를 숫자로 입력하세요 (예: 1250)'); return; }
+
+  const newItem = { name: ctx.name, price: Math.round(price), unit: '', source: '수동입력_' + (currentUser||'') };
+  // 기존 항목 갱신 또는 추가
+  const items = (medPrices && medPrices.items) ? medPrices.items.slice() : [];
+  const existIdx = items.findIndex(x => normalizeMedName(x.name) === normalizeMedName(ctx.name));
+  if (existIdx >= 0) items[existIdx] = newItem;
+  else items.push(newItem);
+  const meta = (medPrices && medPrices.meta) ? Object.assign({}, medPrices.meta) : {};
+  meta.lastManual = Date.now();
+  meta.lastManualBy = currentUser || '';
+
+  if (fbDb) {
+    fbDb.ref('medPrices').set({ items, meta })
+      .then(() => closeMissingPriceModal())
+      .catch(err => {
+        const msg = err && err.message ? err.message : String(err);
+        alert('저장 실패: ' + msg + '\n\n(Firebase 규칙에서 /medPrices 쓰기 권한이 모든 인증 사용자에게 열려있어야 합니다)');
+      });
+  } else {
+    medPrices = { items, meta };
+    buildPriceIndex();
+    saveMedPricesLocal();
+    if (typeof renderAll === 'function') renderAll();
+    closeMissingPriceModal();
+  }
+}
+
+// === 일일 합계 계산 ===
+function calcDailyTotalAmount(date) {
+  const day = (allData || {})[date || currentDate];
+  if (!day || !Array.isArray(day.items)) return { total: 0, matched: 0, missing: 0, byAuthor: {} };
+  let total = 0, matched = 0, missing = 0;
+  const byAuthor = {};
+  day.items.forEach(it => {
+    if (!it || !it.name) return;
+    const r = calcOrderAmount(it);
+    if (r && r.totalAmount) {
+      total += r.totalAmount;
+      matched++;
+      const au = it.author || '-';
+      byAuthor[au] = (byAuthor[au] || 0) + r.totalAmount;
+    } else {
+      missing++;
+    }
+  });
+  return { total, matched, missing, byAuthor };
+}
+
+function fmtWon(n) {
+  if (n == null || !isFinite(n)) return '-';
+  return '₩' + Math.round(n).toLocaleString('ko-KR');
+}
+
+// === 단가 탭 관리 UI ===
+function renderMedPricesAdmin() {
+  const meta = (medPrices && medPrices.meta) || {};
+  const cnt = (medPrices && medPrices.items) ? medPrices.items.length : 0;
+  const ts = meta.lastUpload ? new Date(meta.lastUpload).toLocaleString('ko-KR') : '-';
+  const lastManual = meta.lastManual ? new Date(meta.lastManual).toLocaleString('ko-KR') : null;
+
+  const metaEl = document.getElementById('medPricesMeta');
+  if (metaEl) {
+    metaEl.innerHTML =
+      '💰 등록 의약품: <b>' + cnt.toLocaleString() + '</b>건<br>' +
+      '🕒 마지막 업로드: <b>' + ts + '</b>' + (meta.uploader ? ' · ' + escapeHtml(meta.uploader) : '') + (meta.filename ? ' · ' + escapeHtml(meta.filename) : '') +
+      (lastManual ? ('<br>✏️ 마지막 수동입력: ' + lastManual + (meta.lastManualBy ? ' · ' + escapeHtml(meta.lastManualBy) : '')) : '');
+  }
+  // 권한별 업로드 버튼
+  const actions = document.getElementById('medPricesActions');
+  const readonly = document.getElementById('medPricesReadonly');
+  const allowed = canEditMedPrices();
+  if (actions) actions.style.display = allowed ? 'flex' : 'none';
+  if (readonly) readonly.style.display = allowed ? 'none' : 'block';
+
+  // 목록 렌더 (검색 결과만)
+  const host = document.getElementById('medPricesList');
+  if (!host) return;
+  const q = ((document.getElementById('medPricesSearch')||{}).value || '').trim().toLowerCase();
+  const items = (medPrices && medPrices.items) || [];
+  let filtered = items;
+  if (q) {
+    const qn = normalizeMedName(q);
+    filtered = items.filter(it => {
+      const n = (it.name||'').toLowerCase();
+      const nN = normalizeMedName(it.name);
+      return n.includes(q) || nN.includes(qn);
+    });
+  }
+  filtered = filtered.slice(0, 200); // 최대 200건만 렌더 (모바일 성능)
+  if (!items.length) {
+    host.innerHTML = '<div class="floor2-admin-empty">📭 단가표가 비어 있습니다. ' + (allowed ? '<b>📂 xlsx 업로드</b> 버튼으로 가져오세요.' : '약국장이 업로드 후 자동 표시됩니다.') + '</div>';
+    return;
+  }
+  if (!filtered.length) {
+    host.innerHTML = '<div class="floor2-admin-empty">검색 결과 없음 (전체 ' + items.length + '건)</div>';
+    return;
+  }
+  let html = '<div style="font-size:11px;color:var(--text-muted);padding:4px 2px 8px;">전체 <b>' + items.length.toLocaleString() + '</b>건' + (q ? ' · 검색 <b>' + filtered.length + '</b>건 (최대 200건 표시)' : ' (상위 200건만 표시)') + '</div>';
+  html += '<div class="med-prices-list">';
+  filtered.forEach(it => {
+    const u = detectPriceUnit(it.name);
+    const unitLabel = u.type === 'pill' ? '1정' : u.type === 'box' ? ('박스(' + u.packSize + '정)') : u.type === 'bottle' ? '1병' : u.type === 'tube' ? '1개' : u.type === 'inhaler' ? '1통' : '1개';
+    html += '<div class="med-price-row" title="' + escapeHtml(it.name) + '">';
+    html += '<div class="mp-name">' + escapeHtml(it.name) + '</div>';
+    html += '<div class="mp-unit">' + escapeHtml(unitLabel) + '</div>';
+    html += '<div class="mp-price">' + fmtWon(it.price) + '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  host.innerHTML = html;
 }
 
 /* ============ 반품현황 대시보드 (Firebase /returns) ============ */
