@@ -1691,6 +1691,30 @@ body.pdf-rendering .a4-page {
 }
 .hist-amount.zero { color: #9ca3af; font-weight: 500; }
 
+/* ============ 약국카드사용내역 ============ */
+.phcard-master-row { display: flex; align-items: center; gap: 6px; padding: 5px 8px; background: #fff; border: 1px solid #f0e4cd; border-radius: 5px; margin-bottom: 4px; font-size: 11.5px; }
+.phcard-master-name { flex: 1; }
+.phcard-cat-pill { padding: 4px 10px; border-radius: 12px; font-size: 11px; }
+.phcard-cat-pill b { font-variant-numeric: tabular-nums; }
+.phcard-row { display: grid; grid-template-columns: 70px 90px minmax(0,1.4fr) 110px minmax(0,140px) 50px 70px; gap: 8px; padding: 8px 14px; align-items: center; font-size: 12px; border-bottom: 1px solid #f3f4f6; }
+.phcard-row:last-child { border-bottom: none; }
+.phcard-row:hover { background: #f0f9ff; }
+.phcard-user { font-weight: 600; color: #1e40af; }
+.phcard-cat { padding: 2px 8px; border-radius: 10px; font-size: 10.5px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.phcard-desc { color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phcard-amount { color: #0c4a6e; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.phcard-card { font-size: 10.5px; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phcard-time { font-size: 10.5px; color: #6b7280; text-align: center; font-variant-numeric: tabular-nums; }
+.phcard-actions { display: flex; gap: 4px; justify-content: flex-end; }
+@media (max-width: 640px) {
+  .phcard-row { grid-template-columns: minmax(0,1fr) 90px 60px; gap: 4px 8px; font-size: 11px; }
+  .phcard-row > .phcard-cat { grid-column: 2; font-size: 9.5px; }
+  .phcard-row > .phcard-time { grid-column: 3; font-size: 9.5px; text-align: right; }
+  .phcard-row > .phcard-desc { grid-column: 1 / -1; font-size: 11px; }
+  .phcard-row > .phcard-card { grid-column: 1 / -1; font-size: 9.5px; padding-left: 0; }
+  .phcard-row > .phcard-actions { grid-column: 3; }
+}
+
 /* ============ 결제내역 ============ */
 .payments-list { display: flex; flex-direction: column; gap: 12px; }
 .pay-empty { padding: 30px; text-align: center; color: var(--text-muted); font-size: 12px; background: #fafafa; border: 1px dashed var(--border); border-radius: 8px; }
@@ -2476,6 +2500,7 @@ body.pdf-rendering .a4-page {
     <div class="tab" data-tab="returns">반품현황</div>
     <div class="tab" data-tab="prices">단가</div>
     <div class="tab" data-tab="payments">결제내역</div>
+    <div class="tab" data-tab="phcard">약국카드사용내역</div>
     <div class="tab" data-tab="settings">설정</div>
     <div class="tab refresh-tab" data-tab="refresh" title="채팅과 리스트를 즉시 동기화">새로고침</div>
   </nav>
@@ -2769,6 +2794,49 @@ body.pdf-rendering .a4-page {
       </div>
     </div>
 
+    <!-- 약국카드사용내역 탭 -->
+    <div class="tab-panel" id="panel-phcard">
+      <div class="settings-panel">
+        <div class="settings-card">
+          <h3>약국카드사용내역 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(작성: 모든 직원 본인 사용분 / 조회: 모든 직원)</span></h3>
+
+          <!-- 카드 마스터 (백승준 전용) -->
+          <div id="pharmacyCardMasterSection" style="background:#fffaf0;border:1px solid #e8d5b0;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:12px;font-weight:700;color:#5d4a33;">💳 등록된 약국 카드 (약국장 관리)</span>
+              <button class="hist-btn" onclick="openCardMasterAddModal()" style="font-size:11px;padding:4px 10px;">➕ 카드 등록</button>
+            </div>
+            <div id="pharmacyCardMasterList"></div>
+          </div>
+
+          <div class="history-chart-card" style="margin-bottom:14px;">
+            <div class="hist-chart-head">
+              <button class="hist-chart-nav" onclick="changePhCardMonth(-1)" title="이전 달">◀</button>
+              <span class="hist-chart-title" id="phCardChartTitle">-</span>
+              <button class="hist-chart-nav" onclick="changePhCardMonth(1)" title="다음 달">▶</button>
+              <button class="hist-chart-refresh" onclick="renderPharmacyCardAll()" title="새로고침">🔄</button>
+            </div>
+            <div class="hist-chart-summary" id="phCardChartSummary">-</div>
+            <div class="hist-chart-body" id="phCardChartBody"></div>
+          </div>
+
+          <div id="phCardStats" style="margin-bottom:10px;"></div>
+
+          <div class="settings-row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px;">
+            <button id="phCardAddBtn" class="hist-btn" onclick="openCardUsageAddModal()">➕ 카드 사용 추가</button>
+            <button class="hist-btn" onclick="exportPharmacyCardXlsx()" title="현재 필터 결과를 Excel로">📊 Excel 내보내기</button>
+            <button class="hist-btn" onclick="exportPharmacyCardPdf()" title="현재 필터 결과를 PDF로">📄 PDF 내보내기</button>
+            <input type="search" id="phCardSearch" class="emp-input" style="flex:1;min-width:140px;font-size:12px;padding:6px 10px;" placeholder="🔍 사용자·내역 검색" oninput="renderPharmacyCardList()" />
+            <select id="phCardFilterCat" class="emp-input" style="flex:0 0 auto;width:140px;font-size:12px;padding:6px 10px;" onchange="renderPharmacyCardList()"><option value="">전체 사용내역</option></select>
+            <select id="phCardFilterCard" class="emp-input" style="flex:0 0 auto;width:160px;font-size:12px;padding:6px 10px;" onchange="renderPharmacyCardList()"><option value="">전체 카드</option></select>
+            <select id="phCardFilterUser" class="emp-input" style="flex:0 0 auto;width:120px;font-size:12px;padding:6px 10px;" onchange="renderPharmacyCardList()"><option value="">전체 사용자</option></select>
+          </div>
+
+          <div id="pharmacyCardList" class="payments-list"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- 설정 탭 -->
     <div class="tab-panel" id="panel-settings">
       <div class="settings-panel">
@@ -2955,6 +3023,80 @@ body.pdf-rendering .a4-page {
     <div class="modal-foot">
       <button class="modal-btn" onclick="closeReturnModal()">취소</button>
       <button class="modal-btn" onclick="saveReturnItem()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 약국 카드 마스터 추가/수정 모달 (백승준 전용) -->
+<div class="modal-backdrop" id="cardMasterModal" style="display:none;" onclick="if(event.target===this)closeCardMasterModal()">
+  <div class="modal" style="max-width:440px; width:94%;">
+    <div class="modal-head">
+      <span id="cardMasterModalTitle">카드 등록</span>
+      <button class="modal-close" onclick="closeCardMasterModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:14px 18px;">
+      <input type="hidden" id="cardMasterModalMode" value="add" />
+      <input type="hidden" id="cardMasterModalId" value="" />
+      <label class="emp-label">💳 카드 이름 <span style="color:#991b1b;">*</span></label>
+      <input type="text" class="emp-input" id="cardMasterName" placeholder="예: 신한 법인카드" />
+      <label class="emp-label">끝 4자리 <span style="font-size:10.5px;color:var(--text-muted);font-weight:400;">(선택)</span></label>
+      <input type="text" class="emp-input" id="cardMasterLast4" placeholder="예: 4567" maxlength="4" pattern="\d{4}" />
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn" onclick="closeCardMasterModal()">취소</button>
+      <button class="modal-btn" onclick="saveCardMaster()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 카드 사용 추가/수정 모달 (모든 직원) -->
+<div class="modal-backdrop" id="cardUsageModal" style="display:none;" onclick="if(event.target===this)closeCardUsageModal()">
+  <div class="modal" style="max-width:560px; width:94%;">
+    <div class="modal-head">
+      <span id="cardUsageModalTitle">카드 사용 추가</span>
+      <button class="modal-close" onclick="closeCardUsageModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:14px 18px;">
+      <input type="hidden" id="cardUsageModalMode" value="add" />
+      <input type="hidden" id="cardUsageModalId" value="" />
+
+      <label class="emp-label">👤 사용자 <span style="color:#991b1b;">*</span> <span style="font-size:10.5px;color:var(--text-muted);font-weight:400;">(약국장은 다른 직원으로 변경 가능)</span></label>
+      <select class="emp-input" id="cardUsageUser"></select>
+
+      <label class="emp-label">💳 사용카드 <span style="color:#991b1b;">*</span></label>
+      <select class="emp-input" id="cardUsageCard" onchange="onCardUsageCardChange()"></select>
+      <input type="text" class="emp-input" id="cardUsageCardCustom" placeholder="카드명 직접 입력 (예: 우리 체크카드 끝1234)" style="display:none;margin-top:6px;font-size:12px;" />
+
+      <label class="emp-label">📊 사용내역 카테고리 <span style="color:#991b1b;">*</span></label>
+      <select class="emp-input" id="cardUsageCategory" onchange="onCardUsageCategoryChange()">
+        <option value="약품 구입">💊 약품 구입</option>
+        <option value="사무용품">📋 사무용품</option>
+        <option value="식대">🍙 식대</option>
+        <option value="교통비">🚗 교통비</option>
+        <option value="약국 관리">🔧 약국 관리</option>
+        <option value="환자 응대">🎁 환자 응대</option>
+        <option value="기타">💼 기타</option>
+        <option value="__custom__">✏️ 직접 입력...</option>
+      </select>
+      <input type="text" class="emp-input" id="cardUsageCategoryCustom" placeholder="카테고리 직접 입력" style="display:none;margin-top:6px;font-size:12px;" />
+
+      <label class="emp-label">📝 세부 내역 <span style="color:#991b1b;">*</span></label>
+      <input type="text" class="emp-input" id="cardUsageDescription" placeholder="예: 도매상 직배송비, 직원 점심, 토너 구입" />
+
+      <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:10px;">
+        <div>
+          <label class="emp-label">💰 사용금액 <span style="color:#991b1b;">*</span></label>
+          <input type="text" class="emp-input" id="cardUsageAmount" placeholder="예: 30000" inputmode="numeric" />
+        </div>
+        <div>
+          <label class="emp-label">📅 사용일시 <span style="color:#991b1b;">*</span></label>
+          <input type="datetime-local" class="emp-input" id="cardUsageDate" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn" onclick="closeCardUsageModal()">취소</button>
+      <button class="modal-btn" onclick="saveCardUsage()">💾 저장</button>
     </div>
   </div>
 </div>
@@ -3410,6 +3552,10 @@ function setupFirebaseForUser() {
   if (typeof setupPaymentsListener === 'function') {
     setupPaymentsListener();
   }
+  // 약국카드사용내역 실시간 동기화
+  if (typeof setupPharmacyCardListeners === 'function') {
+    setupPharmacyCardListeners();
+  }
 }
 
 function detachFirebaseListeners() {
@@ -3451,6 +3597,14 @@ function detachFirebaseListeners() {
   if (typeof fbPaymentsRef !== 'undefined' && fbPaymentsRef) {
     try { fbPaymentsRef.off(); } catch (e) {}
     fbPaymentsRef = null;
+  }
+  if (typeof fbPharmacyCardsRef !== 'undefined' && fbPharmacyCardsRef) {
+    try { fbPharmacyCardsRef.off(); } catch (e) {}
+    fbPharmacyCardsRef = null;
+  }
+  if (typeof fbPharmacyCardUsagesRef !== 'undefined' && fbPharmacyCardUsagesRef) {
+    try { fbPharmacyCardUsagesRef.off(); } catch (e) {}
+    fbPharmacyCardUsagesRef = null;
   }
 }
 
@@ -4632,6 +4786,9 @@ function switchTab(name) {
   }
   if (name === 'payments') {
     if (typeof renderPaymentsAll === 'function') renderPaymentsAll();
+  }
+  if (name === 'phcard') {
+    if (typeof renderPharmacyCardAll === 'function') renderPharmacyCardAll();
   }
   if (name === 'settings') {
     updateSettingsFirebaseInfo();
@@ -6193,6 +6350,682 @@ function renderMedDictAdmin() {
     '📘 <b>계열 약품:</b> ' + s.baseCount + '종 · ' +
     '<b>조합 템플릿:</b> ' + s.templateCount + '개<br>' +
     '<span style="font-size:10.5px;color:var(--text-muted);">분석된 총 주문: ' + s.totalOrdersAnalyzed + '건 · 최근 ' + MED_DICT_WINDOW_DAYS + '일 · 재구축: ' + when + '</span>';
+}
+
+/* ============ 약국카드사용내역 (Firebase /pharmacyCards + /pharmacyCardUsages) ============ */
+// 권한:
+//  - 카드 마스터 관리 (추가/수정/삭제): 백승준만
+//  - 사용내역 추가: 모든 직원 (본인 사용분)
+//  - 사용내역 수정/삭제: 본인이 추가한 항목 + 약국장
+//  - 조회: 모든 직원
+
+const PHARMACY_CARD_CATEGORIES = [
+  { value: '약품 구입', label: '💊 약품 구입', color: '#dc2626', bg: '#fee2e2' },
+  { value: '사무용품',  label: '📋 사무용품',  color: '#1d4ed8', bg: '#dbeafe' },
+  { value: '식대',      label: '🍙 식대',      color: '#92400e', bg: '#fef3c7' },
+  { value: '교통비',    label: '🚗 교통비',    color: '#0d9488', bg: '#ccfbf1' },
+  { value: '약국 관리', label: '🔧 약국 관리', color: '#7c3aed', bg: '#ede9fe' },
+  { value: '환자 응대', label: '🎁 환자 응대', color: '#ec4899', bg: '#fce7f3' },
+  { value: '기타',      label: '💼 기타',      color: '#6b7280', bg: '#f3f4f6' }
+];
+
+let pharmacyCards = [];      // [{id, name, last4, color}]
+let pharmacyCardUsages = []; // [{id, userName, userUid, cardId, cardLabel, category, description, amount, usedAt, ...}]
+let fbPharmacyCardsRef = null;
+let fbPharmacyCardUsagesRef = null;
+let _phCardChartMonth = null;
+
+function canManagePharmacyCardMaster() {
+  if (typeof canEditNotice === 'function') return canEditNotice();
+  return currentUser === '백승준';
+}
+function canEditPharmacyCardUsage(entry) {
+  if (!entry) return false;
+  if (currentUser === '백승준') return true;
+  if (currentAuthUid === 'bhgORSzZ23dlNUfZmDPBe3IsnPN2') return true;
+  if (entry.userUid && currentAuthUid && entry.userUid === currentAuthUid) return true;
+  if (entry.createdByUid && currentAuthUid && entry.createdByUid === currentAuthUid) return true;
+  return false;
+}
+
+function setupPharmacyCardListeners() {
+  if (!fbDb) return;
+  if (fbPharmacyCardsRef) { try { fbPharmacyCardsRef.off(); } catch(e){} }
+  fbPharmacyCardsRef = fbDb.ref('pharmacyCards');
+  fbPharmacyCardsRef.on('value', snap => {
+    const val = snap.val() || {};
+    pharmacyCards = Object.entries(val).map(([id, v]) => ({ id, ...v })).filter(x => x.name);
+    pharmacyCards.sort((a,b) => (a.name||'').localeCompare(b.name||'', 'ko'));
+    if (typeof renderPharmacyCardAll === 'function') renderPharmacyCardAll();
+  });
+  if (fbPharmacyCardUsagesRef) { try { fbPharmacyCardUsagesRef.off(); } catch(e){} }
+  fbPharmacyCardUsagesRef = fbDb.ref('pharmacyCardUsages');
+  fbPharmacyCardUsagesRef.on('value', snap => {
+    const val = snap.val() || {};
+    pharmacyCardUsages = Object.entries(val).map(([id, v]) => ({ id, ...v })).filter(x => x && x.userName);
+    pharmacyCardUsages.sort((a,b) => (b.usedAt||0) - (a.usedAt||0));
+    if (typeof renderPharmacyCardAll === 'function') renderPharmacyCardAll();
+  });
+}
+
+function getCategoryStyle(cat) {
+  const c = PHARMACY_CARD_CATEGORIES.find(x => x.value === cat);
+  if (c) return c;
+  // 직접 입력된 카테고리
+  return { value: cat, label: '✏️ ' + cat, color: '#475569', bg: '#f1f5f9' };
+}
+
+function getCardLabel(cardId) {
+  if (!cardId) return '미지정';
+  const c = pharmacyCards.find(x => x.id === cardId);
+  if (c) return c.name + (c.last4 ? ' (끝' + c.last4 + ')' : '');
+  return '삭제됨/미등록 카드';
+}
+
+function getPhCardChartMonth() {
+  if (_phCardChartMonth) return _phCardChartMonth;
+  return todayStr().slice(0, 7);
+}
+function changePhCardMonth(delta) {
+  const cur = getPhCardChartMonth();
+  const [y, m] = cur.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  _phCardChartMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  renderPharmacyCardChart();
+}
+
+/* ============ 카드 마스터 관리 (백승준 전용) ============ */
+function openCardMasterAddModal() {
+  if (!canManagePharmacyCardMaster()) { alert('⛔ 카드 등록은 약국장만 가능합니다.'); return; }
+  document.getElementById('cardMasterModalTitle').textContent = '➕ 약국 카드 등록';
+  document.getElementById('cardMasterModalMode').value = 'add';
+  document.getElementById('cardMasterModalId').value = '';
+  document.getElementById('cardMasterName').value = '';
+  document.getElementById('cardMasterLast4').value = '';
+  document.getElementById('cardMasterModal').style.display = 'flex';
+}
+function openCardMasterEditModal(id) {
+  if (!canManagePharmacyCardMaster()) return;
+  const c = pharmacyCards.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('cardMasterModalTitle').textContent = '✏️ 카드 수정';
+  document.getElementById('cardMasterModalMode').value = 'edit';
+  document.getElementById('cardMasterModalId').value = id;
+  document.getElementById('cardMasterName').value = c.name || '';
+  document.getElementById('cardMasterLast4').value = c.last4 || '';
+  document.getElementById('cardMasterModal').style.display = 'flex';
+}
+function closeCardMasterModal() {
+  const m = document.getElementById('cardMasterModal');
+  if (m) m.style.display = 'none';
+}
+function saveCardMaster() {
+  if (!canManagePharmacyCardMaster()) return;
+  const mode = document.getElementById('cardMasterModalMode').value;
+  const id = document.getElementById('cardMasterModalId').value;
+  const name = (document.getElementById('cardMasterName').value || '').trim();
+  const last4 = (document.getElementById('cardMasterLast4').value || '').trim();
+  if (!name) { alert('카드 이름을 입력하세요. (예: 신한 법인카드)'); return; }
+  if (last4 && !/^\d{4}$/.test(last4)) { alert('카드 끝 4자리는 숫자 4개여야 합니다 (선택사항).'); return; }
+  const payload = { name, last4, updatedAt: Date.now(), updatedBy: currentUser || '' };
+  if (mode === 'add') {
+    payload.createdAt = Date.now();
+    payload.createdBy = currentUser || '';
+  }
+  if (fbDb) {
+    const ref = mode === 'add' ? fbDb.ref('pharmacyCards').push() : fbDb.ref('pharmacyCards/' + id);
+    ref.set(payload)
+      .then(() => closeCardMasterModal())
+      .catch(err => alert('저장 실패: ' + (err.message||err)));
+  } else {
+    if (mode === 'add') {
+      payload.id = 'local-' + Date.now();
+      pharmacyCards.push(payload);
+    } else {
+      const idx = pharmacyCards.findIndex(x => x.id === id);
+      if (idx >= 0) Object.assign(pharmacyCards[idx], payload);
+    }
+    renderPharmacyCardAll();
+    closeCardMasterModal();
+  }
+}
+function deleteCardMaster(id) {
+  if (!canManagePharmacyCardMaster()) return;
+  const c = pharmacyCards.find(x => x.id === id);
+  if (!c) return;
+  if (!confirm(`【${c.name}】 카드를 삭제할까요?\n(이미 입력된 사용내역은 그대로 남습니다)`)) return;
+  if (fbDb) fbDb.ref('pharmacyCards/' + id).remove();
+  else { pharmacyCards = pharmacyCards.filter(x => x.id !== id); renderPharmacyCardAll(); }
+}
+
+/* ============ 사용내역 모달 ============ */
+function openCardUsageAddModal() {
+  if (!currentUser) { alert('로그인 후 이용 가능'); return; }
+  document.getElementById('cardUsageModalTitle').textContent = '➕ 카드 사용 추가';
+  document.getElementById('cardUsageModalMode').value = 'add';
+  document.getElementById('cardUsageModalId').value = '';
+  // 사용자 기본값 = 현재 로그인. 약국장은 다른 직원으로 변경 가능
+  populateCardUsageUserSelect(currentUser || '');
+  // 카드 드롭다운
+  populateCardUsageCardSelect('');
+  document.getElementById('cardUsageCategory').value = '약품 구입';
+  document.getElementById('cardUsageCategoryCustom').style.display = 'none';
+  document.getElementById('cardUsageCategoryCustom').value = '';
+  document.getElementById('cardUsageDescription').value = '';
+  document.getElementById('cardUsageAmount').value = '';
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  document.getElementById('cardUsageDate').value = local;
+  document.getElementById('cardUsageModal').style.display = 'flex';
+}
+function openCardUsageEditModal(id) {
+  const u = pharmacyCardUsages.find(x => x.id === id);
+  if (!u) return;
+  if (!canEditPharmacyCardUsage(u)) { alert('⛔ 본인 또는 약국장만 수정 가능합니다.'); return; }
+  document.getElementById('cardUsageModalTitle').textContent = '✏️ 카드 사용 수정';
+  document.getElementById('cardUsageModalMode').value = 'edit';
+  document.getElementById('cardUsageModalId').value = id;
+  populateCardUsageUserSelect(u.userName || '');
+  populateCardUsageCardSelect(u.cardId || '');
+  // 카테고리: 사전정의면 select, 아니면 직접입력
+  const presetCats = PHARMACY_CARD_CATEGORIES.map(x => x.value);
+  if (presetCats.indexOf(u.category) >= 0) {
+    document.getElementById('cardUsageCategory').value = u.category;
+    document.getElementById('cardUsageCategoryCustom').style.display = 'none';
+    document.getElementById('cardUsageCategoryCustom').value = '';
+  } else {
+    document.getElementById('cardUsageCategory').value = '__custom__';
+    document.getElementById('cardUsageCategoryCustom').style.display = 'block';
+    document.getElementById('cardUsageCategoryCustom').value = u.category || '';
+  }
+  document.getElementById('cardUsageDescription').value = u.description || '';
+  document.getElementById('cardUsageAmount').value = u.amount || '';
+  if (u.usedAt) {
+    const d = new Date(u.usedAt);
+    const local = new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+    document.getElementById('cardUsageDate').value = local;
+  }
+  document.getElementById('cardUsageModal').style.display = 'flex';
+}
+function closeCardUsageModal() {
+  const m = document.getElementById('cardUsageModal');
+  if (m) m.style.display = 'none';
+}
+
+function populateCardUsageUserSelect(selectedName) {
+  const sel = document.getElementById('cardUsageUser');
+  if (!sel) return;
+  // 약국장은 모든 직원 중 선택 가능. 그 외는 본인 고정.
+  const isOwner = canManagePharmacyCardMaster();
+  let html = '';
+  if (isOwner) {
+    const employees = Object.values(UID_NAME_MAP || {}).map(x => x.name).filter(Boolean);
+    employees.sort((a, b) => a.localeCompare(b, 'ko'));
+    employees.forEach(n => { html += '<option value="'+escapeHtml(n)+'"'+(n===selectedName?' selected':'')+'>'+escapeHtml(n)+'</option>'; });
+    sel.disabled = false;
+  } else {
+    html = '<option value="'+escapeHtml(currentUser||'')+'" selected>'+escapeHtml(currentUser||'')+'</option>';
+    sel.disabled = true;
+  }
+  sel.innerHTML = html;
+}
+function populateCardUsageCardSelect(selectedId) {
+  const sel = document.getElementById('cardUsageCard');
+  const customInp = document.getElementById('cardUsageCardCustom');
+  if (!sel) return;
+  let html = '';
+  pharmacyCards.forEach(c => {
+    const lbl = c.name + (c.last4 ? ' (끝' + c.last4 + ')' : '');
+    html += '<option value="'+escapeHtml(c.id)+'"'+(c.id===selectedId?' selected':'')+'>'+escapeHtml(lbl)+'</option>';
+  });
+  html += '<option value="__custom__">✏️ 직접 입력...</option>';
+  sel.innerHTML = html;
+  if (customInp) { customInp.style.display = 'none'; customInp.value = ''; }
+}
+function onCardUsageCardChange() {
+  const sel = document.getElementById('cardUsageCard');
+  const cust = document.getElementById('cardUsageCardCustom');
+  if (sel && cust) {
+    cust.style.display = sel.value === '__custom__' ? 'block' : 'none';
+    if (sel.value === '__custom__') setTimeout(() => { try { cust.focus(); } catch(e){} }, 50);
+  }
+}
+function onCardUsageCategoryChange() {
+  const sel = document.getElementById('cardUsageCategory');
+  const cust = document.getElementById('cardUsageCategoryCustom');
+  if (sel && cust) {
+    cust.style.display = sel.value === '__custom__' ? 'block' : 'none';
+    if (sel.value === '__custom__') setTimeout(() => { try { cust.focus(); } catch(e){} }, 50);
+  }
+}
+
+function saveCardUsage() {
+  if (!currentUser) return;
+  const mode = document.getElementById('cardUsageModalMode').value;
+  const id = document.getElementById('cardUsageModalId').value;
+  const userName = (document.getElementById('cardUsageUser').value || '').trim();
+  const cardSelVal = document.getElementById('cardUsageCard').value;
+  const cardCustom = (document.getElementById('cardUsageCardCustom').value || '').trim();
+  let cardId = '', cardLabel = '';
+  if (cardSelVal === '__custom__') {
+    if (!cardCustom) { alert('카드명을 직접 입력하세요.'); return; }
+    cardId = '';
+    cardLabel = cardCustom;
+  } else {
+    cardId = cardSelVal;
+    const c = pharmacyCards.find(x => x.id === cardId);
+    cardLabel = c ? (c.name + (c.last4 ? ' (끝' + c.last4 + ')' : '')) : '';
+  }
+  let category = document.getElementById('cardUsageCategory').value || '기타';
+  if (category === '__custom__') {
+    category = (document.getElementById('cardUsageCategoryCustom').value || '').trim();
+    if (!category) { alert('카테고리를 직접 입력하세요.'); return; }
+  }
+  const description = (document.getElementById('cardUsageDescription').value || '').trim();
+  const amountRaw = (document.getElementById('cardUsageAmount').value || '').replace(/[,\s원]/g, '');
+  const amount = parseFloat(amountRaw);
+  const dateStr = document.getElementById('cardUsageDate').value;
+  if (!userName) { alert('사용자를 선택하세요.'); return; }
+  if (!cardLabel) { alert('카드를 선택하거나 입력하세요.'); return; }
+  if (!isFinite(amount) || amount <= 0) { alert('사용금액을 숫자로 입력하세요.'); return; }
+  if (!description) { alert('사용내역을 입력하세요.'); return; }
+  if (!dateStr) { alert('사용일시를 선택하세요.'); return; }
+  const usedAt = new Date(dateStr).getTime();
+
+  // 사용자 UID 매핑 (이름으로 역방향)
+  let userUid = '';
+  if (typeof NAME_UID_MAP !== 'undefined' && NAME_UID_MAP[userName]) userUid = NAME_UID_MAP[userName];
+
+  if (mode === 'add') {
+    const payload = {
+      userName, userUid, cardId, cardLabel, category, description,
+      amount: Math.round(amount), usedAt,
+      createdBy: currentUser || '', createdByUid: currentAuthUid || '', createdAt: Date.now()
+    };
+    if (fbDb) {
+      fbDb.ref('pharmacyCardUsages').push(payload)
+        .then(() => closeCardUsageModal())
+        .catch(err => {
+          const msg = err && err.message ? err.message : String(err);
+          if (/PERMISSION_DENIED/i.test(msg)) {
+            alert('⛔ Firebase 규칙에 /pharmacyCardUsages 쓰기 권한 추가 필요:\n\n"pharmacyCardUsages": {\n  "$id": {\n    ".write": "auth != null"\n  }\n}');
+          } else alert('저장 실패: ' + msg);
+        });
+    } else {
+      payload.id = 'local-' + Date.now();
+      pharmacyCardUsages.unshift(payload);
+      renderPharmacyCardAll();
+      closeCardUsageModal();
+    }
+  } else {
+    const u = pharmacyCardUsages.find(x => x.id === id);
+    if (!canEditPharmacyCardUsage(u)) { alert('⛔ 권한 없음'); return; }
+    const updates = { userName, userUid, cardId, cardLabel, category, description,
+      amount: Math.round(amount), usedAt, updatedAt: Date.now(), updatedBy: currentUser || '' };
+    if (fbDb) {
+      fbDb.ref('pharmacyCardUsages/' + id).update(updates)
+        .then(() => closeCardUsageModal())
+        .catch(err => alert('수정 실패: ' + (err.message||err)));
+    } else {
+      const idx = pharmacyCardUsages.findIndex(x => x.id === id);
+      if (idx >= 0) Object.assign(pharmacyCardUsages[idx], updates);
+      renderPharmacyCardAll();
+      closeCardUsageModal();
+    }
+  }
+}
+
+function deleteCardUsage(id) {
+  const u = pharmacyCardUsages.find(x => x.id === id);
+  if (!u) return;
+  if (!canEditPharmacyCardUsage(u)) { alert('⛔ 본인 또는 약국장만 삭제 가능'); return; }
+  if (!confirm(`다음 사용내역을 삭제하시겠습니까?\n\n${u.userName} · ${u.cardLabel}\n${u.description} · ₩${(u.amount||0).toLocaleString()}`)) return;
+  if (fbDb) fbDb.ref('pharmacyCardUsages/' + id).remove().catch(err => alert('삭제 실패: ' + (err.message||err)));
+  else { pharmacyCardUsages = pharmacyCardUsages.filter(x => x.id !== id); renderPharmacyCardAll(); }
+}
+
+/* ============ 메인 렌더 ============ */
+function renderPharmacyCardAll() {
+  renderPharmacyCardChart();
+  renderPharmacyCardStats();
+  renderPharmacyCardMaster();
+  renderPharmacyCardList();
+}
+
+function renderPharmacyCardMaster() {
+  const host = document.getElementById('pharmacyCardMasterList');
+  if (!host) return;
+  const allowed = canManagePharmacyCardMaster();
+  if (!allowed) {
+    host.innerHTML = '';
+    const sec = document.getElementById('pharmacyCardMasterSection');
+    if (sec) sec.style.display = 'none';
+    return;
+  }
+  const sec = document.getElementById('pharmacyCardMasterSection');
+  if (sec) sec.style.display = 'block';
+  if (!pharmacyCards.length) {
+    host.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:8px;">등록된 카드가 없습니다. ➕ 카드 등록 버튼을 눌러 추가하세요.</div>';
+    return;
+  }
+  host.innerHTML = pharmacyCards.map(c => {
+    const lbl = (c.last4 ? '(끝' + escapeHtml(c.last4) + ')' : '');
+    return `<div class="phcard-master-row">
+      <span class="phcard-master-name">💳 ${escapeHtml(c.name)} <span style="color:var(--text-muted);font-size:10.5px;">${lbl}</span></span>
+      <button class="emp-btn" onclick="openCardMasterEditModal('${escapeHtml(c.id)}')">✏️</button>
+      <button class="emp-btn danger" onclick="deleteCardMaster('${escapeHtml(c.id)}')">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function renderPharmacyCardStats() {
+  const el = document.getElementById('phCardStats');
+  if (!el) return;
+  const sixMonthsAgo = Date.now() - 180 * 86400000;
+  const recent = pharmacyCardUsages.filter(u => (u.usedAt || 0) >= sixMonthsAgo);
+  const total = recent.reduce((s, u) => s + (u.amount || 0), 0);
+  const count = recent.length;
+  const avg = count > 0 ? total / count : 0;
+  // 카테고리별 통계
+  const byCat = {};
+  recent.forEach(u => { byCat[u.category||'기타'] = (byCat[u.category||'기타'] || 0) + (u.amount||0); });
+  // 사용자별 통계
+  const byUser = {};
+  recent.forEach(u => { byUser[u.userName||'-'] = (byUser[u.userName||'-'] || 0) + (u.amount||0); });
+  // 카드별 통계
+  const byCard = {};
+  recent.forEach(u => { byCard[u.cardLabel||'-'] = (byCard[u.cardLabel||'-'] || 0) + (u.amount||0); });
+
+  let html = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">';
+  html += '<span class="pay-stat-pill primary">📅 최근 6개월 합계 <b>'+(typeof fmtWon==='function'?fmtWon(total):'₩'+Math.round(total).toLocaleString())+'</b></span>';
+  html += '<span class="pay-stat-pill">건수 <b>'+count+'</b></span>';
+  html += '<span class="pay-stat-pill">건당 평균 <b>'+(typeof fmtWon==='function'?fmtWon(avg):'₩'+Math.round(avg).toLocaleString())+'</b></span>';
+  html += '</div>';
+
+  // 카테고리 분포 (사용내역별 통계)
+  const catEntries = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  if (catEntries.length) {
+    html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">📊 사용내역(카테고리)별 통계</div>';
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">';
+    catEntries.forEach(([cat, amt]) => {
+      const cs = getCategoryStyle(cat);
+      const pct = total > 0 ? (amt / total * 100).toFixed(1) : '0';
+      html += '<span class="phcard-cat-pill" style="background:'+cs.bg+';color:'+cs.color+';">'+escapeHtml(cs.label)+' <b>'+(typeof fmtWon==='function'?fmtWon(amt):'₩'+amt.toLocaleString())+'</b> <span style="opacity:0.7;font-size:9.5px;">('+pct+'%)</span></span>';
+    });
+    html += '</div>';
+  }
+  // 카드별 통계 (상위 5)
+  const cardEntries = Object.entries(byCard).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  if (cardEntries.length) {
+    html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">💳 카드별 사용금액 (상위 5)</div>';
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">';
+    cardEntries.forEach(([card, amt]) => {
+      html += '<span class="pay-stat-pill">'+escapeHtml(card)+' <b>'+(typeof fmtWon==='function'?fmtWon(amt):'₩'+amt.toLocaleString())+'</b></span>';
+    });
+    html += '</div>';
+  }
+  // 사용자별 통계 (상위 5)
+  const userEntries = Object.entries(byUser).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  if (userEntries.length) {
+    html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">👤 사용자별 (상위 5)</div>';
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+    userEntries.forEach(([u, amt]) => {
+      html += '<span class="pay-stat-pill">'+escapeHtml(u)+' <b>'+(typeof fmtWon==='function'?fmtWon(amt):'₩'+amt.toLocaleString())+'</b></span>';
+    });
+    html += '</div>';
+  }
+  el.innerHTML = html;
+}
+
+function getCurrentlyFilteredPharmacyCardUsages() {
+  const q = ((document.getElementById('phCardSearch')||{}).value || '').trim().toLowerCase();
+  const fCat = ((document.getElementById('phCardFilterCat')||{}).value || '').trim();
+  const fCard = ((document.getElementById('phCardFilterCard')||{}).value || '').trim();
+  const fUser = ((document.getElementById('phCardFilterUser')||{}).value || '').trim();
+  const sixMonthsAgo = Date.now() - 180 * 86400000;
+  return pharmacyCardUsages.filter(u => {
+    if ((u.usedAt || 0) < sixMonthsAgo) return false;
+    if (fCat && u.category !== fCat) return false;
+    if (fCard && u.cardLabel !== fCard) return false;
+    if (fUser && u.userName !== fUser) return false;
+    if (q) {
+      const hay = ((u.userName||'')+' '+(u.description||'')+' '+(u.cardLabel||'')+' '+(u.category||'')).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderPharmacyCardList() {
+  const host = document.getElementById('pharmacyCardList');
+  if (!host) return;
+
+  // 필터 옵션 갱신
+  const catSel = document.getElementById('phCardFilterCat');
+  if (catSel) {
+    const cur = catSel.value;
+    const usedCats = new Set(pharmacyCardUsages.map(u => u.category).filter(Boolean));
+    PHARMACY_CARD_CATEGORIES.forEach(c => usedCats.add(c.value));
+    const sorted = Array.from(usedCats).sort();
+    catSel.innerHTML = '<option value="">전체 사용내역</option>' +
+      sorted.map(c => '<option value="'+escapeHtml(c)+'"'+(cur===c?' selected':'')+'>'+escapeHtml(getCategoryStyle(c).label)+'</option>').join('');
+  }
+  const cardSel = document.getElementById('phCardFilterCard');
+  if (cardSel) {
+    const cur = cardSel.value;
+    const usedCards = Array.from(new Set(pharmacyCardUsages.map(u => u.cardLabel).filter(Boolean))).sort();
+    cardSel.innerHTML = '<option value="">전체 카드</option>' +
+      usedCards.map(c => '<option value="'+escapeHtml(c)+'"'+(cur===c?' selected':'')+'>'+escapeHtml(c)+'</option>').join('');
+  }
+  const userSel = document.getElementById('phCardFilterUser');
+  if (userSel) {
+    const cur = userSel.value;
+    const usedUsers = Array.from(new Set(pharmacyCardUsages.map(u => u.userName).filter(Boolean))).sort();
+    userSel.innerHTML = '<option value="">전체 사용자</option>' +
+      usedUsers.map(u => '<option value="'+escapeHtml(u)+'"'+(cur===u?' selected':'')+'>'+escapeHtml(u)+'</option>').join('');
+  }
+
+  // 추가 버튼은 모든 직원
+  const addBtn = document.getElementById('phCardAddBtn');
+  if (addBtn) addBtn.style.display = currentUser ? 'inline-block' : 'none';
+
+  const filtered = getCurrentlyFilteredPharmacyCardUsages();
+  if (!filtered.length) {
+    host.innerHTML = '<div class="pay-empty">'+(pharmacyCardUsages.length ? '검색 결과 없음' : '아직 등록된 사용내역이 없습니다.')+'</div>';
+    return;
+  }
+
+  // 날짜별 그룹
+  const byDate = {};
+  filtered.forEach(u => {
+    const d = new Date(u.usedAt || 0);
+    const dStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    if (!byDate[dStr]) byDate[dStr] = [];
+    byDate[dStr].push(u);
+  });
+  const dates = Object.keys(byDate).sort().reverse();
+
+  let html = '';
+  dates.forEach(dStr => {
+    const items = byDate[dStr];
+    const dayTotal = items.reduce((s, u) => s + (u.amount||0), 0);
+    const d = new Date(dStr);
+    const dow = ['일','월','화','수','목','금','토'][d.getDay()];
+    html += '<div class="pay-date-group">';
+    html += '<div class="pay-date-head"><span class="pay-date-label">📅 '+escapeHtml(dStr)+' ('+dow+')</span><span class="pay-date-cnt">'+items.length+'건</span><span class="pay-date-total">'+(typeof fmtWon==='function'?fmtWon(dayTotal):'₩'+dayTotal.toLocaleString())+'</span></div>';
+    html += '<div class="pay-date-body">';
+    items.sort((a,b) => (b.usedAt||0) - (a.usedAt||0));
+    items.forEach(u => {
+      const cs = getCategoryStyle(u.category || '기타');
+      const t = new Date(u.usedAt || 0);
+      const time = String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
+      const canEdit = canEditPharmacyCardUsage(u);
+      const editBtn = canEdit
+        ? `<button class="pay-icon-btn" onclick="openCardUsageEditModal('${escapeHtml(u.id)}')">✏️</button>
+           <button class="pay-icon-btn danger" onclick="deleteCardUsage('${escapeHtml(u.id)}')">🗑</button>` : '';
+      html += '<div class="phcard-row">';
+      html += '<span class="phcard-user">'+escapeHtml(u.userName||'-')+'</span>';
+      html += '<span class="phcard-cat" style="background:'+cs.bg+';color:'+cs.color+';">'+escapeHtml(cs.label)+'</span>';
+      html += '<span class="phcard-desc">'+escapeHtml(u.description||'-')+'</span>';
+      html += '<span class="phcard-amount">'+(typeof fmtWon==='function'?fmtWon(u.amount):'₩'+(u.amount||0).toLocaleString())+'</span>';
+      html += '<span class="phcard-card">'+escapeHtml(u.cardLabel||'-')+'</span>';
+      html += '<span class="phcard-time">'+time+'</span>';
+      html += '<span class="phcard-actions">'+editBtn+'</span>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+  host.innerHTML = html;
+}
+
+function renderPharmacyCardChart() {
+  const titleEl = document.getElementById('phCardChartTitle');
+  const sumEl = document.getElementById('phCardChartSummary');
+  const bodyEl = document.getElementById('phCardChartBody');
+  if (!titleEl || !bodyEl) return;
+  const yyyymm = getPhCardChartMonth();
+  const [y, m] = yyyymm.split('-').map(Number);
+  titleEl.textContent = y + '년 ' + m + '월 카드사용 추이';
+
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const dailyTotals = [];
+  let monthSum = 0, monthCnt = 0;
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dStart = new Date(y, m-1, day, 0, 0, 0).getTime();
+    const dEnd = new Date(y, m-1, day, 23, 59, 59, 999).getTime();
+    let total = 0, cnt = 0;
+    pharmacyCardUsages.forEach(u => {
+      if ((u.usedAt||0) >= dStart && (u.usedAt||0) <= dEnd) {
+        total += u.amount || 0; cnt++;
+      }
+    });
+    dailyTotals.push({ day, total, cnt });
+    monthSum += total; monthCnt += cnt;
+  }
+  const avg = monthCnt > 0 ? monthSum / monthCnt : 0;
+  if (sumEl) {
+    sumEl.innerHTML = '월 합계: <b>' + (typeof fmtWon==='function'?fmtWon(monthSum):'₩'+Math.round(monthSum).toLocaleString()) + '</b> · 건수 ' + monthCnt + ' · 건당 평균 <b>' + (typeof fmtWon==='function'?fmtWon(avg):'₩'+Math.round(avg).toLocaleString()) + '</b>';
+  }
+  const W = 660, H = 200, padL = 50, padR = 12, padT = 10, padB = 36;
+  const chartW = W - padL - padR, chartH = H - padT - padB;
+  const maxVal = Math.max(...dailyTotals.map(x => x.total), 1);
+  const barW = chartW / daysInMonth - 2;
+  const today = todayStr();
+  let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:600px;font-family:inherit;">';
+  for (let i = 0; i <= 4; i++) {
+    const yl = padT + chartH - (chartH * i / 4);
+    const v = (maxVal * i / 4);
+    svg += '<line x1="'+padL+'" y1="'+yl+'" x2="'+(W-padR)+'" y2="'+yl+'" stroke="#e5e7eb" stroke-dasharray="2 3"/>';
+    const lbl = v >= 10000 ? Math.round(v/10000) + '만' : (v >= 1000 ? Math.round(v/1000) + 'k' : Math.round(v));
+    svg += '<text x="'+(padL-6)+'" y="'+(yl+3)+'" font-size="9" fill="#9ca3af" text-anchor="end">'+lbl+'</text>';
+  }
+  dailyTotals.forEach((d, i) => {
+    const x = padL + i * (chartW / daysInMonth) + 1;
+    const h = d.total > 0 ? (d.total / maxVal) * chartH : 0;
+    const yPos = padT + chartH - h;
+    const dStr = y + '-' + String(m).padStart(2,'0') + '-' + String(d.day).padStart(2,'0');
+    const isToday = dStr === today;
+    const dow = new Date(y, m-1, d.day).getDay();
+    const isSun = dow === 0, isSat = dow === 6;
+    const fill = isToday ? '#c9763d' : (isSun ? '#f87171' : (isSat ? '#60a5fa' : '#0ea5e9'));
+    if (d.total > 0) {
+      svg += '<rect x="'+x+'" y="'+yPos+'" width="'+barW+'" height="'+h+'" fill="'+fill+'" rx="2"><title>'+dStr+' · '+(typeof fmtWon==='function'?fmtWon(d.total):'₩'+Math.round(d.total).toLocaleString())+' ('+d.cnt+'건)</title></rect>';
+    }
+    if (d.day === 1 || d.day % 5 === 0 || d.day === daysInMonth || isToday) {
+      svg += '<text x="'+(x+barW/2)+'" y="'+(H-padB+14)+'" font-size="9" fill="'+(isToday?'#c9763d':'#6b7280')+'" font-weight="'+(isToday?'700':'500')+'" text-anchor="middle">'+d.day+'</text>';
+    }
+  });
+  svg += '<g transform="translate('+padL+','+(H-8)+')" font-size="9" fill="#6b7280">';
+  svg += '<rect x="0" y="-7" width="9" height="9" fill="#0ea5e9" rx="1"/><text x="13" y="0">평일</text>';
+  svg += '<rect x="46" y="-7" width="9" height="9" fill="#60a5fa" rx="1"/><text x="59" y="0">토</text>';
+  svg += '<rect x="78" y="-7" width="9" height="9" fill="#f87171" rx="1"/><text x="91" y="0">일</text>';
+  svg += '<rect x="108" y="-7" width="9" height="9" fill="#c9763d" rx="1"/><text x="121" y="0">오늘</text>';
+  svg += '</g></svg>';
+  bodyEl.innerHTML = svg;
+}
+
+/* ============ Excel · PDF 내보내기 ============ */
+function exportPharmacyCardXlsx() {
+  if (typeof XLSX === 'undefined') { alert('엑셀 모듈 로드 실패'); return; }
+  const filtered = getCurrentlyFilteredPharmacyCardUsages();
+  if (!filtered.length) { alert('내보낼 사용내역이 없습니다.'); return; }
+  const rows = filtered.map(u => {
+    const d = new Date(u.usedAt || 0);
+    return {
+      '사용일': d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),
+      '사용시각': String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'),
+      '사용자': u.userName||'',
+      '사용내역(카테고리)': u.category||'',
+      '세부내역': u.description||'',
+      '사용금액': u.amount||0,
+      '사용카드': u.cardLabel||'',
+      '등록자': u.createdBy||'',
+      '등록일시': u.createdAt ? new Date(u.createdAt).toLocaleString('ko-KR') : ''
+    };
+  });
+  const total = rows.reduce((s, r) => s + (r['사용금액']||0), 0);
+  rows.push({ '사용일':'', '사용시각':'', '사용자':'【합계】', '사용내역(카테고리)':'', '세부내역':'', '사용금액':total, '사용카드':filtered.length+'건', '등록자':'', '등록일시':new Date().toLocaleString('ko-KR') });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:11},{wch:7},{wch:10},{wch:13},{wch:25},{wch:11},{wch:18},{wch:10},{wch:18}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '카드사용내역');
+  XLSX.writeFile(wb, '대령약국_카드사용내역_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+async function exportPharmacyCardPdf() {
+  if (typeof html2canvas === 'undefined') { alert('html2canvas 로드 실패'); return; }
+  const filtered = getCurrentlyFilteredPharmacyCardUsages();
+  if (!filtered.length) { alert('내보낼 사용내역이 없습니다.'); return; }
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:760px;background:#fff;padding:20px;font-family:"Noto Sans KR",sans-serif;color:#000;';
+  let total = 0;
+  let html = '<h2 style="text-align:center;margin:0 0 4px;">대령약국 카드사용내역</h2>';
+  html += '<div style="text-align:center;font-size:11px;color:#555;margin-bottom:10px;">출력일: '+new Date().toLocaleString('ko-KR')+' · 총 '+filtered.length+'건</div>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:10.5px;">';
+  html += '<thead><tr style="background:#f0ede4;"><th style="border:1px solid #888;padding:5px;width:78px;">사용일</th><th style="border:1px solid #888;padding:5px;width:46px;">시각</th><th style="border:1px solid #888;padding:5px;width:60px;">사용자</th><th style="border:1px solid #888;padding:5px;width:78px;">카테고리</th><th style="border:1px solid #888;padding:5px;">세부내역</th><th style="border:1px solid #888;padding:5px;width:80px;">금액</th><th style="border:1px solid #888;padding:5px;width:120px;">카드</th></tr></thead><tbody>';
+  filtered.forEach(u => {
+    total += u.amount||0;
+    const d = new Date(u.usedAt||0);
+    const dStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const tStr = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    html += '<tr><td style="border:1px solid #aaa;padding:4px 6px;">'+dStr+'</td><td style="border:1px solid #aaa;padding:4px 6px;text-align:center;">'+tStr+'</td><td style="border:1px solid #aaa;padding:4px 6px;">'+escapeHtml(u.userName||'')+'</td><td style="border:1px solid #aaa;padding:4px 6px;">'+escapeHtml(u.category||'')+'</td><td style="border:1px solid #aaa;padding:4px 6px;font-size:10px;">'+escapeHtml(u.description||'')+'</td><td style="border:1px solid #aaa;padding:4px 6px;text-align:right;">₩'+(u.amount||0).toLocaleString()+'</td><td style="border:1px solid #aaa;padding:4px 6px;font-size:10px;">'+escapeHtml(u.cardLabel||'')+'</td></tr>';
+  });
+  html += '<tr style="background:#fffaf0;font-weight:700;"><td colspan="5" style="border:1px solid #888;padding:6px;text-align:right;">합계</td><td style="border:1px solid #888;padding:6px;text-align:right;color:#0ea5e9;">₩'+total.toLocaleString()+'</td><td style="border:1px solid #888;padding:6px;text-align:center;">'+filtered.length+'건</td></tr>';
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+  document.body.appendChild(wrap);
+  try {
+    const canvas = await html2canvas(wrap, { scale: 2, backgroundColor: '#ffffff' });
+    const { jsPDF } = window.jspdf || window;
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = pdf.internal.pageSize.getHeight();
+    let imgW = pdfW - 20;
+    const ratio = canvas.height / canvas.width;
+    let imgH = imgW * ratio;
+    if (imgH > pdfH - 20) {
+      const pageHeightPx = (canvas.width * (pdfH - 20)) / (pdfW - 20);
+      let yOffset = 0;
+      while (yOffset < canvas.height) {
+        const slice = document.createElement('canvas');
+        slice.width = canvas.width;
+        slice.height = Math.min(pageHeightPx, canvas.height - yOffset);
+        slice.getContext('2d').drawImage(canvas, 0, yOffset, canvas.width, slice.height, 0, 0, canvas.width, slice.height);
+        const sliceData = slice.toDataURL('image/png');
+        const sliceH = (slice.height / canvas.width) * imgW;
+        if (yOffset > 0) pdf.addPage();
+        pdf.addImage(sliceData, 'PNG', 10, 10, imgW, sliceH);
+        yOffset += pageHeightPx;
+      }
+    } else {
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, imgW, imgH);
+    }
+    pdf.save('대령약국_카드사용내역_'+new Date().toISOString().slice(0,10)+'.pdf');
+  } catch (e) {
+    alert('PDF 생성 실패: ' + (e.message||e));
+  } finally {
+    document.body.removeChild(wrap);
+  }
 }
 
 /* ============ 결제내역 (Firebase /payments) ============ */
