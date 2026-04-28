@@ -1691,6 +1691,38 @@ body.pdf-rendering .a4-page {
 }
 .hist-amount.zero { color: #9ca3af; font-weight: 500; }
 
+/* ============ 결제내역 ============ */
+.payments-list { display: flex; flex-direction: column; gap: 12px; }
+.pay-empty { padding: 30px; text-align: center; color: var(--text-muted); font-size: 12px; background: #fafafa; border: 1px dashed var(--border); border-radius: 8px; }
+.pay-stat-pill { padding: 6px 12px; background: #fff; border: 1px solid var(--border); border-radius: 16px; font-size: 11.5px; color: #4b5563; }
+.pay-stat-pill.primary { background: #ede9fe; border-color: #c4b5fd; color: #5b21b6; font-weight: 600; }
+.pay-stat-pill b { color: #1f2937; font-variant-numeric: tabular-nums; }
+.pay-date-group { background: #fff; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.pay-date-head { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: linear-gradient(90deg, #faf5ff 0%, #ede9fe 100%); border-bottom: 1px solid #ddd6fe; }
+.pay-date-label { font-size: 12px; font-weight: 700; color: #5b21b6; flex: 1; }
+.pay-date-cnt { font-size: 11px; color: #7c3aed; background: #fff; padding: 2px 8px; border-radius: 10px; }
+.pay-date-total { font-size: 13px; font-weight: 800; color: #5b21b6; font-variant-numeric: tabular-nums; }
+.pay-date-body { display: flex; flex-direction: column; }
+.pay-row { display: grid; grid-template-columns: minmax(0,1.2fr) 130px 110px 50px minmax(0,1.5fr) 70px; gap: 8px; padding: 8px 14px; align-items: center; font-size: 12px; border-bottom: 1px solid #f3f4f6; }
+.pay-row:last-child { border-bottom: none; }
+.pay-row:hover { background: #faf5ff; }
+.pay-vendor { font-weight: 600; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pay-amount { color: #065f46; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.pay-method { padding: 2px 8px; border-radius: 10px; font-size: 10.5px; font-weight: 600; text-align: center; white-space: nowrap; }
+.pay-time { font-size: 10.5px; color: #6b7280; text-align: center; font-variant-numeric: tabular-nums; }
+.pay-note { font-size: 10.5px; color: #92400e; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pay-actions { display: flex; gap: 4px; justify-content: flex-end; }
+.pay-icon-btn { background: none; border: 1px solid #e5e7eb; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 11px; color: #6b7280; }
+.pay-icon-btn:hover { background: #f9fafb; color: #1f2937; }
+.pay-icon-btn.danger:hover { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+@media (max-width: 640px) {
+  .pay-row { grid-template-columns: minmax(0,1fr) 90px 70px; gap: 4px 8px; font-size: 11px; }
+  .pay-row > .pay-time { grid-column: 2; font-size: 9.5px; text-align: right; }
+  .pay-row > .pay-note { grid-column: 1 / -1; font-size: 10px; padding-left: 0; }
+  .pay-row > .pay-actions { grid-column: 3; }
+  .pay-row > .pay-method { font-size: 9.5px; padding: 1px 4px; }
+}
+
 /* 주문 행에 단가 배지 표시 */
 .row-price-badge {
   display: inline-block; margin-left: 6px;
@@ -2443,6 +2475,7 @@ body.pdf-rendering .a4-page {
     <div class="tab" data-tab="meddict">📘 약품사전</div>
     <div class="tab" data-tab="returns">🔁 반품현황</div>
     <div class="tab" data-tab="prices">💰 단가</div>
+    <div class="tab" data-tab="payments">💳 결제내역</div>
     <div class="tab" data-tab="settings">설정</div>
     <div class="tab refresh-tab" data-tab="refresh" title="채팅과 리스트를 즉시 동기화"><span class="refresh-icon">🔄</span>새로고침</div>
   </nav>
@@ -2695,6 +2728,51 @@ body.pdf-rendering .a4-page {
       </div>
     </div>
 
+    <!-- 결제내역 탭 -->
+    <div class="tab-panel" id="panel-payments">
+      <div class="settings-panel">
+        <div class="settings-card">
+          <h3>💳 결제내역 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(작성: 백승준·김종희 / 조회: 모든 직원)</span></h3>
+
+          <div class="history-chart-card" style="margin-bottom:14px;">
+            <div class="hist-chart-head">
+              <button class="hist-chart-nav" onclick="changePaymentMonth(-1)" title="이전 달">◀</button>
+              <span class="hist-chart-title" id="payChartTitle">-</span>
+              <button class="hist-chart-nav" onclick="changePaymentMonth(1)" title="다음 달">▶</button>
+              <button class="hist-chart-refresh" onclick="renderPaymentsAll()" title="새로고침">🔄</button>
+            </div>
+            <div class="hist-chart-summary" id="payChartSummary">-</div>
+            <div class="hist-chart-body" id="payChartBody"></div>
+          </div>
+
+          <div id="paymentsStats" style="margin-bottom:10px;"></div>
+
+          <div id="paymentsReadonlyBanner" style="display:none;padding:8px 10px;background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;font-size:11.5px;color:#78350f;margin-bottom:8px;">
+            🔒 <b>읽기 전용</b> — 결제 작성·수정·삭제는 약국장(백승준) 또는 김종희만 가능합니다.
+          </div>
+
+          <div class="settings-row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px;">
+            <button id="paymentAddBtn" class="hist-btn" onclick="openPaymentAddModal()" style="display:none;">➕ 새 결제 추가</button>
+            <input type="search" id="paymentsSearch" class="emp-input" style="flex:1;min-width:140px;font-size:12px;padding:6px 10px;" placeholder="🔍 결제사·비고 검색" oninput="renderPaymentsList()" />
+            <select id="paymentsFilterMethod" class="emp-input" style="flex:0 0 auto;width:110px;font-size:12px;padding:6px 10px;" onchange="renderPaymentsList()">
+              <option value="">전체 방법</option>
+              <option value="카드">💳 카드</option>
+              <option value="계좌이체">🏦 계좌이체</option>
+              <option value="현금">💵 현금</option>
+              <option value="어음">📜 어음</option>
+              <option value="카카오페이">🟡 카카오페이</option>
+              <option value="기타">⚪ 기타</option>
+            </select>
+            <select id="paymentsFilterVendor" class="emp-input" style="flex:0 0 auto;width:140px;font-size:12px;padding:6px 10px;" onchange="renderPaymentsList()">
+              <option value="">전체 결제사</option>
+            </select>
+          </div>
+
+          <div id="paymentsList" class="payments-list"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- 설정 탭 -->
     <div class="tab-panel" id="panel-settings">
       <div class="settings-panel">
@@ -2881,6 +2959,52 @@ body.pdf-rendering .a4-page {
     <div class="modal-foot">
       <button class="modal-btn" onclick="closeReturnModal()">취소</button>
       <button class="modal-btn" onclick="saveReturnItem()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 결제 추가/수정 모달 -->
+<div class="modal-backdrop" id="paymentModal" style="display:none;" onclick="if(event.target===this)closePaymentModal()">
+  <div class="modal" style="max-width:520px; width:94%;">
+    <div class="modal-head">
+      <span id="paymentModalTitle">결제 추가</span>
+      <button class="modal-close" onclick="closePaymentModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:14px 18px;">
+      <input type="hidden" id="paymentModalMode" value="add" />
+      <input type="hidden" id="paymentModalId" value="" />
+
+      <label class="emp-label">🏪 결제사 <span style="color:#991b1b;">*</span></label>
+      <input type="text" class="emp-input" id="paymentVendor" list="paymentVendorList" placeholder="예: 광동몰, 한미몰, 백제약품..." />
+      <datalist id="paymentVendorList"></datalist>
+
+      <div style="display:grid;grid-template-columns:1fr 140px;gap:10px;">
+        <div>
+          <label class="emp-label">💰 결제금액 <span style="color:#991b1b;">*</span></label>
+          <input type="text" class="emp-input" id="paymentAmount" placeholder="예: 1500000" inputmode="numeric" />
+        </div>
+        <div>
+          <label class="emp-label">결제방법</label>
+          <select class="emp-input" id="paymentMethod">
+            <option value="카드">💳 카드</option>
+            <option value="계좌이체">🏦 계좌이체</option>
+            <option value="현금">💵 현금</option>
+            <option value="어음">📜 어음</option>
+            <option value="카카오페이">🟡 카카오페이</option>
+            <option value="기타">⚪ 기타</option>
+          </select>
+        </div>
+      </div>
+
+      <label class="emp-label">📅 결제일시 <span style="color:#991b1b;">*</span> <span style="font-size:10.5px;color:var(--text-muted);font-weight:400;">(자동입력 후 수정 가능)</span></label>
+      <input type="datetime-local" class="emp-input" id="paymentDate" />
+
+      <label class="emp-label">📝 비고</label>
+      <input type="text" class="emp-input" id="paymentNote" placeholder="월정산 / 약속어음 / 분할납부 등" />
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn" onclick="closePaymentModal()">취소</button>
+      <button class="modal-btn" onclick="savePayment()">💾 저장</button>
     </div>
   </div>
 </div>
@@ -3287,6 +3411,10 @@ function setupFirebaseForUser() {
   if (typeof setupMedPricesListener === 'function') {
     setupMedPricesListener();
   }
+  // 결제내역 실시간 동기화
+  if (typeof setupPaymentsListener === 'function') {
+    setupPaymentsListener();
+  }
 }
 
 function detachFirebaseListeners() {
@@ -3324,6 +3452,10 @@ function detachFirebaseListeners() {
   if (typeof fbMedPricesRef !== 'undefined' && fbMedPricesRef) {
     try { fbMedPricesRef.off(); } catch (e) {}
     fbMedPricesRef = null;
+  }
+  if (typeof fbPaymentsRef !== 'undefined' && fbPaymentsRef) {
+    try { fbPaymentsRef.off(); } catch (e) {}
+    fbPaymentsRef = null;
   }
 }
 
@@ -4502,6 +4634,9 @@ function switchTab(name) {
   }
   if (name === 'prices') {
     if (typeof renderMedPricesAdmin === 'function') renderMedPricesAdmin();
+  }
+  if (name === 'payments') {
+    if (typeof renderPaymentsAll === 'function') renderPaymentsAll();
   }
   if (name === 'settings') {
     updateSettingsFirebaseInfo();
@@ -6063,6 +6198,364 @@ function renderMedDictAdmin() {
     '📘 <b>계열 약품:</b> ' + s.baseCount + '종 · ' +
     '<b>조합 템플릿:</b> ' + s.templateCount + '개<br>' +
     '<span style="font-size:10.5px;color:var(--text-muted);">분석된 총 주문: ' + s.totalOrdersAnalyzed + '건 · 최근 ' + MED_DICT_WINDOW_DAYS + '일 · 재구축: ' + when + '</span>';
+}
+
+/* ============ 결제내역 (Firebase /payments) ============ */
+// 권한: 백승준(약국장) + 김종희만 추가/수정/삭제. 다른 직원은 읽기 전용.
+// 데이터: { id, vendor, amount, method, paidAt, note, createdBy, createdByUid, createdAt }
+
+const PAYMENT_OWNER_UIDS = ['bhgORSzZ23dlNUfZmDPBe3IsnPN2', 'LYwdQYPMrDgnv1F5PRYJa2HbAC32'];
+const PAYMENT_METHODS = [
+  { value: '카드',     label: '💳 카드',    color: '#1d4ed8', bg: '#dbeafe' },
+  { value: '계좌이체', label: '🏦 계좌이체', color: '#065f46', bg: '#d1fae5' },
+  { value: '현금',     label: '💵 현금',    color: '#92400e', bg: '#fef3c7' },
+  { value: '어음',     label: '📜 어음',    color: '#7c2d12', bg: '#fed7aa' },
+  { value: '카카오페이', label: '🟡 카카오페이', color: '#854d0e', bg: '#fef9c3' },
+  { value: '기타',     label: '⚪ 기타',    color: '#6b7280', bg: '#f3f4f6' }
+];
+
+let paymentsList = [];
+let fbPaymentsRef = null;
+let _paymentsChartMonth = null;
+
+function canManagePayments() {
+  if (currentUser === '백승준' || currentUser === '김종희') return true;
+  if (PAYMENT_OWNER_UIDS.indexOf(currentAuthUid || '') >= 0) return true;
+  return false;
+}
+
+function setupPaymentsListener() {
+  if (!fbDb) return;
+  if (fbPaymentsRef) { try { fbPaymentsRef.off(); } catch(e){} }
+  fbPaymentsRef = fbDb.ref('payments');
+  fbPaymentsRef.on('value', snap => {
+    const val = snap.val() || {};
+    paymentsList = Object.entries(val)
+      .map(([id, v]) => ({ id, ...v }))
+      .filter(x => x && x.vendor)
+      .sort((a, b) => (b.paidAt || 0) - (a.paidAt || 0));
+    if (typeof renderPaymentsAll === 'function') renderPaymentsAll();
+  });
+}
+
+function getPaymentMethodStyle(m) {
+  return PAYMENT_METHODS.find(x => x.value === m) || PAYMENT_METHODS[PAYMENT_METHODS.length - 1];
+}
+
+function getPaymentChartMonth() {
+  if (_paymentsChartMonth) return _paymentsChartMonth;
+  const t = todayStr();
+  return t.slice(0, 7);
+}
+function changePaymentMonth(delta) {
+  const cur = getPaymentChartMonth();
+  const [y, m] = cur.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  _paymentsChartMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  renderPaymentsChart();
+}
+
+// === 모달 ===
+function openPaymentAddModal() {
+  if (!canManagePayments()) {
+    alert('⛔ 결제 작성은 약국장(백승준) 또는 김종희만 가능합니다.');
+    return;
+  }
+  document.getElementById('paymentModalTitle').textContent = '➕ 결제 추가';
+  document.getElementById('paymentModalMode').value = 'add';
+  document.getElementById('paymentModalId').value = '';
+  document.getElementById('paymentVendor').value = '';
+  document.getElementById('paymentAmount').value = '';
+  document.getElementById('paymentMethod').value = '카드';
+  // 기본 결제일시: 현재
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  document.getElementById('paymentDate').value = local;
+  document.getElementById('paymentNote').value = '';
+  document.getElementById('paymentModal').style.display = 'flex';
+  renderPaymentVendorSuggestions();
+}
+
+function openPaymentEditModal(id) {
+  if (!canManagePayments()) { alert('⛔ 권한 없음'); return; }
+  const p = paymentsList.find(x => x.id === id);
+  if (!p) { alert('결제 항목을 찾을 수 없습니다.'); return; }
+  document.getElementById('paymentModalTitle').textContent = '✏️ 결제 수정';
+  document.getElementById('paymentModalMode').value = 'edit';
+  document.getElementById('paymentModalId').value = id;
+  document.getElementById('paymentVendor').value = p.vendor || '';
+  document.getElementById('paymentAmount').value = p.amount || '';
+  document.getElementById('paymentMethod').value = p.method || '카드';
+  if (p.paidAt) {
+    const d = new Date(p.paidAt);
+    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    document.getElementById('paymentDate').value = local;
+  }
+  document.getElementById('paymentNote').value = p.note || '';
+  document.getElementById('paymentModal').style.display = 'flex';
+  renderPaymentVendorSuggestions();
+}
+
+function closePaymentModal() {
+  const m = document.getElementById('paymentModal');
+  if (m) m.style.display = 'none';
+}
+
+// 자주 쓴 결제사 자동완성 후보
+function renderPaymentVendorSuggestions() {
+  const dl = document.getElementById('paymentVendorList');
+  if (!dl) return;
+  const counts = {};
+  paymentsList.forEach(p => { if (p.vendor) counts[p.vendor] = (counts[p.vendor] || 0) + 1; });
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 30).map(x => x[0]);
+  dl.innerHTML = top.map(v => `<option value="${escapeHtml(v)}">`).join('');
+}
+
+function savePayment() {
+  if (!canManagePayments()) { alert('⛔ 권한 없음'); return; }
+  const mode = document.getElementById('paymentModalMode').value;
+  const id = document.getElementById('paymentModalId').value;
+  const vendor = (document.getElementById('paymentVendor').value || '').trim();
+  const amountRaw = (document.getElementById('paymentAmount').value || '').replace(/[,\s원]/g, '');
+  const amount = parseFloat(amountRaw);
+  const method = document.getElementById('paymentMethod').value || '카드';
+  const dateStr = document.getElementById('paymentDate').value;
+  const note = (document.getElementById('paymentNote').value || '').trim();
+
+  if (!vendor) { alert('결제사를 입력하세요.'); return; }
+  if (!isFinite(amount) || amount <= 0) { alert('결제금액을 숫자로 입력하세요.'); return; }
+  if (!dateStr) { alert('결제일시를 선택하세요.'); return; }
+  const paidAt = new Date(dateStr).getTime();
+
+  if (mode === 'add') {
+    const payload = {
+      vendor, amount: Math.round(amount), method, paidAt, note,
+      createdBy: currentUser || '', createdByUid: currentAuthUid || '',
+      createdAt: Date.now()
+    };
+    if (fbDb) {
+      fbDb.ref('payments').push(payload)
+        .then(() => closePaymentModal())
+        .catch(err => alert('저장 실패: ' + (err.message || err)));
+    } else {
+      payload.id = 'local-' + Date.now();
+      paymentsList.unshift(payload);
+      renderPaymentsAll();
+      closePaymentModal();
+    }
+  } else {
+    const updates = { vendor, amount: Math.round(amount), method, paidAt, note,
+      updatedAt: Date.now(), updatedBy: currentUser || '' };
+    if (fbDb) {
+      fbDb.ref('payments/' + id).update(updates)
+        .then(() => closePaymentModal())
+        .catch(err => alert('수정 실패: ' + (err.message || err)));
+    } else {
+      const idx = paymentsList.findIndex(x => x.id === id);
+      if (idx >= 0) Object.assign(paymentsList[idx], updates);
+      renderPaymentsAll();
+      closePaymentModal();
+    }
+  }
+}
+
+function deletePayment(id) {
+  if (!canManagePayments()) { alert('⛔ 권한 없음'); return; }
+  const p = paymentsList.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm(`다음 결제를 삭제하시겠습니까?\n\n결제사: ${p.vendor}\n금액: ₩${(p.amount||0).toLocaleString()}\n방법: ${p.method}`)) return;
+  if (fbDb) {
+    fbDb.ref('payments/' + id).remove()
+      .catch(err => alert('삭제 실패: ' + (err.message || err)));
+  } else {
+    paymentsList = paymentsList.filter(x => x.id !== id);
+    renderPaymentsAll();
+  }
+}
+
+// === 메인 렌더 ===
+function renderPaymentsAll() {
+  renderPaymentsChart();
+  renderPaymentsStats();
+  renderPaymentsList();
+}
+
+function renderPaymentsStats() {
+  const el = document.getElementById('paymentsStats');
+  if (!el) return;
+  const sixMonthsAgo = Date.now() - 180 * 86400000;
+  const recent = paymentsList.filter(p => (p.paidAt || 0) >= sixMonthsAgo);
+  const total = recent.reduce((s, p) => s + (p.amount || 0), 0);
+  const count = recent.length;
+  const avg = count > 0 ? total / count : 0;
+  // 결제방법별 통계
+  const byMethod = {};
+  recent.forEach(p => { byMethod[p.method || '기타'] = (byMethod[p.method || '기타'] || 0) + (p.amount || 0); });
+  const methodSummary = Object.entries(byMethod).sort((a, b) => b[1] - a[1]).slice(0, 4)
+    .map(([m, v]) => `<span class="pay-stat-pill">${escapeHtml(m)} <b>${typeof fmtWon==='function'?fmtWon(v):'₩'+v.toLocaleString()}</b></span>`).join('');
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <span class="pay-stat-pill primary">📅 최근 6개월 합계 <b>${typeof fmtWon==='function'?fmtWon(total):'₩'+Math.round(total).toLocaleString()}</b></span>
+      <span class="pay-stat-pill">건수 <b>${count}</b></span>
+      <span class="pay-stat-pill">건당 평균 <b>${typeof fmtWon==='function'?fmtWon(avg):'₩'+Math.round(avg).toLocaleString()}</b></span>
+      ${methodSummary}
+    </div>
+  `;
+}
+
+function renderPaymentsList() {
+  const host = document.getElementById('paymentsList');
+  if (!host) return;
+  const allowed = canManagePayments();
+
+  // 필터
+  const q = ((document.getElementById('paymentsSearch')||{}).value || '').trim().toLowerCase();
+  const fM = ((document.getElementById('paymentsFilterMethod')||{}).value || '').trim();
+  const fV = ((document.getElementById('paymentsFilterVendor')||{}).value || '').trim();
+
+  // 최근 6개월만
+  const sixMonthsAgo = Date.now() - 180 * 86400000;
+  let filtered = paymentsList.filter(p => (p.paidAt || 0) >= sixMonthsAgo);
+  if (fM) filtered = filtered.filter(p => p.method === fM);
+  if (fV) filtered = filtered.filter(p => p.vendor === fV);
+  if (q) filtered = filtered.filter(p => {
+    const hay = ((p.vendor||'') + ' ' + (p.note||'') + ' ' + (p.method||'')).toLowerCase();
+    return hay.includes(q);
+  });
+
+  // 결제사 필터 옵션 갱신
+  const vendorSel = document.getElementById('paymentsFilterVendor');
+  if (vendorSel) {
+    const cur = vendorSel.value;
+    const vendors = Array.from(new Set(paymentsList.map(p => p.vendor).filter(Boolean))).sort();
+    vendorSel.innerHTML = '<option value="">전체 결제사</option>' +
+      vendors.map(v => `<option value="${escapeHtml(v)}"${cur===v?' selected':''}>${escapeHtml(v)}</option>`).join('');
+  }
+
+  // 권한별 추가 버튼
+  const addBtn = document.getElementById('paymentAddBtn');
+  if (addBtn) addBtn.style.display = allowed ? 'inline-block' : 'none';
+  const banner = document.getElementById('paymentsReadonlyBanner');
+  if (banner) banner.style.display = allowed ? 'none' : 'block';
+
+  if (!filtered.length) {
+    host.innerHTML = '<div class="pay-empty">' + (paymentsList.length ? '검색 결과 없음' : '아직 등록된 결제 내역이 없습니다.') + '</div>';
+    return;
+  }
+
+  // 날짜별 그룹화
+  const byDate = {};
+  filtered.forEach(p => {
+    const d = new Date(p.paidAt || 0);
+    const dStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    if (!byDate[dStr]) byDate[dStr] = [];
+    byDate[dStr].push(p);
+  });
+  const dates = Object.keys(byDate).sort().reverse(); // 최신 날짜 위로
+
+  let html = '';
+  dates.forEach(dStr => {
+    const items = byDate[dStr];
+    const dayTotal = items.reduce((s, p) => s + (p.amount || 0), 0);
+    const d = new Date(dStr);
+    const dow = ['일','월','화','수','목','금','토'][d.getDay()];
+    html += `<div class="pay-date-group">
+      <div class="pay-date-head">
+        <span class="pay-date-label">📅 ${escapeHtml(dStr)} (${dow})</span>
+        <span class="pay-date-cnt">${items.length}건</span>
+        <span class="pay-date-total">${typeof fmtWon==='function'?fmtWon(dayTotal):'₩'+dayTotal.toLocaleString()}</span>
+      </div>
+      <div class="pay-date-body">`;
+    // 시간순 (그날의 늦은 시각이 위)
+    items.sort((a,b) => (b.paidAt||0) - (a.paidAt||0));
+    items.forEach(p => {
+      const ms = getPaymentMethodStyle(p.method);
+      const t = new Date(p.paidAt || 0);
+      const time = String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
+      const editBtn = allowed
+        ? `<button class="pay-icon-btn" title="수정" onclick="openPaymentEditModal('${escapeHtml(p.id)}')">✏️</button>
+           <button class="pay-icon-btn danger" title="삭제" onclick="deletePayment('${escapeHtml(p.id)}')">🗑</button>` : '';
+      html += `<div class="pay-row">
+        <span class="pay-vendor">${escapeHtml(p.vendor)}</span>
+        <span class="pay-amount">${typeof fmtWon==='function'?fmtWon(p.amount):'₩'+(p.amount||0).toLocaleString()}</span>
+        <span class="pay-method" style="background:${ms.bg};color:${ms.color};">${escapeHtml(ms.label)}</span>
+        <span class="pay-time">${time}</span>
+        <span class="pay-note">${p.note ? '📝 ' + escapeHtml(p.note) : ''}</span>
+        <span class="pay-actions">${editBtn}</span>
+      </div>`;
+    });
+    html += '</div></div>';
+  });
+  host.innerHTML = html;
+}
+
+function renderPaymentsChart() {
+  const titleEl = document.getElementById('payChartTitle');
+  const sumEl = document.getElementById('payChartSummary');
+  const bodyEl = document.getElementById('payChartBody');
+  if (!titleEl || !bodyEl) return;
+  const yyyymm = getPaymentChartMonth();
+  const [y, m] = yyyymm.split('-').map(Number);
+  titleEl.textContent = y + '년 ' + m + '월 결제 추이';
+
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const dailyTotals = [];
+  let monthSum = 0, monthCnt = 0;
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dStart = new Date(y, m-1, day, 0, 0, 0).getTime();
+    const dEnd = new Date(y, m-1, day, 23, 59, 59, 999).getTime();
+    let total = 0, cnt = 0;
+    paymentsList.forEach(p => {
+      if ((p.paidAt||0) >= dStart && (p.paidAt||0) <= dEnd) {
+        total += p.amount || 0; cnt++;
+      }
+    });
+    dailyTotals.push({ day, total, cnt });
+    monthSum += total; monthCnt += cnt;
+  }
+  const avg = monthCnt > 0 ? monthSum / monthCnt : 0;
+  if (sumEl) {
+    sumEl.innerHTML = '월 합계: <b>' + (typeof fmtWon==='function'?fmtWon(monthSum):'₩'+Math.round(monthSum).toLocaleString()) + '</b> · 건수 ' + monthCnt + ' · 건당 평균 <b>' + (typeof fmtWon==='function'?fmtWon(avg):'₩'+Math.round(avg).toLocaleString()) + '</b>';
+  }
+  // SVG
+  const W = 660, H = 200, padL = 50, padR = 12, padT = 10, padB = 36;
+  const chartW = W - padL - padR, chartH = H - padT - padB;
+  const maxVal = Math.max(...dailyTotals.map(x => x.total), 1);
+  const barW = chartW / daysInMonth - 2;
+  const today = todayStr();
+
+  let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:600px;font-family:inherit;">';
+  for (let i = 0; i <= 4; i++) {
+    const yl = padT + chartH - (chartH * i / 4);
+    const v = (maxVal * i / 4);
+    svg += '<line x1="' + padL + '" y1="' + yl + '" x2="' + (W - padR) + '" y2="' + yl + '" stroke="#e5e7eb" stroke-dasharray="2 3"/>';
+    const lbl = v >= 10000 ? Math.round(v/10000) + '만' : (v >= 1000 ? Math.round(v/1000) + 'k' : Math.round(v));
+    svg += '<text x="' + (padL - 6) + '" y="' + (yl + 3) + '" font-size="9" fill="#9ca3af" text-anchor="end">' + lbl + '</text>';
+  }
+  dailyTotals.forEach((d, i) => {
+    const x = padL + i * (chartW / daysInMonth) + 1;
+    const h = d.total > 0 ? (d.total / maxVal) * chartH : 0;
+    const yPos = padT + chartH - h;
+    const dStr = y + '-' + String(m).padStart(2,'0') + '-' + String(d.day).padStart(2,'0');
+    const isToday = dStr === today;
+    const dow = new Date(y, m-1, d.day).getDay();
+    const isSun = dow === 0, isSat = dow === 6;
+    const fill = isToday ? '#c9763d' : (isSun ? '#f87171' : (isSat ? '#60a5fa' : '#7c3aed'));
+    if (d.total > 0) {
+      const tooltip = dStr + ' · ' + (typeof fmtWon==='function'?fmtWon(d.total):'₩'+Math.round(d.total).toLocaleString()) + ' (' + d.cnt + '건)';
+      svg += '<rect x="' + x + '" y="' + yPos + '" width="' + barW + '" height="' + h + '" fill="' + fill + '" rx="2"><title>' + tooltip + '</title></rect>';
+    }
+    if (d.day === 1 || d.day % 5 === 0 || d.day === daysInMonth || isToday) {
+      svg += '<text x="' + (x + barW/2) + '" y="' + (H - padB + 14) + '" font-size="9" fill="' + (isToday ? '#c9763d' : '#6b7280') + '" font-weight="' + (isToday ? '700' : '500') + '" text-anchor="middle">' + d.day + '</text>';
+    }
+  });
+  svg += '<g transform="translate(' + padL + ',' + (H - 8) + ')" font-size="9" fill="#6b7280">';
+  svg += '<rect x="0" y="-7" width="9" height="9" fill="#7c3aed" rx="1"/><text x="13" y="0">평일</text>';
+  svg += '<rect x="46" y="-7" width="9" height="9" fill="#60a5fa" rx="1"/><text x="59" y="0">토</text>';
+  svg += '<rect x="78" y="-7" width="9" height="9" fill="#f87171" rx="1"/><text x="91" y="0">일</text>';
+  svg += '<rect x="108" y="-7" width="9" height="9" fill="#c9763d" rx="1"/><text x="121" y="0">오늘</text>';
+  svg += '</g></svg>';
+  bodyEl.innerHTML = svg;
 }
 
 /* ============ 의약품 단가 (Firebase /medPrices) ============ */
