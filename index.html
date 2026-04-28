@@ -1280,8 +1280,8 @@ body.pdf-rendering .a4-page {
 .a4-col { display: flex; flex-direction: column; }
 .a4-row {
   display: grid;
-  /* 번호 | 의약품명(대폭 확장) | 규격(축소) | 갯수 | 비고(축소) | 작성자(축소) | 시간(축소) */
-  grid-template-columns: 20px minmax(0,2.6fr) 44px 38px minmax(0,0.5fr) 48px 38px;
+  /* 번호 | 의약품명 | 규격 | 갯수 | 비고 | 작성자(축소) | 시간(축소) | 💰금액(신규) */
+  grid-template-columns: 20px minmax(0,2.6fr) 44px 38px minmax(0,0.5fr) 36px 32px 64px;
   align-items: center;
   border-bottom: 1px dotted #ccc;
   padding: 5px 3px;
@@ -1289,6 +1289,25 @@ body.pdf-rendering .a4-page {
   min-height: 28px;
   gap: 3px;
 }
+.a4-row .row-amount {
+  text-align: right;
+  font-size: 7.7px;          /* 70% of 11px */
+  color: #065f46;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 2px;
+}
+.a4-row .row-amount.missing {
+  color: #92400e;
+  font-weight: 600;
+  font-size: 7px;
+  cursor: pointer;
+}
+.a4-row .row-amount.missing:hover { background: #fef3c7; }
+.a4-row.head .row-amount { color: var(--text); font-size: 9px; font-weight: 700; }
 .a4-row.head {
   background: #f0ede4;
   font-weight: 700;
@@ -2042,13 +2061,16 @@ body.pdf-rendering .a4-page {
     column-gap: 0;
   }
   .a4-row {
-    /* 모바일: 의약품명 약 2배 확장, 규격/비고/작성자/시간 축소 */
-    grid-template-columns: 14px minmax(0,4fr) minmax(0,0.6fr) minmax(0,0.7fr) minmax(0,0.5fr) minmax(0,0.55fr) minmax(0,0.55fr);
+    /* 모바일: 의약품명 + 작성자/시간 축소 + 금액 컬럼 추가 */
+    grid-template-columns: 14px minmax(0,4fr) minmax(0,0.6fr) minmax(0,0.7fr) minmax(0,0.5fr) minmax(0,0.55fr) minmax(0,0.55fr) minmax(0,0.85fr);
     font-size: 10.5px;
     padding: 6px 1px;
     gap: 2px;
     min-height: 30px;
   }
+  .a4-row .row-amount { font-size: 7.4px; }
+  .a4-row .row-amount.missing { font-size: 7px; }
+  .a4-row.head .row-amount { font-size: 8.5px; }
   /* 모바일: 이름 외의 셀은 한 줄 고정 ellipsis */
   .a4-row > div {
     overflow: hidden;
@@ -2192,7 +2214,7 @@ body.pdf-rendering .a4-page {
 /* 매우 작은 화면 (≤380px) */
 @media (max-width: 380px) {
   .header-center { font-size: 10px; }
-  .a4-row { grid-template-columns: 20px 1fr 50px 42px; font-size: 11px; }
+  .a4-row { grid-template-columns: 18px 1fr 44px 38px 0.5fr 32px 28px 0.7fr; font-size: 10px; }
   .a4-row.head { font-size: 10px; }
   .tab { padding: 12px 10px; font-size: 12px; }
 }
@@ -3897,6 +3919,7 @@ function renderA4() {
       <div class="h-note">비고</div>
       <div class="h-author">작성자</div>
       <div class="h-time">시간</div>
+      <div class="row-amount">💰금액</div>
     </div>`;
     for (let row = 0; row < 30; row++) {
       const i = col * 30 + row;
@@ -3929,29 +3952,30 @@ function renderA4() {
         const itemId = it.id || '';
         const dupTitle = isDup ? ' · 주문중복' : '';
         const floor2Title = isFloor2 ? ' · ⚠ 2층재고' : '';
-        // 💰 단가 매칭 + 금액 계산
-        let priceBadge = '';
+        // 💰 단가 매칭 + 금액 계산 (별도 컬럼으로 표시)
+        let priceCell = '<div class="row-amount">-</div>';
         let priceTitle = '';
         if (typeof calcOrderAmount === 'function') {
           const r = calcOrderAmount(it);
           if (r && r.totalAmount != null) {
-            priceBadge = `<span class="row-price-badge" title="${escapeHtml(r.calc||'')}">${typeof fmtWon==='function'?fmtWon(r.totalAmount):'₩'+Math.round(r.totalAmount).toLocaleString()}</span>`;
+            const won = typeof fmtWon==='function'?fmtWon(r.totalAmount):'₩'+Math.round(r.totalAmount).toLocaleString();
+            priceCell = `<div class="row-amount" title="${escapeHtml(r.calc||'')}">${won}</div>`;
             priceTitle = ' · 💰 ' + (r.calc||'');
           } else if (medPrices && medPrices.items && medPrices.items.length > 0) {
-            // 단가표 있는데 매칭 실패 → 미등록 배지
-            priceBadge = `<span class="row-price-badge missing" title="단가 미등록 — 클릭하여 즉석 입력" onclick="event.stopPropagation();openMissingPriceModal('${escapeHtml(it.name||'')}','${escapeHtml(it.spec||'')}','${escapeHtml(it.qty||'')}')">⚠ 단가</span>`;
+            priceCell = `<div class="row-amount missing" title="단가 미등록 — 탭하여 즉석 입력" onclick="event.stopPropagation();openMissingPriceModal('${escapeHtml(it.name||'')}','${escapeHtml(it.spec||'')}','${escapeHtml(it.qty||'')}')">⚠ 미등록</div>`;
           }
         }
         const titleAttr = (isMine ? '탭하여 수정/삭제 (본인 작성)' : `${it.author||''}님이 작성 — 본인만 수정 가능`) + dupTitle + floor2Title + priceTitle;
         const editIcon = isMine ? '<span class="edit-mark" title="수정 가능">✏️</span>' : '';
         html += `<div class="a4-row ${editableCls} ${baseCls}" data-itemid="${escapeHtml(itemId)}" title="${escapeHtml(titleAttr)}">
           <div class="row-num">${displayNum}${editIcon}</div>
-          <div class="row-name">${floor2Badge}${escapeHtml(it.name||'-')}${dupSup}${priceBadge}</div>
+          <div class="row-name">${floor2Badge}${escapeHtml(it.name||'-')}${dupSup}</div>
           <div class="row-spec">${escapeHtml(it.spec||'-')}</div>
           <div class="row-qty">${escapeHtml(it.qty||'-')}</div>
           <div class="row-note"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(it.note||'')}</span></div>
           <div class="row-author" title="${escapeHtml(it.author||'')}">${escapeHtml(it.author||'-')}</div>
           <div class="row-time">${escapeHtml(it.time||'-')}</div>
+          ${priceCell}
         </div>`;
       }
     }
@@ -5865,15 +5889,37 @@ function setupMedPricesListener() {
   });
 }
 
-// 빠른 매칭을 위한 인덱스 생성
+// 빠른 매칭을 위한 인덱스 (2종)
+let medPricesIndexStrip = {}; // 강화 정규화 키 → priceItem (제형·용량·괄호 제거)
 function buildPriceIndex() {
   medPricesIndexNorm = {};
+  medPricesIndexStrip = {};
   if (!medPrices || !Array.isArray(medPrices.items)) return;
   medPrices.items.forEach(p => {
     if (!p || !p.name) return;
-    const k = normalizeMedName(p.name);
-    medPricesIndexNorm[k] = p;
+    const k1 = normalizeMedName(p.name);
+    medPricesIndexNorm[k1] = p;
+    const k2 = normalizeForPriceMatch(p.name);
+    if (k2) medPricesIndexStrip[k2] = p;
   });
+}
+
+// 강화된 정규화: 제형(정/캡슐/액 등) + 용량 단위(밀리그램/mg) + 괄호 안 성분명 모두 제거
+// 목적: "라믹탈100" ↔ "라믹탈정100밀리그램(라모트리진)_(0.1g/1정)" 같은 약식↔풀네임 매칭
+function normalizeForPriceMatch(s) {
+  if (!s) return '';
+  let x = String(s).toLowerCase();
+  // 후행 _(...) 제거 (예: _(1정), _(0.5g/1정), _(28정))
+  x = x.replace(/_\([^)]*\)\s*$/g, '');
+  // 괄호 안 내용 제거 (성분명·수출명 등)
+  x = x.replace(/\([^)]*\)/g, '');
+  // 용량 단위 제거 (먼저 단위, 그 다음 제형)
+  x = x.replace(/(밀리그램|마이크로그램|밀리리터|밀리|미리|마이크로|cc|mg|mcg|μg|ug|iu|ml|mL)/gi, '');
+  // 제형 명칭 제거 (긴 것 먼저 매칭되도록 길이순)
+  x = x.replace(/(점안현탁액|점안용액|점안액|점안제|점안겔|점이현탁액|점이액|건조시럽|네일라카|마우스워시|구강용해필름|흡입용캡슐|레스피맷|레스피마트|에보할러|엘립타|디스커스|터부헬러|네뷸|로숀|이용액|관장약|질좌제|좌약|좌제|패취|패치|현탁액|시럽|연고|크림|로션|스프레이|흡입제|흡입액|과립|산제|환제|건조분|복현|캡슐|정|액|겔|폼|환)/g, '');
+  // 공백·특수문자 제거
+  x = x.replace(/[\s\(\)\[\]\{\}\*×x·\-_\.%,]/g, '');
+  return x;
 }
 
 // === 약품명에서 단위 정보 추출 ===
@@ -5914,30 +5960,75 @@ function detectPriceUnit(name) {
 // === 주문 항목에 매칭되는 단가 찾기 ===
 function findPriceForOrder(orderItem) {
   if (!orderItem || !orderItem.name) return null;
-  const q = normalizeMedName(orderItem.name);
-  if (!q || q.length < 2) return null;
+  const items = (medPrices && medPrices.items) || [];
+  if (!items.length) return null;
 
-  // 1) 정확 일치
-  if (medPricesIndexNorm[q]) return medPricesIndexNorm[q];
+  const userOriginalKey = normalizeMedName(orderItem.name);
+  const userKey = normalizeForPriceMatch(orderItem.name);
+  if (!userKey || userKey.length < 2) return null;
 
-  // 2) 접두 일치 (사용자가 짧게 친 경우)
-  const keys = Object.keys(medPricesIndexNorm);
-  for (const k of keys) {
-    if (k === q) return medPricesIndexNorm[k];
-  }
-  for (const k of keys) {
-    if (k.startsWith(q) && q.length >= 3) return medPricesIndexNorm[k];
-  }
-  // 3) 부분 일치 (사용자 입력이 DB 항목 안에 포함)
-  if (q.length >= 4) {
-    for (const k of keys) {
-      if (k.includes(q)) return medPricesIndexNorm[k];
-    }
-    // 4) DB 항목이 사용자 입력 안에 포함 (DB 짧은 이름 → 풀네임 입력)
-    for (const k of keys) {
-      if (k.length >= 4 && q.includes(k)) return medPricesIndexNorm[k];
+  // 1) 강화 정규화 키 정확 일치 (가장 정확) ─ 라믹탈100 ↔ 라믹탈정100밀리그램(...)
+  if (medPricesIndexStrip[userKey]) return medPricesIndexStrip[userKey];
+
+  // 2) DB 키가 사용자 키로 시작 (사용자가 짧게 입력 → DB는 더 자세함)
+  if (userKey.length >= 3) {
+    const stripKeys = Object.keys(medPricesIndexStrip);
+    for (const k of stripKeys) {
+      if (k && k.startsWith(userKey)) return medPricesIndexStrip[k];
     }
   }
+
+  // 3) 사용자 키가 DB 키로 시작 (DB가 짧은 풀네임 → 사용자가 부가설명 추가)
+  if (userKey.length >= 3) {
+    const stripKeys = Object.keys(medPricesIndexStrip);
+    for (const k of stripKeys) {
+      if (k && k.length >= 3 && userKey.startsWith(k)) return medPricesIndexStrip[k];
+    }
+  }
+
+  // 4) 부분 포함 (양방향)
+  if (userKey.length >= 4) {
+    const stripKeys = Object.keys(medPricesIndexStrip);
+    for (const k of stripKeys) {
+      if (k && k.length >= 4 && (k.includes(userKey) || userKey.includes(k))) return medPricesIndexStrip[k];
+    }
+  }
+
+  // 5) 베이스 + 용량 분리 매칭 — 한글/영문 베이스 + 숫자(슬래시 포함) 용량
+  // 예: "라믹탈100" → base=라믹탈, dose=100 / DB "라믹탈100" → base=라믹탈, dose=100 → 매치
+  // 예: "립스타플러스10/10" → base=립스타플러스, dose=10/10
+  const userM = userKey.match(/^([가-힣a-zA-Z]+)([0-9].*)$/);
+  if (userM && userM[1].length >= 2) {
+    const ub = userM[1], ud = userM[2];
+    const stripKeys = Object.keys(medPricesIndexStrip);
+    for (const k of stripKeys) {
+      const dbM = k.match(/^([가-힣a-zA-Z]+)([0-9].*)$/);
+      if (dbM) {
+        const db_b = dbM[1], db_d = dbM[2];
+        // base 양방향 + dose 양방향 시작 일치
+        const baseOK = (db_b === ub) || db_b.startsWith(ub) || ub.startsWith(db_b);
+        const doseOK = (db_d === ud) || db_d.startsWith(ud) || ud.startsWith(db_d);
+        if (baseOK && doseOK) return medPricesIndexStrip[k];
+      }
+    }
+  }
+
+  // 6) 폴백: 기존 정규화(normalizeMedName) 기반 매칭 (제형 안 떼는 경우 대비)
+  if (userOriginalKey.length >= 2) {
+    if (medPricesIndexNorm[userOriginalKey]) return medPricesIndexNorm[userOriginalKey];
+    const normKeys = Object.keys(medPricesIndexNorm);
+    if (userOriginalKey.length >= 3) {
+      for (const k of normKeys) {
+        if (k && (k.startsWith(userOriginalKey) || userOriginalKey.startsWith(k))) return medPricesIndexNorm[k];
+      }
+    }
+    if (userOriginalKey.length >= 4) {
+      for (const k of normKeys) {
+        if (k && k.length >= 4 && (k.includes(userOriginalKey) || userOriginalKey.includes(k))) return medPricesIndexNorm[k];
+      }
+    }
+  }
+
   return null;
 }
 
@@ -7715,7 +7806,6 @@ try {
 
   // 2층 재고 의약품 목록 로컬 캐시 로드 (Firebase 연결 시 리스너로 덮어씀)
   if (typeof loadFloor2MedListLocal === 'function') loadFloor2MedListLocal();
-  if (typeof loadMedDictLocal === 'function') loadMedDictLocal();
 
   // Firebase 먼저 시도, 없으면 설정 화면 또는 로그인
   const fbReady = tryInitFirebase();
