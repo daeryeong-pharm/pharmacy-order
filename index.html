@@ -1624,6 +1624,47 @@ body.pdf-rendering .a4-page {
 .ret-icon-btn:hover { background: #f9fafb; color: #1f2937; }
 .ret-icon-btn.danger:hover { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
 
+/* 주문리스트 하단 일일 합계 바 */
+.a4-total-bar {
+  display: flex; justify-content: flex-end; align-items: center;
+  gap: 12px; padding: 10px 16px; margin-top: 10px;
+  background: linear-gradient(90deg, #fffaf0 0%, #fff4e0 100%);
+  border-top: 2px solid #c9763d; border-radius: 0 0 6px 6px;
+}
+.a4-total-label { font-size: 12px; color: #5d4a33; font-weight: 600; }
+.a4-total-value { font-size: 16px; color: #065f46; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: 0.3px; }
+.a4-total-value.zero { color: #9ca3af; font-weight: 600; }
+
+/* 날짜별기록 차트 카드 */
+.history-chart-card {
+  background: #fff; border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 14px;
+}
+.hist-chart-head {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.hist-chart-title { font-size: 14px; font-weight: 700; color: #1f2937; flex: 1; text-align: center; }
+.hist-chart-nav {
+  border: 1px solid var(--border); background: #fff; border-radius: 6px;
+  width: 30px; height: 30px; cursor: pointer; font-size: 14px; color: #4b5563;
+}
+.hist-chart-nav:hover { background: #f3f4f6; }
+.hist-chart-refresh {
+  border: 1px solid var(--accent); background: var(--accent-soft); border-radius: 6px;
+  padding: 4px 10px; cursor: pointer; font-size: 12px; color: var(--accent);
+}
+.hist-chart-summary { font-size: 11.5px; color: var(--text-muted); padding: 0 0 8px; line-height: 1.5; }
+.hist-chart-summary b { color: #065f46; font-variant-numeric: tabular-nums; }
+.hist-chart-body { width: 100%; overflow-x: auto; }
+.hist-chart-body svg { display: block; max-width: 100%; height: auto; }
+
+/* 날짜별 매출 표시 (history-item) */
+.hist-amount {
+  font-size: 11.5px; color: #065f46; font-weight: 700;
+  margin-top: 2px; font-variant-numeric: tabular-nums;
+}
+.hist-amount.zero { color: #9ca3af; font-weight: 500; }
+
 /* 주문 행에 단가 배지 표시 */
 .row-price-badge {
   display: inline-block; margin-left: 6px;
@@ -2426,6 +2467,10 @@ body.pdf-rendering .a4-page {
               </div>
             </div>
             <div class="a4-grid" id="a4Grid"></div>
+            <div class="a4-total-bar" id="a4TotalBar">
+              <span class="a4-total-label">📊 오늘 주문 합계 (실시간)</span>
+              <span class="a4-total-value" id="a4TotalValue">-</span>
+            </div>
             <div class="a4-footer">대전 충남대병원 앞 충대대령약국 · 의약품 주문 시스템</div>
           </div>
         </div>
@@ -2469,6 +2514,16 @@ body.pdf-rendering .a4-page {
     <!-- 기록 탭 -->
     <div class="tab-panel" id="panel-history">
       <div class="history-panel">
+        <div class="history-chart-card">
+          <div class="hist-chart-head">
+            <button class="hist-chart-nav" onclick="changeHistoryMonth(-1)" title="이전 달">◀</button>
+            <span class="hist-chart-title" id="histChartTitle">-</span>
+            <button class="hist-chart-nav" onclick="changeHistoryMonth(1)" title="다음 달">▶</button>
+            <button class="hist-chart-refresh" onclick="renderHistory()" title="새로고침">🔄</button>
+          </div>
+          <div class="hist-chart-summary" id="histChartSummary">-</div>
+          <div class="hist-chart-body" id="histChartBody"></div>
+        </div>
         <div class="history-list" id="historyList"></div>
       </div>
     </div>
@@ -4012,19 +4067,51 @@ document.getElementById('prevPage').addEventListener('click', () => { currentPag
 document.getElementById('nextPage').addEventListener('click', () => { currentPage++; renderA4(); });
 
 // ============ 기록 탭 ============
+// 차트에 표시할 월 (YYYY-MM 형식). 미설정 시 현재 월
+let _historyChartMonth = null;
+function getHistoryChartMonth() {
+  if (_historyChartMonth) return _historyChartMonth;
+  const t = todayStr();
+  return t.slice(0, 7); // YYYY-MM
+}
+function changeHistoryMonth(deltaMonths) {
+  const cur = getHistoryChartMonth();
+  const [y, m] = cur.split('-').map(Number);
+  const d = new Date(y, m - 1 + deltaMonths, 1);
+  _historyChartMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  renderHistory();
+}
+
 function renderHistory() {
   const dates = Object.keys(allData).sort().reverse();
   const list = document.getElementById('historyList');
+
+  // === 1) 차트 렌더링 (선택된 월) ===
+  renderMonthlyChart();
+
+  if (!list) return;
   if (!dates.length) {
     list.innerHTML = '<div class="empty-state">아직 저장된 기록이 없습니다.</div>';
     return;
   }
+
+  // === 2) 날짜별 리스트 (각 날짜에 매출 합계 추가) ===
   list.innerHTML = dates.map(d => {
     const data = allData[d];
+    let amountHtml = '';
+    if (typeof calcDailyTotalAmount === 'function') {
+      const t = calcDailyTotalAmount(d);
+      if (t.total > 0) {
+        amountHtml = '<div class="hist-amount">💰 ' + (typeof fmtWon === 'function' ? fmtWon(t.total) : '₩' + Math.round(t.total).toLocaleString()) + (t.missing > 0 ? ' <span style="color:#92400e;font-weight:500;">(미등록 ' + t.missing + '건)</span>' : '') + '</div>';
+      } else if (data.items.length > 0) {
+        amountHtml = '<div class="hist-amount zero">💰 -</div>';
+      }
+    }
     return `<div class="history-item">
       <div class="hist-info">
         <div class="hist-date">${d} (${dayOfWeek(d)})</div>
         <div class="hist-meta">의약품 ${data.items.length}건 · 메시지 ${data.messages.length}개</div>
+        ${amountHtml}
       </div>
       <div class="hist-actions">
         <button class="hist-btn" onclick="loadDate('${d}')">열기</button>
@@ -4034,6 +4121,102 @@ function renderHistory() {
       </div>
     </div>`;
   }).join('');
+}
+
+// === 월별 매출 차트 (SVG 막대 그래프) ===
+function renderMonthlyChart() {
+  const titleEl = document.getElementById('histChartTitle');
+  const sumEl = document.getElementById('histChartSummary');
+  const bodyEl = document.getElementById('histChartBody');
+  if (!titleEl || !bodyEl) return;
+
+  const yyyymm = getHistoryChartMonth();
+  const [y, m] = yyyymm.split('-').map(Number);
+  titleEl.textContent = y + '년 ' + m + '월 매출 추이';
+
+  // 해당 월의 일수
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const dailyTotals = [];
+  let monthSum = 0, monthMissing = 0;
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dStr = y + '-' + String(m).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+    let total = 0, missing = 0;
+    if (typeof calcDailyTotalAmount === 'function') {
+      const t = calcDailyTotalAmount(dStr);
+      total = t.total || 0;
+      missing = t.missing || 0;
+    }
+    dailyTotals.push({ day, total, missing });
+    monthSum += total;
+    monthMissing += missing;
+  }
+  const validDays = dailyTotals.filter(x => x.total > 0).length;
+  const avg = validDays > 0 ? monthSum / validDays : 0;
+
+  if (sumEl) {
+    sumEl.innerHTML = '월 합계: <b>' + (typeof fmtWon==='function'?fmtWon(monthSum):'₩'+Math.round(monthSum).toLocaleString()) + '</b> · 영업일 ' + validDays + '일 · 일평균 <b>' + (typeof fmtWon==='function'?fmtWon(avg):'₩'+Math.round(avg).toLocaleString()) + '</b>' + (monthMissing > 0 ? ' · <span style="color:#92400e;">⚠ 단가 미등록 ' + monthMissing + '건</span>' : '');
+  }
+
+  // SVG 막대 그래프
+  const W = 660, H = 200, padL = 50, padR = 12, padT = 10, padB = 36;
+  const chartW = W - padL - padR, chartH = H - padT - padB;
+  const maxVal = Math.max(...dailyTotals.map(x => x.total), 1);
+  const barW = chartW / daysInMonth - 2;
+  const today = todayStr();
+
+  let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:600px;font-family:inherit;">';
+  // y축 그리드 라인 (4단)
+  for (let i = 0; i <= 4; i++) {
+    const yl = padT + chartH - (chartH * i / 4);
+    const v = (maxVal * i / 4);
+    svg += '<line x1="' + padL + '" y1="' + yl + '" x2="' + (W - padR) + '" y2="' + yl + '" stroke="#e5e7eb" stroke-dasharray="2 3"/>';
+    const lbl = v >= 10000 ? Math.round(v/10000) + '만' : (v >= 1000 ? Math.round(v/1000) + 'k' : Math.round(v));
+    svg += '<text x="' + (padL - 6) + '" y="' + (yl + 3) + '" font-size="9" fill="#9ca3af" text-anchor="end">' + lbl + '</text>';
+  }
+  // 막대
+  dailyTotals.forEach((d, i) => {
+    const x = padL + i * (chartW / daysInMonth) + 1;
+    const h = d.total > 0 ? (d.total / maxVal) * chartH : 0;
+    const yPos = padT + chartH - h;
+    const dStr = y + '-' + String(m).padStart(2,'0') + '-' + String(d.day).padStart(2,'0');
+    const isToday = dStr === today;
+    const dow = new Date(y, m-1, d.day).getDay();
+    const isSun = dow === 0, isSat = dow === 6;
+    const fill = isToday ? '#c9763d' : (isSun ? '#f87171' : (isSat ? '#60a5fa' : '#10b981'));
+    if (d.total > 0) {
+      const tooltip = dStr + ' · ' + (typeof fmtWon==='function'?fmtWon(d.total):'₩'+Math.round(d.total).toLocaleString());
+      svg += '<rect x="' + x + '" y="' + yPos + '" width="' + barW + '" height="' + h + '" fill="' + fill + '" rx="2"><title>' + tooltip + '</title></rect>';
+    }
+    // X축 라벨 (5의 배수 + 1, last day, today)
+    if (d.day === 1 || d.day % 5 === 0 || d.day === daysInMonth || isToday) {
+      svg += '<text x="' + (x + barW/2) + '" y="' + (H - padB + 14) + '" font-size="9" fill="' + (isToday ? '#c9763d' : '#6b7280') + '" font-weight="' + (isToday ? '700' : '500') + '" text-anchor="middle">' + d.day + '</text>';
+    }
+  });
+  // 범례
+  svg += '<g transform="translate(' + padL + ',' + (H - 8) + ')" font-size="9" fill="#6b7280">';
+  svg += '<rect x="0" y="-7" width="9" height="9" fill="#10b981" rx="1"/><text x="13" y="0">평일</text>';
+  svg += '<rect x="46" y="-7" width="9" height="9" fill="#60a5fa" rx="1"/><text x="59" y="0">토</text>';
+  svg += '<rect x="78" y="-7" width="9" height="9" fill="#f87171" rx="1"/><text x="91" y="0">일</text>';
+  svg += '<rect x="108" y="-7" width="9" height="9" fill="#c9763d" rx="1"/><text x="121" y="0">오늘</text>';
+  svg += '</g>';
+  svg += '</svg>';
+
+  bodyEl.innerHTML = svg;
+}
+
+// 주문리스트 하단 일일 합계 바 갱신
+function updateA4TotalBar() {
+  const el = document.getElementById('a4TotalValue');
+  if (!el) return;
+  if (typeof calcDailyTotalAmount !== 'function') { el.textContent = '-'; return; }
+  const t = calcDailyTotalAmount(currentDate);
+  if (t.total > 0) {
+    el.textContent = (typeof fmtWon==='function'?fmtWon(t.total):'₩'+Math.round(t.total).toLocaleString()) + (t.missing > 0 ? ' (미등록 ' + t.missing + '건)' : '');
+    el.classList.remove('zero');
+  } else {
+    el.textContent = (medPrices && medPrices.items && medPrices.items.length > 0) ? '단가 미등록 ' + t.missing + '건' : '단가표 업로드 필요';
+    el.classList.add('zero');
+  }
 }
 
 function loadDate(d) {
@@ -4520,6 +4703,8 @@ function renderDashboard() {
     const $mp = document.getElementById('dashMissingPrice');
     if ($mp) $mp.textContent = totals.missing;
   }
+  // 주문리스트 하단 합계 바도 갱신
+  if (typeof updateA4TotalBar === 'function') updateA4TotalBar();
 }
 
 function truncate(s, n) {
