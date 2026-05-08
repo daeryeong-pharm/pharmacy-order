@@ -105,6 +105,7 @@
       '  <div class="os-actions">',
       '    <button type="button" class="os-btn primary" data-os-search>🔎 검색</button>',
       '    <button type="button" class="os-btn" data-os-reset>↻ 초기화</button>',
+      '    <button type="button" class="os-btn" data-os-range="3">최근 3개월</button>',
       '    <button type="button" class="os-btn" data-os-range="6">최근 6개월</button>',
       '    <button type="button" class="os-btn" data-os-range="12">최근 12개월</button>',
       '    <button type="button" class="os-btn" data-os-range="0">전체</button>',
@@ -313,10 +314,10 @@
   function openModal() {
     var modal = document.getElementById('orderSearchModal');
     if (!modal) return;
-    // 기본 6개월 범위 (단, 사용자가 이미 설정했으면 유지)
+    // 기본 3개월 범위 (단, 사용자가 이미 설정했으면 유지)
     var $ = function (id) { return document.getElementById(id); };
     if (!$('osDateFrom').value && !$('osDateTo').value) {
-      $('osDateFrom').value = shiftMonths(6);
+      $('osDateFrom').value = shiftMonths(3);
       $('osDateTo').value = todayStr();
     }
     modal.classList.add('show');
@@ -331,7 +332,7 @@
     $('osQuery').value = '';
     $('osNote').value = '';
     $('osAuthor').value = '';
-    $('osDateFrom').value = shiftMonths(6);
+    $('osDateFrom').value = shiftMonths(3);
     $('osDateTo').value = todayStr();
     $('osResults').innerHTML = '<div class="os-empty">의약품명을 입력 후 🔎 검색을 눌러주세요.</div>';
     $('osSummary').textContent = '';
