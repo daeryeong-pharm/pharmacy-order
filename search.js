@@ -14,16 +14,21 @@
     var style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = [
-      '#orderSearchModal { display:none; position:fixed; inset:0; z-index:9500;',
-      '  background: rgba(15,23,42,0.55); backdrop-filter: blur(2px);',
-      '  align-items:flex-start; justify-content:center; padding:40px 12px; overflow-y:auto; }',
+      '#orderSearchModal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:9500;',
+      '  background: rgba(15,23,42,0.55);',
+      '  align-items:flex-start; justify-content:center; padding:40px 12px; overflow-y:auto;',
+      '  -webkit-overflow-scrolling: touch; }',
       '#orderSearchModal.show { display:flex; }',
       '#orderSearchModal .os-box { background:#fff; border-radius:14px; width:100%; max-width:780px;',
-      '  box-shadow: 0 20px 50px rgba(0,0,0,0.25); padding:18px 18px 22px; position:relative; }',
+      '  box-shadow: 0 20px 50px rgba(0,0,0,0.25); padding:18px 18px 22px; position:relative;',
+      '  margin-bottom:30px; }',
       '#orderSearchModal .os-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }',
       '#orderSearchModal .os-title { font-size:16px; font-weight:800; color:#0f172a; }',
       '#orderSearchModal .os-close { background:#f1f5f9; border:1px solid #e2e8f0; border-radius:8px;',
-      '  width:32px; height:32px; cursor:pointer; font-size:16px; }',
+      '  width:40px; height:40px; cursor:pointer; font-size:18px; font-weight:700;',
+      '  display:flex; align-items:center; justify-content:center; padding:0;',
+      '  -webkit-tap-highlight-color: rgba(0,0,0,0.1); touch-action: manipulation; }',
+      '#orderSearchModal .os-close:active { background:#e2e8f0; }',
       '#orderSearchModal .os-form { display:grid; grid-template-columns: 1fr 1fr; gap:8px 10px; margin-bottom:12px; }',
       '#orderSearchModal .os-form .full { grid-column: 1 / -1; }',
       '#orderSearchModal .os-form label { font-size:11.5px; font-weight:700; color:#475569; display:block; margin-bottom:3px; }',
@@ -33,20 +38,25 @@
       '#orderSearchModal .os-form input:focus, #orderSearchModal .os-form select:focus {',
       '  outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.15); }',
       '#orderSearchModal .os-actions { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }',
-      '#orderSearchModal .os-btn { padding:8px 14px; border-radius:8px; border:1px solid #e2e8f0;',
-      '  background:#fff; color:#334155; font-weight:700; font-size:12.5px; cursor:pointer; }',
+      '#orderSearchModal .os-btn { padding:10px 14px; border-radius:8px; border:1px solid #e2e8f0;',
+      '  background:#fff; color:#334155; font-weight:700; font-size:12.5px; cursor:pointer;',
+      '  min-height:40px; -webkit-tap-highlight-color: rgba(0,0,0,0.1); touch-action: manipulation; }',
       '#orderSearchModal .os-btn.primary { background:#3b82f6; border-color:#3b82f6; color:#fff; }',
       '#orderSearchModal .os-btn.primary:hover { background:#2563eb; }',
+      '#orderSearchModal .os-btn.primary:active { background:#1d4ed8; }',
       '#orderSearchModal .os-btn:hover { background:#f8fafc; }',
+      '#orderSearchModal .os-btn:active { background:#e2e8f0; }',
       '#orderSearchModal .os-summary { font-size:12px; color:#64748b; margin-bottom:8px; }',
       '#orderSearchModal .os-results { max-height:55vh; overflow-y:auto; border-top:1px solid #e2e8f0; padding-top:10px; }',
       '#orderSearchModal .os-empty { text-align:center; color:#94a3b8; padding:30px 10px; font-size:13px; }',
       '#orderSearchModal .os-date-card { border:1px solid #e2e8f0; border-radius:10px; margin-bottom:10px; overflow:hidden; }',
       '#orderSearchModal .os-date-head { background:#f8fafc; padding:8px 12px; display:flex; justify-content:space-between;',
       '  align-items:center; font-weight:800; color:#0f172a; font-size:13px; border-bottom:1px solid #e2e8f0; }',
-      '#orderSearchModal .os-date-head .os-jump { background:#3b82f6; color:#fff; border:none; padding:5px 11px;',
-      '  border-radius:6px; font-size:11.5px; font-weight:700; cursor:pointer; }',
+      '#orderSearchModal .os-date-head .os-jump { background:#3b82f6; color:#fff; border:none; padding:8px 14px;',
+      '  border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; min-height:36px;',
+      '  -webkit-tap-highlight-color: rgba(0,0,0,0.1); touch-action: manipulation; }',
       '#orderSearchModal .os-date-head .os-jump:hover { background:#2563eb; }',
+      '#orderSearchModal .os-date-head .os-jump:active { background:#1d4ed8; }',
       '#orderSearchModal .os-item-row { display:grid;',
       '  grid-template-columns: minmax(0,2.4fr) 60px 40px minmax(0,1.0fr) 50px 60px;',
       '  gap:6px; padding:6px 12px; font-size:12px; border-top:1px solid #f1f5f9; align-items:center; }',
@@ -62,11 +72,21 @@
       '#orderSearchModal .os-item-row .col-author { color:#64748b; font-size:11px; text-align:right; }',
       '#orderSearchModal mark { background:#fde68a; color:#78350f; padding:0 2px; border-radius:2px; }',
       '@media (max-width: 600px) {',
-      '  #orderSearchModal { padding:10px; }',
-      '  #orderSearchModal .os-box { padding:14px; }',
-      '  #orderSearchModal .os-form { grid-template-columns: 1fr; }',
-      '  #orderSearchModal .os-item-row { grid-template-columns: 1fr; gap:2px; padding:8px 10px; }',
-      '  #orderSearchModal .os-item-row > div { padding:1px 0; }',
+      '  #orderSearchModal { padding:8px; }',
+      '  #orderSearchModal .os-box { padding:14px 12px 16px; margin-bottom:20px; }',
+      '  #orderSearchModal .os-title { font-size:15px; }',
+      '  #orderSearchModal .os-close { width:44px; height:44px; font-size:20px; }',
+      '  #orderSearchModal .os-form { grid-template-columns: 1fr; gap:6px; }',
+      '  #orderSearchModal .os-form input, #orderSearchModal .os-form select { font-size:16px; padding:10px 12px; }',
+      '  #orderSearchModal .os-actions { gap:4px; }',
+      '  #orderSearchModal .os-btn { padding:10px 10px; font-size:12px; flex:1 1 auto; min-width:0; }',
+      '  #orderSearchModal .os-btn.primary { flex-basis:100%; }',
+      '  #orderSearchModal .os-item-row { grid-template-columns: 1fr; gap:3px; padding:10px 12px; font-size:13px; }',
+      '  #orderSearchModal .os-item-row > div { padding:2px 0; text-align:left !important; }',
+      '  #orderSearchModal .os-item-row .col-spec, #orderSearchModal .os-item-row .col-qty,',
+      '  #orderSearchModal .os-item-row .col-time { display:inline-block; margin-right:4px; }',
+      '  #orderSearchModal .os-date-head { padding:10px 12px; }',
+      '  #orderSearchModal .os-date-head .os-jump { padding:10px 14px; min-height:40px; }',
       '}'
     ].join('\n');
     document.head.appendChild(style);
@@ -77,7 +97,7 @@
     var modal = document.createElement('div');
     modal.id = 'orderSearchModal';
     modal.innerHTML = [
-      '<div class="os-box" onclick="event.stopPropagation()">',
+      '<div class="os-box">',
       '  <div class="os-head">',
       '    <div class="os-title">🔍 과거 주문 검색</div>',
       '    <button class="os-close" type="button" data-os-close>✕</button>',
@@ -118,30 +138,42 @@
       '  </div>',
       '</div>'
     ].join('\n');
-    // 배경 클릭 시 닫기
-    modal.addEventListener('click', function (e) {
-      if (e.target === modal) closeModal();
-    });
     document.body.appendChild(modal);
 
-    // 버튼 이벤트 위임
-    modal.addEventListener('click', function (e) {
+    // 통합 클릭 핸들러 (closest 사용으로 자식 노드 클릭도 안전 처리)
+    var handleAction = function (e) {
       var t = e.target;
       if (!t) return;
-      if (t.matches('[data-os-close]')) { closeModal(); return; }
-      if (t.matches('[data-os-search]')) { performSearch(); return; }
-      if (t.matches('[data-os-reset]')) { resetForm(); return; }
-      if (t.matches('[data-os-range]')) {
-        var months = parseInt(t.getAttribute('data-os-range'), 10) || 0;
+      // 1) 배경(모달 자체) 클릭 → 닫기
+      if (t === modal) { closeModal(); e.preventDefault(); return; }
+      // 2) 버튼 이벤트 (closest 로 자식 클릭도 잡음)
+      var closeEl = t.closest && t.closest('[data-os-close]');
+      if (closeEl) { closeModal(); e.preventDefault(); return; }
+      var searchEl = t.closest && t.closest('[data-os-search]');
+      if (searchEl) { performSearch(); e.preventDefault(); return; }
+      var resetEl = t.closest && t.closest('[data-os-reset]');
+      if (resetEl) { resetForm(); e.preventDefault(); return; }
+      var rangeEl = t.closest && t.closest('[data-os-range]');
+      if (rangeEl) {
+        var months = parseInt(rangeEl.getAttribute('data-os-range'), 10) || 0;
         applyRange(months);
-        return;
+        e.preventDefault(); return;
       }
-      if (t.matches('[data-os-jump]')) {
-        var d = t.getAttribute('data-os-jump');
+      var jumpEl = t.closest && t.closest('[data-os-jump]');
+      if (jumpEl) {
+        var d = jumpEl.getAttribute('data-os-jump');
         if (d) jumpToDate(d);
-        return;
+        e.preventDefault(); return;
       }
-    });
+    };
+    modal.addEventListener('click', handleAction);
+    // 모바일 touch 폴백 (300ms 지연 회피)
+    modal.addEventListener('touchend', function (e) {
+      // 입력 필드 터치는 키보드 띄우기 위해 통과
+      var tag = e.target && e.target.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'LABEL') return;
+      handleAction(e);
+    }, { passive: false });
 
     // Enter 키로 검색
     var qInput = modal.querySelector('#osQuery');
