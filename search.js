@@ -140,30 +140,47 @@
     ].join('\n');
     document.body.appendChild(modal);
 
+    // ★ 닫기 버튼: 직접 리스너 (위임 우회 - 가장 확실한 방식)
+    var closeBtn = modal.querySelector('[data-os-close]');
+    if (closeBtn) {
+      var closeHandler = function (e) {
+        console.log('[검색] 닫기 버튼 클릭됨 (' + e.type + ')');
+        e.preventDefault();
+        e.stopPropagation();
+        closeModal();
+      };
+      closeBtn.addEventListener('click', closeHandler);
+      closeBtn.addEventListener('touchend', closeHandler, { passive: false });
+      // 추가 안전장치: pointerup
+      closeBtn.addEventListener('pointerup', function (e) {
+        if (e.pointerType === 'mouse' || e.pointerType === 'pen') closeHandler(e);
+      });
+    }
+
     // 통합 클릭 핸들러 (closest 사용으로 자식 노드 클릭도 안전 처리)
     var handleAction = function (e) {
       var t = e.target;
       if (!t) return;
       // 1) 배경(모달 자체) 클릭 → 닫기
-      if (t === modal) { closeModal(); e.preventDefault(); return; }
+      if (t === modal) { closeModal(); return; }
       // 2) 버튼 이벤트 (closest 로 자식 클릭도 잡음)
       var closeEl = t.closest && t.closest('[data-os-close]');
-      if (closeEl) { closeModal(); e.preventDefault(); return; }
+      if (closeEl) { closeModal(); return; }
       var searchEl = t.closest && t.closest('[data-os-search]');
-      if (searchEl) { performSearch(); e.preventDefault(); return; }
+      if (searchEl) { performSearch(); return; }
       var resetEl = t.closest && t.closest('[data-os-reset]');
-      if (resetEl) { resetForm(); e.preventDefault(); return; }
+      if (resetEl) { resetForm(); return; }
       var rangeEl = t.closest && t.closest('[data-os-range]');
       if (rangeEl) {
         var months = parseInt(rangeEl.getAttribute('data-os-range'), 10) || 0;
         applyRange(months);
-        e.preventDefault(); return;
+        return;
       }
       var jumpEl = t.closest && t.closest('[data-os-jump]');
       if (jumpEl) {
         var d = jumpEl.getAttribute('data-os-jump');
         if (d) jumpToDate(d);
-        e.preventDefault(); return;
+        return;
       }
     };
     modal.addEventListener('click', handleAction);
