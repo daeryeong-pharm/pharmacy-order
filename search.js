@@ -48,7 +48,7 @@
       '  border-radius:6px; font-size:11.5px; font-weight:700; cursor:pointer; }',
       '#orderSearchModal .os-date-head .os-jump:hover { background:#2563eb; }',
       '#orderSearchModal .os-item-row { display:grid;',
-      '  grid-template-columns: minmax(0,2.4fr) 60px 40px minmax(0,1.1fr) 60px;',
+      '  grid-template-columns: minmax(0,2.4fr) 60px 40px minmax(0,1.0fr) 50px 60px;',
       '  gap:6px; padding:6px 12px; font-size:12px; border-top:1px solid #f1f5f9; align-items:center; }',
       '#orderSearchModal .os-item-row:first-child { border-top:none; }',
       '#orderSearchModal .os-item-row .col-name { font-weight:700; color:#0f172a; word-break:break-all; }',
@@ -57,6 +57,8 @@
       '#orderSearchModal .os-item-row .col-qty { color:#78350f; background:#fef3c7; border-radius:4px;',
       '  padding:1px 4px; text-align:center; font-weight:800; font-size:11px; }',
       '#orderSearchModal .os-item-row .col-note { color:#475569; font-size:11.5px; word-break:break-all; }',
+      '#orderSearchModal .os-item-row .col-time { color:#0369a1; font-size:11px; font-weight:700;',
+      '  text-align:center; background:#e0f2fe; border-radius:4px; padding:1px 3px; }',
       '#orderSearchModal .os-item-row .col-author { color:#64748b; font-size:11px; text-align:right; }',
       '#orderSearchModal mark { background:#fde68a; color:#78350f; padding:0 2px; border-radius:2px; }',
       '@media (max-width: 600px) {',
@@ -171,6 +173,14 @@
   }
   function escRegex(s) {
     return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+  function formatTime(ts) {
+    if (!ts || typeof ts !== 'number') return '-';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return '-';
+    var h = String(d.getHours()).padStart(2, '0');
+    var m = String(d.getMinutes()).padStart(2, '0');
+    return h + ':' + m;
   }
   function highlight(text, queries) {
     var safe = escHtml(text);
@@ -386,6 +396,10 @@
     }
 
     var hlQueries = [query];
+    // 같은 날짜 내에서 시간 순 정렬 (오래된 → 최신)
+    Object.keys(groups).forEach(function (k) {
+      groups[k].sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
+    });
     var html = dates.map(function (d) {
       var rows = groups[d].map(function (it) {
         return '<div class="os-item-row">' +
@@ -393,6 +407,7 @@
           '<div class="col-spec">' + escHtml(it.spec || '-') + '</div>' +
           '<div class="col-qty">' + escHtml(it.qty || '-') + '</div>' +
           '<div class="col-note">' + escHtml(it.note || '') + '</div>' +
+          '<div class="col-time">⏱ ' + formatTime(it.ts) + '</div>' +
           '<div class="col-author">' + escHtml(it.author || '') + '</div>' +
         '</div>';
       }).join('');
