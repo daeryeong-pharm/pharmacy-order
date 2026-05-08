@@ -198,15 +198,42 @@
   }
 
   /* ---------- 4. 검색 핵심 ---------- */
+  // let 으로 선언된 변수는 window.X 로 접근 안됨. 직접 참조 시도 후 fallback.
+  function getAllDataRef() {
+    // 1) 스크립트 전역 (let allData) 직접 접근
+    try { if (typeof allData !== 'undefined' && allData) return allData; } catch (e) {}
+    // 2) window 폴백
+    if (window.allData) return window.allData;
+    return {};
+  }
+  function getCurrentDateRef() {
+    try { if (typeof currentDate !== 'undefined' && currentDate) return currentDate; } catch (e) {}
+    if (window.currentDate) return window.currentDate;
+    return '';
+  }
+  function getFbDbRef() {
+    try { if (typeof fbDb !== 'undefined' && fbDb) return fbDb; } catch (e) {}
+    if (window.fbDb) return window.fbDb;
+    return null;
+  }
+
   function buildSearchPool() {
     // allData[date] = { messages, items: [{name, spec, qty, note, timestamp, author, authorName}] }
-    // 현재 날짜는 allData[currentDate] 가 실시간 갱신되므로 동일하게 처리
     var pool = [];
-    var data = window.allData || {};
-    Object.keys(data).forEach(function (dStr) {
+    var data = getAllDataRef();
+    var keys = Object.keys(data);
+    console.log('[검색] allData 날짜 수:', keys.length, '키 샘플:', keys.slice(0, 5));
+    keys.forEach(function (dStr) {
       var v = data[dStr];
-      if (!v || !v.items) return;
-      var items = Array.isArray(v.items) ? v.items : Object.values(v.items);
+      if (!v) return;
+      // items 가 객체(Firebase 원본)일 수도, 배열(로컬 변환 후)일 수도 있음
+      var items = [];
+      if (Array.isArray(v.items)) items = v.items;
+      else if (v.items && typeof v.items === 'object') {
+        items = Object.entries(v.items).map(function (kv) {
+          return Object.assign({ id: kv[0] }, kv[1] || {});
+        });
+      }
       items.forEach(function (it) {
         if (!it || !it.name) return;
         pool.push({
@@ -220,7 +247,38 @@
         });
       });
     });
+    console.log('[검색] 풀 크기:', pool.length);
     return pool;
+  }
+
+  // Firebase 에서 모든 날짜 강제 재로딩 (allData 비어있을 때 fallback)
+  function fetchAllDaysFromFirebase() {
+    return new Promise(function (resolve) {
+      var fbDb = getFbDbRef();
+      if (!fbDb) { resolve({}); return; }
+      try {
+        fbDb.ref('days').once('value').then(function (snap) {
+          var fresh = {};
+          snap.forEach(function (dayChild) {
+            var dStr = dayChild.key;
+            var v = dayChild.val() || {};
+            var items = v.items ? Object.entries(v.items).map(function (kv) {
+              return Object.assign({ id: kv[0] }, kv[1] || {});
+            }) : [];
+            items.sort(function (a, b) { return (a.timestamp || 0) - (b.timestamp || 0); });
+            fresh[dStr] = { items: items, messages: [] };
+          });
+          console.log('[검색] Firebase 직접 로드 - 날짜 수:', Object.keys(fresh).length);
+          resolve(fresh);
+        }).catch(function (err) {
+          console.error('[검색] Firebase 로드 실패:', err);
+          resolve({});
+        });
+      } catch (e) {
+        console.error('[검색] Firebase 호출 예외:', e);
+        resolve({});
+      }
+    });
   }
 
   function matchName(itemName, queryRaw) {
@@ -258,7 +316,46 @@
       return;
     }
 
+    // 1차 시도: 메모리 캐시 (allData)
     var pool = buildSearchPool();
+
+    // 2차 fallback: 메모리 캐시가 비어있거나 날짜가 1개 이하이면 Firebase 직접 조회
+    var memDates = new Set(pool.map(function (p) { return p.date; }));
+    if (memDates.size <= 1) {
+      console.log('[검색] 메모리 캐시 부족 - Firebase 직접 조회 시작');
+      summaryEl.textContent = '⏳ 모든 날짜 데이터 불러오는 중...';
+      resultsEl.innerHTML = '<div class="os-empty">⏳ 잠시만 기다려주세요...</div>';
+      fetchAllDaysFromFirebase().then(function (fresh) {
+        // 가져온 데이터를 메모리 allData 에도 캐시 (가능한 경우)
+        try {
+          var existing = getAllDataRef();
+          Object.keys(fresh).forEach(function (k) {
+            if (!existing[k] || !existing[k].items || !existing[k].items.length) {
+              existing[k] = fresh[k];
+            }
+          });
+        } catch (e) {}
+        // 검색 풀 재구성 후 검색 진행
+        var freshPool = [];
+        Object.keys(fresh).forEach(function (dStr) {
+          var items = fresh[dStr].items || [];
+          items.forEach(function (it) {
+            if (!it || !it.name) return;
+            freshPool.push({
+              date: dStr, name: it.name || '', spec: it.spec || '', qty: it.qty || '',
+              note: it.note || '', author: it.authorName || it.author || '', ts: it.timestamp || 0
+            });
+          });
+        });
+        runSearchOnPool(freshPool, query, dateFrom, dateTo, noteQ, authorQ, resultsEl, summaryEl);
+      });
+      return;
+    }
+
+    runSearchOnPool(pool, query, dateFrom, dateTo, noteQ, authorQ, resultsEl, summaryEl);
+  }
+
+  function runSearchOnPool(pool, query, dateFrom, dateTo, noteQ, authorQ, resultsEl, summaryEl) {
     var matched = pool.filter(function (it) {
       if (dateFrom && it.date < dateFrom) return false;
       if (dateTo && it.date > dateTo) return false;
