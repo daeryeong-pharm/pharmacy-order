@@ -1568,6 +1568,30 @@ body.pdf-rendering .a4-page {
   cursor: pointer;
 }
 .a4-row .row-amount.missing:hover { background: #fef3c7; }
+/* Phase 4: 신뢰도 색상 구분 */
+.a4-row .row-amount.match-exact {
+  color: #065f46;           /* 진한 녹색 - 정확 */
+}
+.a4-row .row-amount.match-similar {
+  color: #1e40af;           /* 파란색 - 유사 (0.7~0.95) */
+  background: rgba(219, 234, 254, 0.55);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.a4-row .row-amount.match-similar:hover { background: rgba(191, 219, 254, 0.85); }
+.a4-row .row-amount.match-inferred {
+  color: #92400e;           /* 황색 - 추론 (0.5~0.7) */
+  background: rgba(254, 243, 199, 0.55);
+  border-radius: 3px;
+  cursor: pointer;
+  font-style: italic;
+}
+.a4-row .row-amount.match-inferred:hover { background: rgba(253, 230, 138, 0.85); }
+.a4-row .row-amount.match-alias {
+  color: #5b21b6;           /* 보라색 - 학습된 별칭 */
+  background: rgba(237, 233, 254, 0.5);
+  border-radius: 3px;
+}
 .a4-row.head .row-amount { color: var(--text); font-size: 9.5px; font-weight: 700; }
 .a4-row.head {
   background: #f0ede4;
@@ -4649,10 +4673,29 @@ function renderA4() {
           const r = calcOrderAmount(it);
           if (r && r.totalAmount != null) {
             const won = typeof fmtWon==='function'?fmtWon(r.totalAmount):'₩'+Math.round(r.totalAmount).toLocaleString();
-            priceCell = `<div class="row-amount" title="${escapeHtml(r.calc||'')}">${won}</div>`;
+            // Phase 4: 신뢰도 색상 배지
+            let confCls = '';
+            let confEmoji = '';
+            let confTitle = '';
+            if (typeof window.PriceMatcher !== 'undefined' && typeof window.PriceMatcher.getMatchBadge === 'function') {
+              const badge = window.PriceMatcher.getMatchBadge(it.name || '');
+              if (badge) {
+                if (badge.source === 'alias') {
+                  confCls = ' match-alias'; confEmoji = '🔗 ';
+                  confTitle = ' · 학습된 매핑';
+                } else {
+                  confCls = ' ' + badge.cls;
+                  confEmoji = badge.emoji;
+                  confTitle = ' · ' + badge.label + ' ' + Math.round(badge.conf*100) + '%';
+                }
+              }
+            }
+            const fullTitle = (r.calc||'') + confTitle + ' (클릭하여 매칭 수정)';
+            priceCell = `<div class="row-amount${confCls}" title="${escapeHtml(fullTitle)}" onclick="event.stopPropagation();if(window.openAliasPickModal)window.openAliasPickModal('${escapeHtml(it.name||'')}','${escapeHtml(it.spec||'')}','${escapeHtml(it.qty||'')}')">${confEmoji}${won}</div>`;
             priceTitle = ' · 💰 ' + (r.calc||'');
           } else if (medPrices && medPrices.items && medPrices.items.length > 0) {
-            priceCell = `<div class="row-amount missing" title="단가 미등록 — 탭하여 즉석 입력" onclick="event.stopPropagation();openMissingPriceModal('${escapeHtml(it.name||'')}','${escapeHtml(it.spec||'')}','${escapeHtml(it.qty||'')}')">⚠ 미등록</div>`;
+            // 미등록 → 추론 매칭 모달 열기 (Phase 5 학습)
+            priceCell = `<div class="row-amount missing" title="단가 미등록 — 탭하여 추론 매칭 또는 직접 입력" onclick="event.stopPropagation();if(window.openAliasPickModal)window.openAliasPickModal('${escapeHtml(it.name||'')}','${escapeHtml(it.spec||'')}','${escapeHtml(it.qty||'')}');else openMissingPriceModal('${escapeHtml(it.name||'')}','${escapeHtml(it.spec||'')}','${escapeHtml(it.qty||'')}')">⚠ 미등록</div>`;
           }
         }
         const titleAttr = (isMine ? '탭하여 수정/삭제 (본인 작성)' : `${it.author||''}님이 작성 — 본인만 수정 가능`) + dupTitle + floor2Title + priceTitle;
@@ -9929,5 +9972,7 @@ setInterval(() => {
 </script>
 <!-- 과거 주문 검색 모듈 (외부 파일 - 안전한 분리) -->
 <script src="search.js?v=20260508f"></script>
+<!-- 단가 매칭 추론 시스템 (Phase 2~6) -->
+<script src="pricematch.js?v=20260508a"></script>
 </body>
 </html>
