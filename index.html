@@ -8759,12 +8759,19 @@ function closeEmployeeModal() {
 }
 
 function saveEmployee() {
-  if (!canEditEmployees()) { alert('⛔ 권한 없음'); return; }
+  console.log('[직원저장] saveEmployee 호출됨');
+  if (!canEditEmployees()) {
+    console.warn('[직원저장] 권한 없음 - currentUser:', currentUser, 'currentAuthUid:', currentAuthUid);
+    alert('⛔ 권한 없음\n\n현재 사용자: ' + (currentUser || '미로그인') + '\n약국장(백승준)만 직원 정보를 수정할 수 있습니다.');
+    return;
+  }
   const mode = document.getElementById('empModalMode').value;
   const uid = (document.getElementById('empModalUid').value || '').trim();
   const name = (document.getElementById('empModalName').value || '').trim();
   const email = (document.getElementById('empModalEmail').value || '').trim();
   const role = (document.getElementById('empModalRole').value || '직원').trim();
+
+  console.log('[직원저장] 입력값:', { mode, uid, name, email, role });
 
   if (!uid) { alert('UID를 입력하세요.\n\n(Firebase Console → Authentication → Users에서 복사)'); return; }
   if (!name) { alert('이름을 입력하세요.'); return; }
@@ -8775,26 +8782,48 @@ function saveEmployee() {
   }
 
   const payload = { name: name, email: email, role: role, updatedAt: Date.now(), updatedBy: currentUser || '백승준' };
+  console.log('[직원저장] payload:', payload, 'fbDb:', !!fbDb, 'fbAuth currentUser:', fbAuth && fbAuth.currentUser ? fbAuth.currentUser.uid : '없음');
+
   if (fbDb) {
+    // 저장 버튼 즉시 비활성화 (중복 클릭 방지)
+    const saveBtns = document.querySelectorAll('#empModal .modal-btn');
+    saveBtns.forEach(b => b.disabled = true);
     fbDb.ref('employees/' + uid).set(payload)
       .then(() => {
+        console.log('[직원저장] ✅ Firebase 저장 성공');
+        // 즉시 로컬 메모리에도 반영 (리스너가 늦게 와도 화면 갱신)
+        UID_NAME_MAP[uid] = { name: name, email: email, role: role };
+        rebuildEmployeeIndexes();
+        if (typeof cacheEmployeesToLS === 'function') cacheEmployeesToLS();
+        if (typeof rebuildLoginDropdown === 'function') rebuildLoginDropdown();
+        renderEmployeesAdmin();
+        saveBtns.forEach(b => b.disabled = false);
         closeEmployeeModal();
-        alert('✅ 저장 완료. 모든 직원 기기에 실시간 반영됩니다.');
+        alert('✅ 저장 완료\n\n이름: ' + name + '\n역할: ' + role + '\n\n모든 직원 기기에 실시간 반영됩니다.');
       })
       .catch(err => {
         const msg = (err && err.message) ? err.message : String(err);
+        console.error('[직원저장] ❌ Firebase 저장 실패:', err);
+        saveBtns.forEach(b => b.disabled = false);
         if (/PERMISSION_DENIED/i.test(msg)) {
-          alert('⛔ Firebase 규칙에서 /employees 쓰기 차단.\n\n규칙에 추가:\n"employees": {\n  ".read": "auth != null",\n  ".write": "auth != null && auth.uid === \'bhgORSzZ23dlNUfZmDPBe3IsnPN2\'"\n}');
+          // 현재 로그인된 UID 확인
+          const currentUid = fbAuth && fbAuth.currentUser ? fbAuth.currentUser.uid : '미로그인';
+          alert('⛔ 권한 거부 (PERMISSION_DENIED)\n\n원인: Firebase Realtime Database 규칙에서 /employees 쓰기 차단\n\n현재 인증 UID: ' + currentUid + '\n약국장 UID: bhgORSzZ23dlNUfZmDPBe3IsnPN2\n\n해결: Firebase Console → Realtime Database → 규칙에서 아래 추가:\n\n"employees": {\n  ".read": "auth != null",\n  ".write": "auth != null && auth.uid === \'' + currentUid + '\'"\n}\n\n또는 임시로 ".write": "auth != null" 로 변경');
+        } else if (/network|offline/i.test(msg)) {
+          alert('⚠️ 네트워크 오류\n\n인터넷 연결을 확인하세요.\n\n상세: ' + msg);
         } else {
           alert('저장 실패: ' + msg);
         }
       });
   } else {
+    console.warn('[직원저장] Firebase 미연결 - 로컬 모드 저장');
     UID_NAME_MAP[uid] = { name: name, email: email, role: role };
     rebuildEmployeeIndexes();
+    if (typeof cacheEmployeesToLS === 'function') cacheEmployeesToLS();
+    if (typeof rebuildLoginDropdown === 'function') rebuildLoginDropdown();
     renderEmployeesAdmin();
     closeEmployeeModal();
-    alert('(로컬 모드) 저장됨. Firebase 연결 시 자동 반영됩니다.');
+    alert('⚠️ (로컬 모드) 저장됨\n\nFirebase 미연결 상태입니다.\n새로고침하면 변경사항이 사라질 수 있습니다.\n페이지를 새로고침해서 Firebase 재연결을 시도하세요.');
   }
 }
 
