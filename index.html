@@ -3765,6 +3765,63 @@ function updateSettingsFirebaseInfo() {
 }
 
 // ============ 로그인 ============
+// 로그인 드롭다운을 현재 UID_NAME_MAP 기준으로 항상 다시 렌더 (이름 변경 즉시 반영)
+function rebuildLoginDropdown() {
+  const sel = document.getElementById('authEmailSelect');
+  if (!sel) return;
+  // 기존 선택값 보존
+  const previousValue = sel.value;
+  // 첫 옵션(— 이름 선택 —)만 남기고 나머지 제거
+  while (sel.options.length > 1) sel.remove(1);
+  // 이름 가나다순 정렬
+  const employees = Object.values(UID_NAME_MAP || {})
+    .filter(info => info && info.name && info.email)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name), 'ko'));
+  employees.forEach(info => {
+    const opt = document.createElement('option');
+    opt.value = info.email;
+    opt.textContent = `${info.name} (${info.role || '직원'})`;
+    sel.appendChild(opt);
+  });
+  // 기존 선택값 복구 (목록에 있으면)
+  if (previousValue) {
+    const stillExists = Array.from(sel.options).some(o => o.value === previousValue);
+    if (stillExists) sel.value = previousValue;
+  }
+}
+
+// 직원 정보를 localStorage 에 캐시 (다음 페이지 로드시 즉시 사용)
+function cacheEmployeesToLS() {
+  try {
+    safeLS.setItem('dr_pharm_employees_cache', JSON.stringify(UID_NAME_MAP));
+  } catch (e) {}
+}
+
+// 페이지 로드 직후 캐시에서 UID_NAME_MAP 시드 덮어쓰기 (Firebase 로드 전에라도 최신 보장)
+(function loadEmployeesFromLS() {
+  try {
+    const raw = safeLS.getItem('dr_pharm_employees_cache');
+    if (!raw) return;
+    const cached = JSON.parse(raw);
+    if (cached && typeof cached === 'object' && Object.keys(cached).length > 0) {
+      const merged = {};
+      Object.entries(cached).forEach(([uid, info]) => {
+        if (info && info.name && info.email) {
+          merged[uid] = {
+            name: String(info.name),
+            email: String(info.email),
+            role: String(info.role || '직원')
+          };
+        }
+      });
+      if (Object.keys(merged).length > 0) {
+        UID_NAME_MAP = merged;
+        rebuildEmployeeIndexes();
+      }
+    }
+  } catch (e) {}
+})();
+
 function showLogin() {
   document.getElementById('loginOverlay').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
@@ -3778,17 +3835,9 @@ function showLogin() {
     authBlock.style.display = 'block';
     localBlock.style.display = 'none';
     subLabel.textContent = '본인 이름을 선택하고 비밀번호 입력';
-    const sel = document.getElementById('authEmailSelect');
-    if (sel.options.length <= 1) {
-      // 한 번만 채움
-      Object.values(UID_NAME_MAP).forEach(info => {
-        const opt = document.createElement('option');
-        opt.value = info.email;
-        opt.textContent = `${info.name} (${info.role})`;
-        sel.appendChild(opt);
-      });
-    }
+    rebuildLoginDropdown();
     // 마지막 로그인 이메일 자동 선택
+    const sel = document.getElementById('authEmailSelect');
     const lastEmail = safeLS.getItem('dr_pharm_last_email');
     if (lastEmail) sel.value = lastEmail;
     document.getElementById('authError').style.display = 'none';
@@ -8612,6 +8661,9 @@ function setupEmployeesListener() {
         }
       });
       rebuildEmployeeIndexes();
+      // 변경 즉시 localStorage 캐시 + 로그인 드롭다운 재렌더
+      if (typeof cacheEmployeesToLS === 'function') cacheEmployeesToLS();
+      if (typeof rebuildLoginDropdown === 'function') rebuildLoginDropdown();
     }
     renderEmployeesAdmin();
     if (currentUser && currentAuthUid && UID_NAME_MAP[currentAuthUid]) {
