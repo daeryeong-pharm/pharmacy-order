@@ -280,78 +280,257 @@ body {
 }
 
 /* ================= 로그인 ================= */
+/* ================= 로그인 화면 (Claude-inspired) ================= */
 .login-overlay {
   position: fixed; inset: 0;
-  background: var(--bg);
+  background:
+    radial-gradient(1200px 700px at 15% -10%, #fbe7d0 0%, transparent 55%),
+    radial-gradient(900px 600px at 110% 110%, #f6d9b8 0%, transparent 55%),
+    linear-gradient(180deg, #faf4e9 0%, #f5e8d3 100%);
   display: flex; align-items: center; justify-content: center;
   z-index: 1000;
+  overflow: hidden;
+  padding: 24px;
 }
+
+/* 앰비언트 오브 (배경 장식) */
+.login-orbs { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.login-orb {
+  position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.55;
+  animation: orbFloat 14s ease-in-out infinite;
+}
+.login-orb-1 {
+  width: 360px; height: 360px;
+  background: radial-gradient(circle, #f0b58a 0%, transparent 70%);
+  top: -80px; left: -80px;
+  animation-delay: 0s;
+}
+.login-orb-2 {
+  width: 440px; height: 440px;
+  background: radial-gradient(circle, #ecc89d 0%, transparent 70%);
+  bottom: -120px; right: -120px;
+  animation-delay: 4s;
+}
+.login-orb-3 {
+  width: 240px; height: 240px;
+  background: radial-gradient(circle, #f7d6b5 0%, transparent 70%);
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  opacity: 0.35;
+  animation-delay: 8s;
+}
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(20px, -30px) scale(1.06); }
+}
+
 .login-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 40px 36px;
-  width: 380px;
-  box-shadow: var(--shadow);
+  position: relative;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 22px;
+  padding: 36px 36px 26px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.6) inset,
+    0 20px 50px -10px rgba(120, 80, 40, 0.18),
+    0 8px 20px -8px rgba(120, 80, 40, 0.10);
   text-align: center;
+  animation: cardEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 로고 마크 */
+.login-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 64px; height: 64px;
+  background: linear-gradient(135deg, #fff 0%, #fef5e8 100%);
+  border: 1px solid #f1ddc1;
+  border-radius: 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 6px 14px -6px rgba(201, 118, 61, 0.25);
+}
+.login-mark svg {
+  filter: drop-shadow(0 2px 4px rgba(201, 118, 61, 0.2));
+  animation: markPulse 3s ease-in-out infinite;
+}
+@keyframes markPulse {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.05) rotate(2deg); }
+}
+
 .login-logo {
-  font-family: 'Noto Serif KR', serif;
+  font-family: 'Noto Serif KR', 'Pretendard', serif;
   font-size: 22px;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 8px;
+  font-weight: 800;
+  color: #2d2419;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
 }
 .login-sub {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-bottom: 28px;
+  font-size: 12.5px;
+  color: #8b7a64;
+  margin-bottom: 26px;
+  letter-spacing: 0.01em;
 }
+
+.login-field { text-align: left; margin-bottom: 14px; }
+.login-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #8b7a64;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+  padding-left: 2px;
+}
+
 .login-input {
   width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 13px 16px;
+  border: 1.5px solid #ecd9bb;
+  border-radius: 12px;
+  font-size: 14.5px;
   font-family: inherit;
-  background: var(--bg);
-  color: var(--text);
-  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #2d2419;
+  margin-bottom: 0;
+  box-sizing: border-box;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.login-input:focus { outline: none; border-color: var(--accent); background: #fff; }
+.login-input::placeholder { color: #c8b89e; }
+.login-input:focus {
+  outline: none;
+  border-color: #c9763d;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(201, 118, 61, 0.12);
+}
+
+/* 드롭다운 커스텀 */
+.login-select-wrap { position: relative; }
+.login-select {
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  padding-right: 38px;
+  cursor: pointer;
+}
+.login-select-caret {
+  position: absolute; right: 14px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: #c9763d;
+  pointer-events: none;
+  font-weight: 700;
+}
+
 .login-btn {
   width: 100%;
-  padding: 12px;
-  background: var(--accent);
-  color: white;
+  padding: 14px;
+  background: linear-gradient(135deg, #d18556 0%, #c9763d 100%);
+  color: #fff;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: 12px;
+  font-size: 14.5px;
+  font-weight: 700;
   cursor: pointer;
   font-family: inherit;
+  margin-top: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px;
+  letter-spacing: 0.01em;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.25) inset,
+    0 6px 14px -4px rgba(201, 118, 61, 0.45);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative; overflow: hidden;
 }
-.login-btn:hover { background: var(--accent-hover); }
-.recent-users {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
+.login-btn:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.3) inset,
+    0 10px 22px -6px rgba(201, 118, 61, 0.55);
+}
+.login-btn:active { transform: translateY(0); }
+.login-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.login-btn-icon {
+  display: inline-flex;
+  width: 22px; height: 22px;
+  background: rgba(255,255,255,0.22);
+  border-radius: 6px;
+  align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 800;
+  transition: transform 0.2s ease;
+}
+.login-btn:hover .login-btn-icon { transform: translateX(3px); }
+
+.login-error {
+  color: #9b2c0f; font-size: 12.5px; margin-top: 12px; text-align: left;
+  background: rgba(254, 226, 220, 0.7);
+  border: 1px solid #f5c6c0; border-radius: 10px;
+  padding: 10px 12px; line-height: 1.5;
+}
+.login-hint {
+  margin-top: 14px; font-size: 11.5px; color: #a89478;
+  text-align: center; line-height: 1.5;
+}
+.login-hint-dot { color: #c9763d; font-weight: 700; }
+
+.login-warn {
   font-size: 12px;
-  color: var(--text-muted);
+  color: #92590f;
+  background: rgba(252, 230, 174, 0.55);
+  border: 1px solid #ecc578;
+  border-radius: 10px;
+  padding: 9px 12px;
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+.recent-users {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(201, 118, 61, 0.12);
+}
+.recent-users-label {
+  font-size: 11px; font-weight: 700;
+  color: #8b7a64;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
 }
 .recent-users-list {
-  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 8px;
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
 }
 .recent-user-chip {
-  background: var(--bg-alt);
-  padding: 4px 10px;
-  border-radius: 12px;
+  background: rgba(255,255,255,0.8);
+  padding: 6px 14px;
+  border-radius: 999px;
   cursor: pointer;
-  font-size: 12px;
-  color: var(--text-soft);
-  border: 1px solid var(--border);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #6b5945;
+  border: 1px solid rgba(201, 118, 61, 0.18);
+  transition: all 0.15s ease;
 }
-.recent-user-chip:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.recent-user-chip:hover {
+  background: #c9763d;
+  border-color: #c9763d;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px -4px rgba(201, 118, 61, 0.4);
+}
+
+.login-foot {
+  margin-top: 18px;
+  font-size: 10.5px;
+  color: #b8a98e;
+  letter-spacing: 0.05em;
+}
 
 /* ================= 헤더 ================= */
 .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; height: var(--app-h, 100dvh); overflow: hidden; }
@@ -2372,15 +2551,23 @@ body.pdf-rendering .a4-page {
   .settings-card { padding: 18px 16px; }
   .settings-row { flex-wrap: wrap; gap: 8px; }
 
-  /* 로그인 */
+  /* 로그인 (모바일) */
+  .login-overlay { padding: 16px; }
   .login-card {
-    width: calc(100% - 28px);
-    max-width: 380px;
-    padding: 32px 24px;
+    width: calc(100% - 24px);
+    max-width: 400px;
+    padding: 28px 22px 22px;
+    border-radius: 18px;
   }
-  .login-logo { font-size: 18px; }
-  .login-input { font-size: 16px; min-height: 48px; }
-  .login-btn { min-height: 48px; font-size: 15px; }
+  .login-mark { width: 56px; height: 56px; border-radius: 16px; margin-bottom: 12px; }
+  .login-mark svg { width: 38px; height: 38px; }
+  .login-logo { font-size: 19px; }
+  .login-sub { font-size: 12px; margin-bottom: 20px; }
+  .login-input { font-size: 16px; min-height: 50px; padding: 14px 16px; }
+  .login-btn { min-height: 52px; font-size: 15px; padding: 15px; }
+  .login-orb-1 { width: 260px; height: 260px; }
+  .login-orb-2 { width: 320px; height: 320px; }
+  .login-orb-3 { width: 180px; height: 180px; }
 }
 
 /* 매우 작은 화면 (≤380px) */
@@ -2449,36 +2636,79 @@ body.pdf-rendering .a4-page {
 
 <!-- ============ 로그인 ============ -->
 <div class="login-overlay" id="loginOverlay">
+  <!-- 배경 데코 (앰비언트 오브) -->
+  <div class="login-orbs" aria-hidden="true">
+    <div class="login-orb login-orb-1"></div>
+    <div class="login-orb login-orb-2"></div>
+    <div class="login-orb login-orb-3"></div>
+  </div>
+
   <div class="login-card">
-    <div class="login-logo">대령약국 의약품 주문 시스템</div>
-    <div class="login-sub" id="loginSubLabel">접속 ID를 선택하세요</div>
+    <!-- Claude-style 스파클 로고 -->
+    <div class="login-mark" aria-hidden="true">
+      <svg viewBox="0 0 48 48" width="44" height="44" fill="none">
+        <defs>
+          <linearGradient id="markGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#e89b6f"/>
+            <stop offset="100%" stop-color="#c9763d"/>
+          </linearGradient>
+        </defs>
+        <path d="M24 4 L27 18 L41 21 L27 24 L24 38 L21 24 L7 21 L21 18 Z"
+              fill="url(#markGrad)"/>
+        <circle cx="38" cy="10" r="2.4" fill="#e89b6f" opacity="0.85"/>
+        <circle cx="10" cy="38" r="1.6" fill="#e89b6f" opacity="0.7"/>
+      </svg>
+    </div>
+
+    <div class="login-logo">대령약국 직원전용 게이트</div>
+    <div class="login-sub" id="loginSubLabel">본인 이름을 선택하고 비밀번호 입력</div>
 
     <!-- Firebase Auth 로그인 (기본) -->
     <div id="authLoginBlock">
-      <select class="login-input" id="authEmailSelect" style="margin-bottom:8px;">
-        <option value="">— 이름 선택 —</option>
-      </select>
-      <input type="password" class="login-input" id="authPwInput" placeholder="비밀번호" autocomplete="current-password" />
-      <button class="login-btn" id="authLoginBtn">🔐 로그인</button>
-      <div id="authError" style="display:none;color:#c0392b;font-size:12px;margin-top:8px;text-align:left;background:#fbeae7;border:1px solid #f5c6c0;border-radius:6px;padding:8px 10px;"></div>
-      <div style="margin-top:10px;font-size:11px;color:#998f80;">
-        ⓘ 비밀번호를 잊으셨으면 약국장(백승준)님께 초기화 요청
+      <div class="login-field">
+        <label class="login-label">이름</label>
+        <div class="login-select-wrap">
+          <select class="login-input login-select" id="authEmailSelect">
+            <option value="">— 이름 선택 —</option>
+          </select>
+          <span class="login-select-caret" aria-hidden="true">▾</span>
+        </div>
+      </div>
+      <div class="login-field">
+        <label class="login-label">비밀번호</label>
+        <input type="password" class="login-input" id="authPwInput" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <button class="login-btn" id="authLoginBtn">
+        <span class="login-btn-icon" aria-hidden="true">→</span>
+        <span>로그인</span>
+      </button>
+      <div id="authError" class="login-error" style="display:none;"></div>
+      <div class="login-hint">
+        <span class="login-hint-dot">ⓘ</span> 비밀번호를 잊으셨으면 약국장(백승준)님께 초기화 요청
       </div>
     </div>
 
     <!-- 로컬 모드 폴백 (Firebase Auth 불가 시) -->
     <div id="localLoginBlock" style="display:none;">
-      <div style="font-size:12px;color:#d4a017;background:#fdf6dc;border:1px solid #d4a017;border-radius:6px;padding:8px 10px;margin-bottom:10px;">
+      <div class="login-warn">
         ⚠️ 오프라인 모드 — 이름 입력 후 임시 사용 가능 (본인 인증 없음)
       </div>
-      <input type="text" class="login-input" id="loginInput" placeholder="예: 백승준" />
-      <button class="login-btn" id="loginBtn">입장 (로컬 모드)</button>
+      <div class="login-field">
+        <label class="login-label">이름</label>
+        <input type="text" class="login-input" id="loginInput" placeholder="예: 백승준" />
+      </div>
+      <button class="login-btn" id="loginBtn">
+        <span class="login-btn-icon" aria-hidden="true">→</span>
+        <span>입장 (로컬 모드)</span>
+      </button>
     </div>
 
     <div class="recent-users" id="recentUsersBlock" style="display:none;">
-      최근 접속자
+      <div class="recent-users-label">최근 접속자</div>
       <div class="recent-users-list" id="recentUsersList"></div>
     </div>
+
+    <div class="login-foot">충대대령약국 · 2014년부터</div>
   </div>
 </div>
 
