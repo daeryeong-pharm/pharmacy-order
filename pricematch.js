@@ -280,19 +280,36 @@
     }, 500);
   }
 
+  // 단가표 항목은 id 필드가 없어서 name 을 식별자로 사용
+  function priceItemKey(p) {
+    if (!p) return '';
+    return p.id || p.name || '';
+  }
+
   function lookupAlias(orderName) {
     var k = aliasKey(orderName);
     var entry = aliasMap[k];
-    if (!entry || !entry.itemId) return null;
+    if (!entry) return null;
     var items = getMedPriceItems();
-    return items.find(function (p) { return p && p.id === entry.itemId; }) || null;
+    // itemId 우선, 없으면 itemName 으로 찾기
+    if (entry.itemId) {
+      var byId = items.find(function (p) { return p && p.id === entry.itemId; });
+      if (byId) return byId;
+    }
+    if (entry.itemName) {
+      var byName = items.find(function (p) { return p && p.name === entry.itemName; });
+      if (byName) return byName;
+    }
+    return null;
   }
 
   function saveAlias(orderName, priceItem) {
     var k = aliasKey(orderName);
-    if (!k || !priceItem || !priceItem.id) return Promise.reject(new Error('invalid alias input'));
+    if (!k || !priceItem || !priceItem.name) {
+      return Promise.reject(new Error('invalid alias input'));
+    }
     var payload = {
-      itemId: priceItem.id,
+      itemId: priceItem.id || '',
       itemName: priceItem.name || '',
       origName: String(orderName || ''),
       savedAt: Date.now(),
@@ -601,28 +618,34 @@
       host.innerHTML = '<div class="ap-empty">매칭 후보가 없습니다.<br>총 ' + allItems.length + '개 단가 중 유사 약품 없음.<br><br>위 검색창에 약품명을 입력해 직접 검색하세요.</div>';
       return;
     }
-    host.innerHTML = candidates.map(function (c) {
+    host.innerHTML = candidates.map(function (c, idx) {
       var conf = c.confidence;
       var confCls = conf >= 0.9 ? 'high' : (conf >= 0.7 ? 'mid' : 'low');
       var confPct = Math.round(conf * 100) + '%';
       var price = c.item.price != null
         ? '₩' + Number(c.item.price).toLocaleString()
         : '-';
-      var safeId = String(c.item.id || '').replace(/'/g, '&#39;');
-      var safeName = String(c.item.name || '').replace(/</g, '&lt;').replace(/'/g, '&#39;');
-      return '<div class="ap-cand" data-ap-pick="' + safeId + '">' +
+      // id 가 없는 단가 항목 → 배열 인덱스를 임시 키로 사용 (HTML escape 불필요)
+      var safeName = String(c.item.name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+      return '<div class="ap-cand" data-ap-pick-idx="' + idx + '">' +
         '<div class="ap-cand-name">' + safeName + '</div>' +
         '<div class="ap-cand-price">' + price + '</div>' +
         '<div class="ap-cand-conf ' + confCls + '">' + confPct + '</div>' +
         '</div>';
     }).join('');
+    // 후보 배열을 클로저에 보관 (id 없는 항목 대비)
+    var candidatesSnapshot = candidates.slice();
     // 클릭 핸들러 (위임)
-    host.querySelectorAll('[data-ap-pick]').forEach(function (el) {
+    host.querySelectorAll('[data-ap-pick-idx]').forEach(function (el) {
       el.addEventListener('click', function () {
-        var itemId = el.getAttribute('data-ap-pick');
-        var items = getMedPriceItems();
-        var picked = items.find(function (p) { return p && p.id === itemId; });
-        if (!picked) { alert('항목을 찾을 수 없습니다.'); return; }
+        var idx = parseInt(el.getAttribute('data-ap-pick-idx'), 10);
+        var pickedCand = candidatesSnapshot[idx];
+        var picked = pickedCand && pickedCand.item;
+        if (!picked || !picked.name) {
+          console.error('[단가추론] 항목 매칭 실패 idx:', idx, 'snapshot:', candidatesSnapshot);
+          alert('항목을 찾을 수 없습니다. 콘솔 확인 (F12)');
+          return;
+        }
         var t = document.getElementById('apTarget');
         var orderName = t && t.dataset && t.dataset.name;
         if (!orderName) { alert('대상 약품명 없음'); return; }
