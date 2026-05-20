@@ -3918,6 +3918,8 @@ function setupFirebaseListeners(date) {
       items.forEach(it => { if (it && it.id && !prevIds.has(it.id)) { try { updateMedDictIncremental(it); } catch(e){} } });
     }
     allData[date] = { messages: msgs, items };
+    // 캐시 무효화: 해당 날짜의 합계 캐시 + 단가매칭 캐시는 그대로 유지
+    if (typeof _dailyTotalCache !== 'undefined' && _dailyTotalCache) _dailyTotalCache.delete(date);
     if (date === currentDate) renderAll();
   });
 }
@@ -4764,8 +4766,14 @@ function renderHistory() {
   const dates = Object.keys(allData).sort().reverse();
   const list = document.getElementById('historyList');
 
-  // === 1) 차트 렌더링 (선택된 월) ===
-  renderMonthlyChart();
+  // === 1) 차트는 비동기로 (UI 정지 방지) ===
+  const chartBody = document.getElementById('histChartBody');
+  if (chartBody && !chartBody.innerHTML.trim()) {
+    chartBody.innerHTML = '<div style="padding:30px;text-align:center;color:#94a3b8;font-size:12px;">📊 차트 계산 중...</div>';
+  }
+  setTimeout(() => {
+    try { renderMonthlyChart(); } catch (e) { console.warn('차트 렌더 실패:', e); }
+  }, 16);
 
   if (!list) return;
   if (!dates.length) {
@@ -5125,41 +5133,48 @@ function switchTab(name) {
     manualRefresh();
     return;
   }
+  // 1) 탭/패널 즉시 전환 (시각적 응답성)
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-'+name));
-  if (name === 'history') renderHistory();
+  updateMobileToggleVisibility();
+
+  // 2) 무거운 렌더는 다음 프레임에 비동기 실행 (UI 정지 방지)
+  const deferRender = (fn) => {
+    if (typeof fn !== 'function') return;
+    setTimeout(() => { try { fn(); } catch (e) { console.warn('탭 렌더 실패:', e); } }, 16);
+  };
+
+  if (name === 'history') deferRender(renderHistory);
   if (name === 'floor2') {
-    // 2층재고 탭 진입 시 즉시 렌더
-    if (typeof renderFloor2Admin === 'function') renderFloor2Admin();
-    if (typeof renderFloor2Meta === 'function') renderFloor2Meta();
+    deferRender(() => {
+      if (typeof renderFloor2Admin === 'function') renderFloor2Admin();
+      if (typeof renderFloor2Meta === 'function') renderFloor2Meta();
+    });
   }
   if (name === 'meddict') {
-    // 약품 사전 탭 진입 시 렌더
-    if (typeof renderMedDictAdmin === 'function') renderMedDictAdmin();
-    if (typeof renderManualEntriesList === 'function') renderManualEntriesList();
+    deferRender(() => {
+      if (typeof renderMedDictAdmin === 'function') renderMedDictAdmin();
+      if (typeof renderManualEntriesList === 'function') renderManualEntriesList();
+    });
   }
   if (name === 'returns') {
-    if (typeof renderReturnsFilters === 'function') renderReturnsFilters();
-    if (typeof renderReturnsDashboard === 'function') renderReturnsDashboard();
+    deferRender(() => {
+      if (typeof renderReturnsFilters === 'function') renderReturnsFilters();
+      if (typeof renderReturnsDashboard === 'function') renderReturnsDashboard();
+    });
   }
-  if (name === 'prices') {
-    if (typeof renderMedPricesAdmin === 'function') renderMedPricesAdmin();
-  }
-  if (name === 'payments') {
-    if (typeof renderPaymentsAll === 'function') renderPaymentsAll();
-  }
-  if (name === 'phcard') {
-    if (typeof renderPharmacyCardAll === 'function') renderPharmacyCardAll();
-  }
+  if (name === 'prices') deferRender(renderMedPricesAdmin);
+  if (name === 'payments') deferRender(renderPaymentsAll);
+  if (name === 'phcard') deferRender(renderPharmacyCardAll);
   if (name === 'settings') {
-    updateSettingsFirebaseInfo();
-    // 약국장 전용 카드들 재렌더 (권한 체크 재실행)
-    if (typeof renderMedDictAdmin === 'function') renderMedDictAdmin();
-    if (typeof renderEmployeesAdmin === 'function') renderEmployeesAdmin();
-    if (typeof renderBackupMeta === 'function') renderBackupMeta();
-    if (typeof renderDataMgmtCard === 'function') renderDataMgmtCard();
+    deferRender(() => {
+      updateSettingsFirebaseInfo();
+      if (typeof renderMedDictAdmin === 'function') renderMedDictAdmin();
+      if (typeof renderEmployeesAdmin === 'function') renderEmployeesAdmin();
+      if (typeof renderBackupMeta === 'function') renderBackupMeta();
+      if (typeof renderDataMgmtCard === 'function') renderDataMgmtCard();
+    });
   }
-  updateMobileToggleVisibility();
 }
 
 // ============ 수동 새로고침 ============
@@ -8265,8 +8280,20 @@ function saveMissingPrice() {
 }
 
 // === 일일 합계 계산 ===
+// 날짜별 합계 캐시 (성능): 같은 날짜 반복 호출시 즉시 반환
+const _dailyTotalCache = new Map();
+const _dailyTotalCacheSize = (allData ? Object.keys(allData).length : 0);
+function invalidateDailyTotalCache(date) {
+  if (date) _dailyTotalCache.delete(date);
+  else _dailyTotalCache.clear();
+}
+window.__invalidateDailyTotalCache = invalidateDailyTotalCache;
+
 function calcDailyTotalAmount(date) {
-  const day = (allData || {})[date || currentDate];
+  const d = date || currentDate;
+  // 캐시 히트
+  if (_dailyTotalCache.has(d)) return _dailyTotalCache.get(d);
+  const day = (allData || {})[d];
   if (!day || !Array.isArray(day.items)) return { total: 0, matched: 0, missing: 0, byAuthor: {} };
   let total = 0, matched = 0, missing = 0;
   const byAuthor = {};
@@ -8282,7 +8309,11 @@ function calcDailyTotalAmount(date) {
       missing++;
     }
   });
-  return { total, matched, missing, byAuthor };
+  const result = { total, matched, missing, byAuthor };
+  // 캐시 저장 (메모리 제한 - 100개 초과시 비우기)
+  if (_dailyTotalCache.size >= 100) _dailyTotalCache.clear();
+  _dailyTotalCache.set(d, result);
+  return result;
 }
 
 function fmtWon(n) {
@@ -9973,6 +10004,6 @@ setInterval(() => {
 <!-- 과거 주문 검색 모듈 (외부 파일 - 안전한 분리) -->
 <script src="search.js?v=20260508f"></script>
 <!-- 단가 매칭 추론 시스템 (Phase 2~6) -->
-<script src="pricematch.js?v=20260508d"></script>
+<script src="pricematch.js?v=20260508e"></script>
 </body>
 </html>
