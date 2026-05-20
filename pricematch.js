@@ -95,6 +95,47 @@
     if (!KO_TO_EN[kv[1]]) KO_TO_EN[kv[1]] = kv[0];
   });
 
+  /* ──────── 단일 영문자 ↔ 한글 발음 (F↔에프, T↔티 등) ──────── */
+  const EN_LETTER_KO = {
+    'a':'에이','b':'비','c':'씨','d':'디','e':'이','f':'에프','g':'지',
+    'h':'에이치','i':'아이','j':'제이','k':'케이','l':'엘','m':'엠','n':'엔',
+    'o':'오','p':'피','q':'큐','r':'알','s':'에스','t':'티','u':'유',
+    'v':'브이','w':'더블유','x':'엑스','y':'와이','z':'제트'
+  };
+  const KO_LETTER_EN = {};
+  Object.keys(EN_LETTER_KO).forEach(function (k) {
+    KO_LETTER_EN[EN_LETTER_KO[k]] = k;
+  });
+
+  // 한글 옆 영문 1글자를 한글 발음으로 (예: "유니버거F" → "유니버거에프")
+  // 그 반대도 (예: "유니버거에프" → "유니버거F")
+  function expandLetters(s) {
+    var str = String(s || '');
+    var variants = [];
+
+    // 영문 → 한글 발음 (한글에 인접한 영문 1글자만 변환)
+    var koSide = str.replace(/([가-힣])([a-zA-Z])(?![a-zA-Z])/g, function (m, kor, en) {
+      var ko = EN_LETTER_KO[en.toLowerCase()];
+      return ko ? kor + ko : m;
+    });
+    koSide = koSide.replace(/(?<![a-zA-Z])([a-zA-Z])([가-힣])/g, function (m, en, kor) {
+      var ko = EN_LETTER_KO[en.toLowerCase()];
+      return ko ? ko + kor : m;
+    });
+    if (koSide !== str) variants.push(koSide);
+
+    // 한글 발음 → 영문 (긴 발음부터 매칭: '에이치' → 'h' 등)
+    var enSide = str;
+    var sortedKoLetters = Object.keys(KO_LETTER_EN).sort(function (a, b) { return b.length - a.length; });
+    sortedKoLetters.forEach(function (ko) {
+      // 한글 옆에 붙은 발음만 치환 (단어 중간의 정상 한글 보호 안 함 - 약품명에서는 안전)
+      enSide = enSide.split(ko).join(KO_LETTER_EN[ko].toUpperCase());
+    });
+    if (enSide !== str && variants.indexOf(enSide) === -1) variants.push(enSide);
+
+    return variants;
+  }
+
   /* ──────── 정규화 함수 ──────── */
   function basicNorm(s) {
     return String(s || '').toLowerCase().replace(/[\s\(\)\[\]\{\}\*×x·\-_\/\.%,]/g, '');
@@ -147,6 +188,7 @@
   function expandWithEnKo(s) {
     var variants = [s];
     var low = String(s || '').toLowerCase();
+    // 풀네임 약품 매핑 (acetaminophen ↔ 아세트아미노펜)
     Object.entries(EN_TO_KO).forEach(function (kv) {
       if (low.indexOf(kv[0]) !== -1) {
         variants.push(low.replace(new RegExp(kv[0], 'gi'), kv[1]));
@@ -157,6 +199,11 @@
         variants.push(String(s).replace(kv[0], kv[1]));
       }
     });
+    // 단일 영문자 매핑 (F ↔ 에프, T ↔ 티 등)
+    var letterVariants = expandLetters(s);
+    for (var i = 0; i < letterVariants.length; i++) {
+      variants.push(letterVariants[i]);
+    }
     return Array.from(new Set(variants));
   }
 
@@ -513,38 +560,51 @@
       result = { item: aliasItem, confidence: 0.99, source: 'alias' };
     }
 
-    // 2) 빠른 인덱스 조회 (기존 index.html 의 medPricesIndexStrip - O(1))
+    // 변형 생성 (영문/한글 매핑 - 영문자 있을 때만)
+    var hasEnglish = /[a-zA-Z]/.test(nameStr);
+    // 한글 발음(에프/티/씨 등)이 포함됐을 가능성도 체크
+    var hasKoLetterPhonetic = /(에프|에이치|에이|에스|제이|제트|케이|더블유|엑스|와이|티|비|씨|디|이|지|아이|엘|엠|엔|오|피|큐|알|유|브이)/.test(nameStr);
+    var variants = (hasEnglish || hasKoLetterPhonetic) ? expandWithEnKo(nameStr) : [nameStr];
+
+    // 2) 빠른 인덱스 조회 (모든 변형 시도)
     if (!result) {
       var stripIdx = getStripIndex();
       if (stripIdx) {
-        var key = stripNorm(nameStr);
-        if (key && stripIdx[key]) {
-          result = { item: stripIdx[key], confidence: 1.0, source: 'exact-fast' };
+        for (var vi = 0; vi < variants.length; vi++) {
+          var key = stripNorm(variants[vi]);
+          if (key && stripIdx[key]) {
+            result = { item: stripIdx[key], confidence: 1.0, source: 'exact-fast' };
+            break;
+          }
         }
       }
     }
     if (!result) {
       var normIdx = getNormIndex();
       if (normIdx) {
-        var nKey = basicNorm(nameStr);
-        if (nKey && normIdx[nKey]) {
-          result = { item: normIdx[nKey], confidence: 0.98, source: 'norm-fast' };
+        for (var vi2 = 0; vi2 < variants.length; vi2++) {
+          var nKey = basicNorm(variants[vi2]);
+          if (nKey && normIdx[nKey]) {
+            result = { item: normIdx[nKey], confidence: 0.98, source: 'norm-fast' };
+            break;
+          }
         }
       }
     }
 
-    // 3) Prefix 빠른 조회 (인덱스 키들 중 시작 매칭)
+    // 3) Prefix 빠른 조회 (인덱스 키들 중 시작 매칭, 모든 변형 시도)
     if (!result) {
       var stripIdx2 = getStripIndex();
       if (stripIdx2) {
-        var userKey = stripNorm(nameStr);
-        if (userKey && userKey.length >= 3) {
-          var keys = Object.keys(stripIdx2);
-          for (var i = 0; i < keys.length; i++) {
-            var k = keys[i];
+        var stripKeys = Object.keys(stripIdx2);
+        outer: for (var vi3 = 0; vi3 < variants.length; vi3++) {
+          var userKey = stripNorm(variants[vi3]);
+          if (!userKey || userKey.length < 3) continue;
+          for (var i = 0; i < stripKeys.length; i++) {
+            var k = stripKeys[i];
             if (k && (k.startsWith(userKey) || userKey.startsWith(k)) && Math.min(k.length, userKey.length) >= 3) {
               result = { item: stripIdx2[k], confidence: 0.92, source: 'prefix-fast' };
-              break;
+              break outer;
             }
           }
         }
