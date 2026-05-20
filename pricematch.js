@@ -111,9 +111,7 @@
 
   /* ──────── 전역 변수 안전 접근 (let 변수는 window.X 로 못 가져옴) ──────── */
   function getMedPrices() {
-    // 1) 스크립트 전역 (let medPrices) 직접 접근
     try { if (typeof medPrices !== 'undefined' && medPrices) return medPrices; } catch (e) {}
-    // 2) window 폴백
     if (window.medPrices) return window.medPrices;
     return { items: [] };
   }
@@ -121,6 +119,15 @@
     var mp = getMedPrices();
     if (!mp || !Array.isArray(mp.items)) return [];
     return mp.items;
+  }
+  // 기존 index.html 의 빠른 인덱스 (O(1) 조회) 접근
+  function getStripIndex() {
+    try { if (typeof medPricesIndexStrip !== 'undefined' && medPricesIndexStrip) return medPricesIndexStrip; } catch (e) {}
+    return null;
+  }
+  function getNormIndex() {
+    try { if (typeof medPricesIndexNorm !== 'undefined' && medPricesIndexNorm) return medPricesIndexNorm; } catch (e) {}
+    return null;
   }
   function getFbDb() {
     try { if (typeof fbDb !== 'undefined' && fbDb) return fbDb; } catch (e) {}
@@ -241,6 +248,19 @@
     } catch (e) {}
   }
 
+  // renderAll 디바운스 (별칭 여러 개 동시 변경시 한 번만 렌더)
+  var renderAllTimer = null;
+  function scheduleRenderAll() {
+    if (typeof findBestCache !== 'undefined') findBestCache.clear();  // 캐시 무효화
+    if (renderAllTimer) clearTimeout(renderAllTimer);
+    renderAllTimer = setTimeout(function () {
+      renderAllTimer = null;
+      try {
+        if (typeof window.renderAll === 'function') window.renderAll();
+      } catch (e) { console.warn('[단가추론] renderAll 호출 실패:', e); }
+    }, 200);
+  }
+
   function attachFbAliasListener() {
     var fbDbRef = getFbDb();
     if (!fbDbRef) return false;
@@ -252,10 +272,8 @@
           saveAliasesToLS();
         }
         aliasLoaded = true;
-        // 별칭 변경시 화면 갱신
-        if (typeof window.renderAll === 'function') {
-          try { window.renderAll(); } catch (e) {}
-        }
+        // 별칭 변경시 캐시 무효화 + 디바운스된 화면 갱신
+        scheduleRenderAll();
       }, function (err) {
         console.warn('[단가추론] /medAliases 읽기 실패:', err && err.message);
         aliasLoaded = true;
@@ -340,32 +358,54 @@
     return Promise.resolve();
   }
 
-  /* ──────── 점수화 매칭 ──────── */
+  /* ──────── 점수화 매칭 (최적화: early-exit + 빠른 거부) ──────── */
   function scoreItem(orderName, item) {
     if (!orderName || !item || !item.name) return null;
+
+    // 빠른 거부: 정규화 후 첫 2글자가 완전히 다르면 스킵
+    var preDbKey = stripNorm(item.name);
+    var preVKey = stripNorm(orderName);
+    if (!preVKey || !preDbKey) return null;
+    // 첫 글자도 안 겹치면 즉시 거부 (Korean 단어는 보통 시작이 같음)
+    if (preVKey.length >= 2 && preDbKey.length >= 2) {
+      var c1 = preVKey[0], c2 = preDbKey[0];
+      // 둘 다 한글이고 다르면 거부 (다른 약품 가능성 매우 높음)
+      var isHangul1 = c1 >= '가' && c1 <= '힣';
+      var isHangul2 = c2 >= '가' && c2 <= '힣';
+      if (isHangul1 && isHangul2 && c1 !== c2) {
+        // 단, 영문 변형 가능성 있으면 통과
+        var hasEnglish = /[a-zA-Z]/.test(orderName) || /[a-zA-Z]/.test(item.name);
+        if (!hasEnglish) return null;
+      }
+    }
+
     var bestScore = 0;
     var bestSource = '';
 
-    var variants = expandWithEnKo(orderName);
+    // variants: 영문이 포함될 때만 확장 (성능)
+    var variants;
+    if (/[a-zA-Z]/.test(orderName)) {
+      variants = expandWithEnKo(orderName);
+    } else {
+      variants = [orderName];
+    }
 
     for (var v = 0; v < variants.length; v++) {
       var variant = variants[v];
-      var vKey = stripNorm(variant);
-      var dbKey = stripNorm(item.name);
-      var vBasic = basicNorm(variant);
-      var dbBasic = basicNorm(item.name);
+      var vKey = (v === 0) ? preVKey : stripNorm(variant);
+      var dbKey = preDbKey;
 
-      // 1) 정확 일치 (정규화)
+      // 1) 정확 일치 - 즉시 종료
       if (vKey && vKey === dbKey) {
-        if (1.0 > bestScore) { bestScore = 1.0; bestSource = 'exact'; continue; }
+        return { item: item, confidence: 1.0, source: 'exact' };
       }
-      // 2) Prefix 양방향 (3글자+)
+      // 2) Prefix 양방향
       if (vKey && dbKey && Math.min(vKey.length, dbKey.length) >= 3) {
         if (dbKey.startsWith(vKey) || vKey.startsWith(dbKey)) {
           if (0.93 > bestScore) { bestScore = 0.93; bestSource = 'prefix'; }
         }
       }
-      // 3) 부분 포함 (4글자+)
+      // 3) 부분 포함
       if (vKey && dbKey && Math.min(vKey.length, dbKey.length) >= 4) {
         if (vKey.indexOf(dbKey) !== -1 || dbKey.indexOf(vKey) !== -1) {
           if (0.86 > bestScore) { bestScore = 0.86; bestSource = 'contains'; }
@@ -382,36 +422,39 @@
         if (baseOK && doseExact) {
           if (0.9 > bestScore) { bestScore = 0.9; bestSource = 'baseDose'; }
         }
-        // 같은 베이스, 다른 용량 → 점수 매우 낮춤 (오매칭 방지)
-        // baseDoseMismatch: 의도적으로 점수 부여 안 함 (다른 약품으로 취급)
       }
-      // 5) 트라이그램 유사도 (Jaccard)
-      var tri = jaccardSim(vBasic, dbBasic);
-      if (tri >= 0.5) {
-        // 최대 0.82 까지만 부여
-        var triScore = Math.min(0.82, 0.4 + tri * 0.6);
-        if (triScore > bestScore) { bestScore = triScore; bestSource = 'trigram(' + tri.toFixed(2) + ')'; }
-      }
-      // 6) 편집 거리 (짧은 단어만)
-      if (vKey && dbKey) {
-        var minLen = Math.min(vKey.length, dbKey.length);
-        var maxLen = Math.max(vKey.length, dbKey.length);
-        if (minLen >= 4 && maxLen <= 14 && Math.abs(maxLen - minLen) <= 2) {
-          var dist = levenshtein(vKey, dbKey);
-          if (dist <= 2 && (dist / maxLen) < 0.3) {
-            var editScore = 1 - (dist / maxLen) * 1.6;
-            if (editScore > bestScore && editScore > 0.5) {
-              bestScore = Math.min(0.78, editScore);
-              bestSource = 'edit(' + dist + ')';
+      // 5~7) 비싼 알고리즘은 위 단계에서 충분한 점수 못 얻었을 때만
+      if (bestScore < 0.85) {
+        var vBasic = basicNorm(variant);
+        var dbBasic = basicNorm(item.name);
+
+        // 트라이그램
+        var tri = jaccardSim(vBasic, dbBasic);
+        if (tri >= 0.5) {
+          var triScore = Math.min(0.82, 0.4 + tri * 0.6);
+          if (triScore > bestScore) { bestScore = triScore; bestSource = 'trigram(' + tri.toFixed(2) + ')'; }
+        }
+        // 편집 거리
+        if (vKey && dbKey) {
+          var minLen = Math.min(vKey.length, dbKey.length);
+          var maxLen = Math.max(vKey.length, dbKey.length);
+          if (minLen >= 4 && maxLen <= 14 && Math.abs(maxLen - minLen) <= 2) {
+            var dist = levenshtein(vKey, dbKey);
+            if (dist <= 2 && (dist / maxLen) < 0.3) {
+              var editScore = 1 - (dist / maxLen) * 1.6;
+              if (editScore > bestScore && editScore > 0.5) {
+                bestScore = Math.min(0.78, editScore);
+                bestSource = 'edit(' + dist + ')';
+              }
             }
           }
         }
-      }
-      // 7) 토큰
-      var tok = tokenSim(variant, item.name);
-      if (tok >= 0.5) {
-        var tokScore = Math.min(0.75, tok * 0.95);
-        if (tokScore > bestScore) { bestScore = tokScore; bestSource = 'token(' + tok.toFixed(2) + ')'; }
+        // 토큰
+        var tok = tokenSim(variant, item.name);
+        if (tok >= 0.5) {
+          var tokScore = Math.min(0.75, tok * 0.95);
+          if (tokScore > bestScore) { bestScore = tokScore; bestSource = 'token(' + tok.toFixed(2) + ')'; }
+        }
       }
     }
 
@@ -432,19 +475,99 @@
     return scored.slice(0, topN);
   }
 
+  /* ──────── 캐시 (성능) ──────── */
+  var findBestCache = new Map();
+  var FIND_BEST_CACHE_MAX = 2000; // 메모리 제한
+  function invalidateMatchCache() {
+    findBestCache.clear();
+  }
+  // 외부 노출 - alias/medPrices 갱신시 호출
+  window.__invalidatePriceMatchCache = invalidateMatchCache;
+
   function findBest(orderName) {
     if (!orderName) return null;
-    // 1) 별칭 우선 (학습된 매핑)
-    var aliasItem = lookupAlias(orderName);
+    var nameStr = String(orderName);
+    // 캐시 히트
+    if (findBestCache.has(nameStr)) return findBestCache.get(nameStr);
+
+    var result = null;
+
+    // 1) 별칭 우선 (해시맵 O(1))
+    var aliasItem = lookupAlias(nameStr);
     if (aliasItem) {
-      return { item: aliasItem, confidence: 0.99, source: 'alias' };
+      result = { item: aliasItem, confidence: 0.99, source: 'alias' };
     }
-    // 2) 점수화 매칭
-    var candidates = findCandidates(orderName, 1);
-    if (candidates.length && candidates[0].confidence >= 0.5) {
-      return candidates[0];
+
+    // 2) 빠른 인덱스 조회 (기존 index.html 의 medPricesIndexStrip - O(1))
+    if (!result) {
+      var stripIdx = getStripIndex();
+      if (stripIdx) {
+        var key = stripNorm(nameStr);
+        if (key && stripIdx[key]) {
+          result = { item: stripIdx[key], confidence: 1.0, source: 'exact-fast' };
+        }
+      }
     }
-    return null;
+    if (!result) {
+      var normIdx = getNormIndex();
+      if (normIdx) {
+        var nKey = basicNorm(nameStr);
+        if (nKey && normIdx[nKey]) {
+          result = { item: normIdx[nKey], confidence: 0.98, source: 'norm-fast' };
+        }
+      }
+    }
+
+    // 3) Prefix 빠른 조회 (인덱스 키들 중 시작 매칭)
+    if (!result) {
+      var stripIdx2 = getStripIndex();
+      if (stripIdx2) {
+        var userKey = stripNorm(nameStr);
+        if (userKey && userKey.length >= 3) {
+          var keys = Object.keys(stripIdx2);
+          for (var i = 0; i < keys.length; i++) {
+            var k = keys[i];
+            if (k && (k.startsWith(userKey) || userKey.startsWith(k)) && Math.min(k.length, userKey.length) >= 3) {
+              result = { item: stripIdx2[k], confidence: 0.92, source: 'prefix-fast' };
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // 4) 마지막 수단: 점수화 매칭 (느림 - 위에서 안 잡힌 경우만)
+    if (!result) {
+      var candidates = findCandidatesFast(nameStr, 1);
+      if (candidates.length && candidates[0].confidence >= 0.5) {
+        result = candidates[0];
+      }
+    }
+
+    // 캐시 저장 (LRU 흉내내기: 너무 크면 비우기)
+    if (findBestCache.size >= FIND_BEST_CACHE_MAX) findBestCache.clear();
+    findBestCache.set(nameStr, result);
+    return result;
+  }
+
+  // 정확/Prefix 매칭이 실패한 케이스만 호출되는 느린 fuzzy 매칭
+  // 1위 1건만 빠르게 찾기 위한 단순화 버전
+  function findCandidatesFast(orderName, topN) {
+    topN = topN || 1;
+    var items = getMedPriceItems();
+    if (!items.length || !orderName) return [];
+    var bestList = [];
+    var threshold = 0.5;
+    for (var i = 0; i < items.length; i++) {
+      var s = scoreItem(orderName, items[i]);
+      if (s && s.confidence >= threshold) {
+        bestList.push(s);
+        // 1.0 정확매칭 만나면 즉시 종료
+        if (s.confidence >= 0.99) break;
+      }
+    }
+    bestList.sort(function (a, b) { return b.confidence - a.confidence; });
+    return bestList.slice(0, topN);
   }
 
   /* ──────── 기존 findPriceForOrder 오버라이드 (호환) ──────── */
