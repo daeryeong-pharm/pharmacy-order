@@ -103,7 +103,39 @@
     if (typeof window.normalizeForPriceMatch === 'function') {
       return window.normalizeForPriceMatch(s);
     }
+    if (typeof normalizeForPriceMatch === 'function') {
+      try { return normalizeForPriceMatch(s); } catch (e) {}
+    }
     return basicNorm(s);
+  }
+
+  /* ──────── 전역 변수 안전 접근 (let 변수는 window.X 로 못 가져옴) ──────── */
+  function getMedPrices() {
+    // 1) 스크립트 전역 (let medPrices) 직접 접근
+    try { if (typeof medPrices !== 'undefined' && medPrices) return medPrices; } catch (e) {}
+    // 2) window 폴백
+    if (window.medPrices) return window.medPrices;
+    return { items: [] };
+  }
+  function getMedPriceItems() {
+    var mp = getMedPrices();
+    if (!mp || !Array.isArray(mp.items)) return [];
+    return mp.items;
+  }
+  function getFbDb() {
+    try { if (typeof fbDb !== 'undefined' && fbDb) return fbDb; } catch (e) {}
+    if (window.fbDb) return window.fbDb;
+    return null;
+  }
+  function getCurrentUser() {
+    try { if (typeof currentUser !== 'undefined' && currentUser) return currentUser; } catch (e) {}
+    if (window.currentUser) return window.currentUser;
+    return '';
+  }
+  function getSafeLS() {
+    try { if (typeof safeLS !== 'undefined' && safeLS) return safeLS; } catch (e) {}
+    if (window.safeLS) return window.safeLS;
+    return localStorage;
   }
   function expandWithEnKo(s) {
     var variants = [s];
@@ -194,7 +226,7 @@
 
   function loadAliasesFromLS() {
     try {
-      var ls = window.safeLS || localStorage;
+      var ls = getSafeLS();
       var raw = ls.getItem('dr_pharm_med_aliases');
       if (raw) {
         var parsed = JSON.parse(raw);
@@ -204,15 +236,16 @@
   }
   function saveAliasesToLS() {
     try {
-      var ls = window.safeLS || localStorage;
+      var ls = getSafeLS();
       ls.setItem('dr_pharm_med_aliases', JSON.stringify(aliasMap));
     } catch (e) {}
   }
 
   function attachFbAliasListener() {
-    if (!window.fbDb) return false;
+    var fbDbRef = getFbDb();
+    if (!fbDbRef) return false;
     try {
-      window.fbDb.ref('medAliases').on('value', function (snap) {
+      fbDbRef.ref('medAliases').on('value', function (snap) {
         var val = snap.val();
         if (val && typeof val === 'object') {
           aliasMap = val;
@@ -251,7 +284,7 @@
     var k = aliasKey(orderName);
     var entry = aliasMap[k];
     if (!entry || !entry.itemId) return null;
-    var items = (window.medPrices && window.medPrices.items) || [];
+    var items = getMedPriceItems();
     return items.find(function (p) { return p && p.id === entry.itemId; }) || null;
   }
 
@@ -263,10 +296,11 @@
       itemName: priceItem.name || '',
       origName: String(orderName || ''),
       savedAt: Date.now(),
-      savedBy: window.currentUser || ''
+      savedBy: getCurrentUser()
     };
-    if (window.fbDb) {
-      return window.fbDb.ref('medAliases/' + k).set(payload).then(function () {
+    var fbDbRef = getFbDb();
+    if (fbDbRef) {
+      return fbDbRef.ref('medAliases/' + k).set(payload).then(function () {
         aliasMap[k] = payload;
         saveAliasesToLS();
       });
@@ -279,8 +313,9 @@
 
   function removeAlias(orderName) {
     var k = aliasKey(orderName);
-    if (window.fbDb) {
-      return window.fbDb.ref('medAliases/' + k).remove().then(function () {
+    var fbDbRef = getFbDb();
+    if (fbDbRef) {
+      return fbDbRef.ref('medAliases/' + k).remove().then(function () {
         delete aliasMap[k]; saveAliasesToLS();
       });
     }
@@ -369,7 +404,7 @@
 
   function findCandidates(orderName, topN) {
     topN = topN || 5;
-    var items = (window.medPrices && window.medPrices.items) || [];
+    var items = getMedPriceItems();
     if (!items.length || !orderName) return [];
     var scored = [];
     for (var i = 0; i < items.length; i++) {
@@ -543,20 +578,27 @@
   function renderCandidates(name, isManualSearch) {
     var host = document.getElementById('apCandidates');
     if (!host) return;
+    var allItems = getMedPriceItems();
+    console.log('[단가추론] 단가 DB 총 항목 수:', allItems.length, '· 검색어:', name, '· 수동검색:', !!isManualSearch);
+    if (!allItems.length) {
+      host.innerHTML = '<div class="ap-empty" style="color:#991b1b;text-align:left;line-height:1.6;">⚠️ <b>단가 데이터가 로드되지 않았습니다</b><br><br>가능 원인:<br>① 단가 탭에서 xlsx 업로드 필요<br>② Firebase 연결 끊김 (오프라인)<br>③ 로그인 후 잠시 기다린 후 재시도<br><br>F12 콘솔 확인:<br><code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;">typeof medPrices</code> → 결과가 "undefined"면 미로드</div>';
+      return;
+    }
     var candidates;
     if (isManualSearch) {
       // 검색어로 모든 단가 항목 필터
-      var q = name.toLowerCase();
-      var items = (window.medPrices && window.medPrices.items) || [];
-      candidates = items
+      var q = String(name || '').toLowerCase();
+      candidates = allItems
         .filter(function (it) { return it && it.name && it.name.toLowerCase().indexOf(q) !== -1; })
         .slice(0, 20)
         .map(function (it) { return { item: it, confidence: 0.99, source: 'manual' }; });
+      console.log('[단가추론] 수동검색 결과:', candidates.length, '건');
     } else {
       candidates = findCandidates(name, 10);
+      console.log('[단가추론] 자동추론 결과:', candidates.length, '건 (DB ' + allItems.length + '개 중)');
     }
     if (!candidates.length) {
-      host.innerHTML = '<div class="ap-empty">매칭 후보가 없습니다.<br>검색창에 약품명을 입력해 직접 매핑하세요.</div>';
+      host.innerHTML = '<div class="ap-empty">매칭 후보가 없습니다.<br>총 ' + allItems.length + '개 단가 중 유사 약품 없음.<br><br>위 검색창에 약품명을 입력해 직접 검색하세요.</div>';
       return;
     }
     host.innerHTML = candidates.map(function (c) {
@@ -578,7 +620,7 @@
     host.querySelectorAll('[data-ap-pick]').forEach(function (el) {
       el.addEventListener('click', function () {
         var itemId = el.getAttribute('data-ap-pick');
-        var items = (window.medPrices && window.medPrices.items) || [];
+        var items = getMedPriceItems();
         var picked = items.find(function (p) { return p && p.id === itemId; });
         if (!picked) { alert('항목을 찾을 수 없습니다.'); return; }
         var t = document.getElementById('apTarget');
