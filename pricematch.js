@@ -478,6 +478,7 @@
   /* ──────── 캐시 (성능) ──────── */
   var findBestCache = new Map();
   var FIND_BEST_CACHE_MAX = 2000; // 메모리 제한
+  var lastMedPriceItemsCount = -1; // 단가 DB 크기 변경 감지
   function invalidateMatchCache() {
     findBestCache.clear();
   }
@@ -487,7 +488,21 @@
   function findBest(orderName) {
     if (!orderName) return null;
     var nameStr = String(orderName);
-    // 캐시 히트
+
+    // 단가 DB 크기가 변했으면 캐시 무효화 (medPrices 늦게 로드되는 케이스 대응)
+    var items = getMedPriceItems();
+    if (items.length !== lastMedPriceItemsCount) {
+      findBestCache.clear();
+      lastMedPriceItemsCount = items.length;
+      // 일별 합계 캐시도 함께 무효화 (모든 항목 재계산 필요)
+      if (typeof window.__invalidateDailyTotalCache === 'function') {
+        try { window.__invalidateDailyTotalCache(); } catch (e) {}
+      }
+    }
+    // DB 비어있으면 캐시하지 말고 즉시 null (다음 호출에서 재시도)
+    if (items.length === 0) return null;
+
+    // 캐시 히트 (성공 결과만 캐시되므로 안전)
     if (findBestCache.has(nameStr)) return findBestCache.get(nameStr);
 
     var result = null;
@@ -544,9 +559,11 @@
       }
     }
 
-    // 캐시 저장 (LRU 흉내내기: 너무 크면 비우기)
-    if (findBestCache.size >= FIND_BEST_CACHE_MAX) findBestCache.clear();
-    findBestCache.set(nameStr, result);
+    // 성공 결과만 캐시 (null 은 캐시 안 함 - 다음 호출에서 재시도 가능)
+    if (result) {
+      if (findBestCache.size >= FIND_BEST_CACHE_MAX) findBestCache.clear();
+      findBestCache.set(nameStr, result);
+    }
     return result;
   }
 
