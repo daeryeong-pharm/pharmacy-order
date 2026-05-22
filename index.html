@@ -4091,7 +4091,35 @@ function showLogin() {
     authBlock.style.display = 'block';
     localBlock.style.display = 'none';
     subLabel.textContent = '본인 이름을 선택하고 비밀번호 입력';
+    // 1단계: 캐시/시드 기준으로 즉시 렌더 (즉각 반응)
     rebuildLoginDropdown();
+    // 2단계: Firebase 에서 최신 직원 목록 가져와서 다시 렌더 (모바일에서도 최신 보장)
+    //         /employees .read: true 규칙 필요. 실패시 캐시 유지.
+    if (fbDb) {
+      fbDb.ref('employees').once('value').then(snap => {
+        const val = snap.val();
+        if (!val || typeof val !== 'object' || !Object.keys(val).length) return;
+        UID_NAME_MAP = {};
+        Object.entries(val).forEach(([uid, info]) => {
+          if (info && info.name && info.email) {
+            UID_NAME_MAP[uid] = {
+              name: String(info.name),
+              email: String(info.email),
+              role: String(info.role || '직원')
+            };
+          }
+        });
+        rebuildEmployeeIndexes();
+        if (typeof cacheEmployeesToLS === 'function') cacheEmployeesToLS();
+        rebuildLoginDropdown();
+        // 마지막 로그인 이메일 다시 적용 (드롭다운 재구성 후)
+        const sel2 = document.getElementById('authEmailSelect');
+        const lastEmail2 = safeLS.getItem('dr_pharm_last_email');
+        if (lastEmail2 && sel2) sel2.value = lastEmail2;
+      }).catch(err => {
+        console.warn('[로그인] 직원목록 사전조회 실패 (캐시 사용):', err && err.message);
+      });
+    }
     // 마지막 로그인 이메일 자동 선택
     const sel = document.getElementById('authEmailSelect');
     const lastEmail = safeLS.getItem('dr_pharm_last_email');
@@ -10004,6 +10032,6 @@ setInterval(() => {
 <!-- 과거 주문 검색 모듈 (외부 파일 - 안전한 분리) -->
 <script src="search.js?v=20260508f"></script>
 <!-- 단가 매칭 추론 시스템 (Phase 2~6) -->
-<script src="pricematch.js?v=20260508f"></script>
+<script src="pricematch.js?v=20260508g"></script>
 </body>
 </html>
