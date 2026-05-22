@@ -3964,6 +3964,8 @@ function loadAllDatesFromFirebase() {
       items.sort((a,b) => (a.timestamp||0) - (b.timestamp||0));
       allData[dStr] = { messages: msgs, items };
     });
+    // 모든 날짜 로드 완료 → 백그라운드 캐시 워밍 예약
+    if (typeof scheduleCacheWarming === 'function') scheduleCacheWarming('allData 로드 후');
   });
 }
 
@@ -4919,17 +4921,113 @@ function renderMonthlyChart() {
 }
 
 // 주문리스트 하단 일일 합계 바 갱신
+let _a4TotalUpdateTimer = null;
 function updateA4TotalBar() {
   const el = document.getElementById('a4TotalValue');
   if (!el) return;
   if (typeof calcDailyTotalAmount !== 'function') { el.textContent = '-'; return; }
-  const t = calcDailyTotalAmount(currentDate);
+  // 캐시 히트면 즉시
+  if (typeof _dailyTotalCache !== 'undefined' && _dailyTotalCache.has(currentDate)) {
+    const t = _dailyTotalCache.get(currentDate);
+    applyA4Total(el, t);
+    return;
+  }
+  // 캐시 미스 → 로딩 표시 후 비동기 계산 (UI 정지 방지)
+  if (!el.textContent || el.textContent === '-') {
+    el.textContent = '계산 중...';
+    el.classList.add('zero');
+  }
+  if (_a4TotalUpdateTimer) clearTimeout(_a4TotalUpdateTimer);
+  _a4TotalUpdateTimer = setTimeout(() => {
+    _a4TotalUpdateTimer = null;
+    try {
+      const t = calcDailyTotalAmount(currentDate);
+      applyA4Total(el, t);
+    } catch (e) { console.warn('합계 계산 실패:', e); }
+  }, 16);
+}
+function applyA4Total(el, t) {
   if (t.total > 0) {
     el.textContent = (typeof fmtWon==='function'?fmtWon(t.total):'₩'+Math.round(t.total).toLocaleString()) + (t.missing > 0 ? ' (미등록 ' + t.missing + '건)' : '');
     el.classList.remove('zero');
   } else {
     el.textContent = (medPrices && medPrices.items && medPrices.items.length > 0) ? '단가 미등록 ' + t.missing + '건' : '단가표 업로드 필요';
     el.classList.add('zero');
+  }
+}
+
+// ============ 백그라운드 캐시 워밍 ============
+// medPrices + allData 둘 다 로드된 후 호출.
+// 모든 주문 약품명을 미리 findBest 처리하여 캐시 채워둠.
+// 그러면 사용자가 어느 탭을 클릭해도 즉시 응답.
+let _warmingScheduled = false;
+let _warmingInProgress = false;
+function scheduleCacheWarming(reason) {
+  if (_warmingScheduled || _warmingInProgress) return;
+  _warmingScheduled = true;
+  setTimeout(() => {
+    _warmingScheduled = false;
+    warmPriceMatchCache(reason);
+  }, 800);  // 다른 부팅 작업 완료 후
+}
+
+function warmPriceMatchCache(reason) {
+  if (_warmingInProgress) return;
+  if (!window.PriceMatcher || typeof window.PriceMatcher.findBest !== 'function') return;
+  if (!medPrices || !medPrices.items || !medPrices.items.length) return;
+  if (!allData || !Object.keys(allData).length) return;
+
+  _warmingInProgress = true;
+  const t0 = Date.now();
+
+  // 모든 날짜의 약품명 수집 (중복 제거)
+  const names = new Set();
+  Object.values(allData).forEach(day => {
+    if (day && Array.isArray(day.items)) {
+      day.items.forEach(it => {
+        if (it && it.name) names.add(it.name);
+      });
+    }
+  });
+  const nameList = Array.from(names);
+  console.log(`[캐시 워밍] ${reason||''} 시작 - ${nameList.length}개 고유 약품명`);
+
+  // 청크 단위로 처리 (UI 블록 방지)
+  let idx = 0;
+  const chunkSize = 30;
+  const runChunk = () => {
+    const end = Math.min(idx + chunkSize, nameList.length);
+    for (; idx < end; idx++) {
+      try { window.PriceMatcher.findBest(nameList[idx]); } catch(e) {}
+    }
+    if (idx < nameList.length) {
+      // 다음 청크를 idle 시점에 (또는 즉시 다음 이벤트 루프)
+      if (window.requestIdleCallback) {
+        requestIdleCallback(runChunk, { timeout: 50 });
+      } else {
+        setTimeout(runChunk, 0);
+      }
+    } else {
+      // 모든 약품 캐시 완료 → 일별 합계 캐시도 미리 빌드
+      Object.keys(allData).forEach(d => {
+        try { calcDailyTotalAmount(d); } catch(e) {}
+      });
+      _warmingInProgress = false;
+      const ms = Date.now() - t0;
+      console.log(`[캐시 워밍] 완료 - ${nameList.length}개 약품 + ${Object.keys(allData).length}일 (${ms}ms)`);
+      // 캐시 채워졌으니 화면 다시 그려서 즉시 반영
+      try {
+        updateA4TotalBar();
+        if (document.querySelector('.tab.active')?.dataset?.tab === 'history') {
+          if (typeof renderHistory === 'function') renderHistory();
+        }
+      } catch(e) {}
+    }
+  };
+  if (window.requestIdleCallback) {
+    requestIdleCallback(runChunk, { timeout: 100 });
+  } else {
+    setTimeout(runChunk, 0);
   }
 }
 
@@ -7982,6 +8080,10 @@ function setupMedPricesListener() {
       };
       buildPriceIndex();
       saveMedPricesLocal();
+      // 단가 변경 → 캐시 무효화 + 워밍 재예약
+      if (typeof window.__invalidatePriceMatchCache === 'function') window.__invalidatePriceMatchCache();
+      if (typeof window.__invalidateDailyTotalCache === 'function') window.__invalidateDailyTotalCache();
+      if (typeof scheduleCacheWarming === 'function') scheduleCacheWarming('medPrices 로드 후');
     }
     if (typeof renderMedPricesAdmin === 'function') renderMedPricesAdmin();
     if (typeof renderAll === 'function') renderAll();
@@ -10032,6 +10134,6 @@ setInterval(() => {
 <!-- 과거 주문 검색 모듈 (외부 파일 - 안전한 분리) -->
 <script src="search.js?v=20260508f"></script>
 <!-- 단가 매칭 추론 시스템 (Phase 2~6) -->
-<script src="pricematch.js?v=20260508g"></script>
+<script src="pricematch.js?v=20260508g&warm=1"></script>
 </body>
 </html>
