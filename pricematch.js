@@ -308,9 +308,11 @@
     }, 200);
   }
 
+  var aliasListenerAttached = false;
   function attachFbAliasListener() {
     var fbDbRef = getFbDb();
     if (!fbDbRef) return false;
+    if (aliasListenerAttached) return true;
     try {
       fbDbRef.ref('medAliases').on('value', function (snap) {
         var val = snap.val();
@@ -319,17 +321,36 @@
           saveAliasesToLS();
         }
         aliasLoaded = true;
+        aliasListenerAttached = true;
         // 별칭 변경시 캐시 무효화 + 디바운스된 화면 갱신
         scheduleRenderAll();
       }, function (err) {
-        console.warn('[단가추론] /medAliases 읽기 실패:', err && err.message);
+        var msg = err && err.message ? err.message : String(err);
+        console.warn('[단가추론] /medAliases 읽기 실패:', msg);
         aliasLoaded = true;
+        // 권한 거부면 인증 후 재시도 위해 flag 리셋
+        if (/permission_denied/i.test(msg)) {
+          aliasListenerAttached = false;
+          try { fbDbRef.ref('medAliases').off(); } catch (e) {}
+        }
       });
+      aliasListenerAttached = true;
       return true;
     } catch (e) {
       console.warn('[단가추론] FB 별칭 리스너 부착 실패:', e);
       return false;
     }
+  }
+
+  // 외부에서 인증 완료시 호출 (재시도)
+  function reattachAfterAuth() {
+    aliasListenerAttached = false;
+    var fbDbRef = getFbDb();
+    if (fbDbRef) {
+      try { fbDbRef.ref('medAliases').off(); } catch (e) {}
+    }
+    attachFbAliasListener();
+    console.log('[단가추론] 인증 후 별칭 리스너 재부착 시도');
   }
 
   function loadAliases() {
@@ -900,6 +921,7 @@
     lookup: lookupAlias,
     getMap: function () { return aliasMap; },
     isLoaded: function () { return aliasLoaded; },
+    reattachAfterAuth: reattachAfterAuth,
   };
   window.openAliasPickModal = openAliasPickModal;
   window.closeAliasPickModal = closeAliasModal;

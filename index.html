@@ -3833,6 +3833,10 @@ function setupFirebaseForUser() {
   if (typeof setupManualMedTemplatesListener === 'function') {
     setupManualMedTemplatesListener();
   }
+  // 단가 별칭 (medAliases) 리스너 - 로그인 후 재시도 (권한 거부 회피)
+  if (window.PriceAliases && typeof window.PriceAliases.reattachAfterAuth === 'function') {
+    setTimeout(() => { try { window.PriceAliases.reattachAfterAuth(); } catch(e){} }, 500);
+  }
   // 반품현황 실시간 동기화
   if (typeof setupReturnsListener === 'function') {
     setupReturnsListener();
@@ -10134,6 +10138,6 @@ setInterval(() => {
 <!-- 과거 주문 검색 모듈 (외부 파일 - 안전한 분리) -->
 <script src="search.js?v=20260508f"></script>
 <!-- 단가 매칭 추론 시스템 (Phase 2~6) -->
-<script src="pricematch.js?v=20260508g&warm=1"></script>
+<script src="pricematch.js?v=20260508h"></script>
 </body>
 </html>
