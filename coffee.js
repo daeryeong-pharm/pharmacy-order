@@ -317,7 +317,7 @@
       host.innerHTML = '<div class="cf-empty">아직 지난 기록이 없습니다</div>';
       return;
     }
-    host.innerHTML = dates.slice(0, 30).map(function (d) {
+    host.innerHTML = dates.slice(0, 14).map(function (d) {
       var orders = ordersByDate[d] || [];
       var detail = orders.map(function (o) {
         return '• ' + escHtml(o.userName) + ': ' + escHtml(o.menu) + (o.note ? ' <span style="color:#94a3b8;">(' + escHtml(o.note) + ')</span>' : '');

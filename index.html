@@ -2790,7 +2790,6 @@ body.pdf-rendering .a4-page {
     <div class="tab" data-tab="history">날짜별 기록</div>
     <div class="tab" data-tab="floor2">2층재고</div>
     <div class="tab" data-tab="meddict">약품사전</div>
-    <div class="tab" data-tab="returns">반품현황</div>
     <div class="tab" data-tab="prices">단가</div>
     <div class="tab" data-tab="payments">결제내역</div>
     <div class="tab" data-tab="phcard">약국카드사용내역</div>
@@ -2975,43 +2974,6 @@ body.pdf-rendering .a4-page {
             📚 <b>최근 추가된 학습 항목</b> (최대 30건) <span style="margin-left:6px;color:#9ca3af;">— 본인이 추가한 항목은 🗑로 삭제 가능</span>
           </div>
           <div id="manualEntriesList" style="display:flex;flex-direction:column;gap:0;max-height:50vh;overflow-y:auto;"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 반품현황 탭 -->
-    <div class="tab-panel" id="panel-returns">
-      <div class="settings-panel">
-        <div class="settings-card">
-          <h3>🔁 반품현황 대시보드 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(반품 담당자: 김종희)</span></h3>
-          <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
-            플랫폼별로 그룹화된 반품 의약품 현황. 모든 직원이 정보 조회 가능 · 추가·수정·상태변경은 김종희(반품 담당자)와 약국장만.
-          </p>
-
-          <div id="returnsReadonlyBanner" style="padding:8px 10px;margin-bottom:8px;background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;font-size:11.5px;color:#78350f;display:none;">
-            🔒 <b>읽기 전용</b> — 반품 관리는 <b>김종희</b>(반품 담당자) 또는 <b>백승준</b>(약국장)만 가능합니다.
-          </div>
-
-          <div class="settings-row" style="flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-            <button id="returnAddBtn" class="hist-btn" onclick="openReturnAddModal()" style="display:none;">➕ 새 반품 추가</button>
-            <input type="search" id="returnsSearch" class="emp-input" style="flex:1;min-width:160px;font-size:12px;padding:6px 10px;" placeholder="🔍 의약품명·플랫폼 검색" oninput="renderReturnsDashboard()" />
-            <select id="returnsFilterType" class="emp-input" style="flex:0 0 auto;width:100px;font-size:12px;padding:6px 10px;" onchange="renderReturnsDashboard()">
-              <option value="">전체 종류</option>
-              <option value="원통">📦 원통</option>
-              <option value="낱알">💊 낱알</option>
-            </select>
-            <select id="returnsFilterStatus" class="emp-input" style="flex:0 0 auto;width:110px;font-size:12px;padding:6px 10px;" onchange="renderReturnsDashboard()">
-              <option value="">전체 상태</option>
-              <option value="예정">⏳ 예정</option>
-              <option value="처리중">🔄 처리중</option>
-              <option value="완료">✅ 완료</option>
-            </select>
-            <select id="returnsFilterPlatform" class="emp-input" style="flex:0 0 auto;width:160px;font-size:12px;padding:6px 10px;" onchange="renderReturnsDashboard()">
-              <option value="">전체 플랫폼</option>
-            </select>
-          </div>
-
-          <div id="returnsDashboard" class="returns-dashboard"></div>
         </div>
       </div>
     </div>
@@ -3847,7 +3809,6 @@ function setupFirebaseForUser() {
 
 // lazy-attach 상태 관리 (탭당 1번만 리스너 부착)
 const _lazyListenersAttached = {
-  returns: false,
   payments: false,
   phcard: false
 };
@@ -3855,11 +3816,7 @@ function ensureListenerAttached(tabName) {
   if (_lazyListenersAttached[tabName]) return;
   if (!fbDb || !currentUser) return;
   try {
-    if (tabName === 'returns' && typeof setupReturnsListener === 'function') {
-      setupReturnsListener();
-      _lazyListenersAttached.returns = true;
-      console.log('[성능] 반품 리스너 lazy-attach 완료');
-    } else if (tabName === 'payments' && typeof setupPaymentsListener === 'function') {
+    if (tabName === 'payments' && typeof setupPaymentsListener === 'function') {
       setupPaymentsListener();
       _lazyListenersAttached.payments = true;
       console.log('[성능] 결제 리스너 lazy-attach 완료');
@@ -5301,13 +5258,6 @@ function switchTab(name) {
     deferRender(() => {
       if (typeof renderMedDictAdmin === 'function') renderMedDictAdmin();
       if (typeof renderManualEntriesList === 'function') renderManualEntriesList();
-    });
-  }
-  if (name === 'returns') {
-    ensureListenerAttached('returns');
-    deferRender(() => {
-      if (typeof renderReturnsFilters === 'function') renderReturnsFilters();
-      if (typeof renderReturnsDashboard === 'function') renderReturnsDashboard();
     });
   }
   if (name === 'prices') deferRender(renderMedPricesAdmin);
