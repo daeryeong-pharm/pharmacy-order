@@ -3838,22 +3838,37 @@ function setupFirebaseForUser() {
   if (window.PriceAliases && typeof window.PriceAliases.reattachAfterAuth === 'function') {
     setTimeout(() => { try { window.PriceAliases.reattachAfterAuth(); } catch(e){} }, 500);
   }
-  // 반품현황 실시간 동기화
-  if (typeof setupReturnsListener === 'function') {
-    setupReturnsListener();
-  }
-  // 의약품 단가 실시간 동기화
+  // 의약품 단가 실시간 동기화 (주문리스트에서 필수)
   if (typeof setupMedPricesListener === 'function') {
     setupMedPricesListener();
   }
-  // 결제내역 실시간 동기화
-  if (typeof setupPaymentsListener === 'function') {
-    setupPaymentsListener();
-  }
-  // 약국카드사용내역 실시간 동기화
-  if (typeof setupPharmacyCardListeners === 'function') {
-    setupPharmacyCardListeners();
-  }
+  // 반품/결제/약국카드 리스너는 각 탭 첫 진입 시 lazy-attach (성능 최적화)
+}
+
+// lazy-attach 상태 관리 (탭당 1번만 리스너 부착)
+const _lazyListenersAttached = {
+  returns: false,
+  payments: false,
+  phcard: false
+};
+function ensureListenerAttached(tabName) {
+  if (_lazyListenersAttached[tabName]) return;
+  if (!fbDb || !currentUser) return;
+  try {
+    if (tabName === 'returns' && typeof setupReturnsListener === 'function') {
+      setupReturnsListener();
+      _lazyListenersAttached.returns = true;
+      console.log('[성능] 반품 리스너 lazy-attach 완료');
+    } else if (tabName === 'payments' && typeof setupPaymentsListener === 'function') {
+      setupPaymentsListener();
+      _lazyListenersAttached.payments = true;
+      console.log('[성능] 결제 리스너 lazy-attach 완료');
+    } else if (tabName === 'phcard' && typeof setupPharmacyCardListeners === 'function') {
+      setupPharmacyCardListeners();
+      _lazyListenersAttached.phcard = true;
+      console.log('[성능] 카드 리스너 lazy-attach 완료');
+    }
+  } catch (e) { console.warn('[성능] lazy-attach 실패:', tabName, e); }
 }
 
 function detachFirebaseListeners() {
@@ -5289,14 +5304,21 @@ function switchTab(name) {
     });
   }
   if (name === 'returns') {
+    ensureListenerAttached('returns');
     deferRender(() => {
       if (typeof renderReturnsFilters === 'function') renderReturnsFilters();
       if (typeof renderReturnsDashboard === 'function') renderReturnsDashboard();
     });
   }
   if (name === 'prices') deferRender(renderMedPricesAdmin);
-  if (name === 'payments') deferRender(renderPaymentsAll);
-  if (name === 'phcard') deferRender(renderPharmacyCardAll);
+  if (name === 'payments') {
+    ensureListenerAttached('payments');
+    deferRender(renderPaymentsAll);
+  }
+  if (name === 'phcard') {
+    ensureListenerAttached('phcard');
+    deferRender(renderPharmacyCardAll);
+  }
   if (name === 'coffee') deferRender(() => { if (window.CoffeeOrders && typeof window.CoffeeOrders.render === 'function') window.CoffeeOrders.render(); });
   if (name === 'settings') {
     deferRender(() => {
@@ -5457,12 +5479,32 @@ function dayOfWeek(dStr) {
   return days[new Date(dStr).getDay()] + '요일';
 }
 
+// ============ 성능 최적화: renderAll 디바운스 + 활성 탭 스킵 ============
+// Firebase 리스너 여러 개가 동시에 renderAll 호출해도 200ms 내 1번만 실제 실행.
+// 안 보이는 탭 함수는 건너뛰기.
+let _renderAllTimer = null;
+let _renderAllPending = false;
 function renderAll() {
+  if (_renderAllPending) return;
+  _renderAllPending = true;
+  if (_renderAllTimer) clearTimeout(_renderAllTimer);
+  _renderAllTimer = setTimeout(() => {
+    _renderAllPending = false;
+    _renderAllTimer = null;
+    _renderAllNow();
+  }, 60); // 60ms 이내 여러 호출 → 1번만
+}
+// 즉시 실행이 필요한 경우 (예: 사용자 입력 직후)
+function renderAllNow() { _renderAllPending = false; if (_renderAllTimer) { clearTimeout(_renderAllTimer); _renderAllTimer = null; } _renderAllNow(); }
+function _renderAllNow() {
+  const activeTab = (document.querySelector('.tab.active') || {}).dataset?.tab || 'work';
+  // 주문 리스트 관련 (항상 렌더 - 대시보드/A4는 채팅에서 접근 가능)
   renderDashboard();
   refreshFilterAuthorOptions();
   renderChat();
   renderA4();
-  if (typeof renderFloor2Admin === 'function') renderFloor2Admin();
+  // 2층재고 탭이 활성일 때만
+  if (activeTab === 'floor2' && typeof renderFloor2Admin === 'function') renderFloor2Admin();
 }
 
 // ============ 실시간 대시보드 ============
