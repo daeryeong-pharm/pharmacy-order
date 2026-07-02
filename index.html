@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes" />
-<meta name="theme-color" content="#c9763d" />
+<meta name="theme-color" content="#5a8a3a" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -45,7 +45,7 @@
         '④ Safari 설정 → 고급 → "JavaScript" <b>켜기</b><br>' +
         '⑤ HTML 파일은 <b>Google Drive 미리보기</b> 또는 <b>https:// 호스팅</b>으로 열기 (file:// 직접 열기 ❌)' +
         '</div>' +
-        '<button onclick="location.reload()" style="margin-top:14px;padding:10px 16px;background:#c9763d;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🔄 새로고침</button>' +
+        '<button onclick="location.reload()" style="margin-top:14px;padding:10px 16px;background:#5a8a3a;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🔄 새로고침</button>' +
         '</div>';
       box.style.display = 'block';
     } catch (e) {
@@ -192,7 +192,7 @@
       + '<div style="font-size:17px;font-weight:700;text-align:center;margin-bottom:6px;color:#ffd9a8;">' + inAppName + ' 브라우저에서는<br>정상 동작하지 않습니다</div>'
       + '<div style="font-size:12.5px;text-align:center;color:#c9b89c;margin-bottom:18px;line-height:1.6;">실시간 동기화·로그인 저장 기능이 차단됩니다.<br>외부 브라우저(Safari/Chrome)로 열어주세요.</div>'
       + iosGuide
-      + '<button id="inAppOpenBtn" style="width:100%;padding:14px;background:#c9763d;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px;">' + btnLabel + '</button>'
+      + '<button id="inAppOpenBtn" style="width:100%;padding:14px;background:#5a8a3a;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px;">' + btnLabel + '</button>'
       + '<button id="inAppDismissBtn" style="width:100%;padding:10px;background:transparent;color:#998f80;border:1px solid #5a5248;border-radius:8px;font-size:12px;cursor:pointer;">그래도 여기서 계속 사용 (제한 모드)</button>'
       + '<div id="inAppCopyMsg" style="display:none;margin-top:10px;text-align:center;font-size:12px;color:#7fdbb6;">✅ URL이 복사되었습니다. Safari를 열어 주소창에 붙여넣으세요.</div>'
       + '</div>';
@@ -247,23 +247,24 @@
 </script>
 <style>
 :root {
-  --bg: #faf9f5;
-  --bg-alt: #f3f1ea;
+  /* 🌿 여름 테마 (연두-초록 은은한 톤) */
+  --bg: #f5f9f0;              /* 아주 옅은 연두 배경 */
+  --bg-alt: #eaf2df;          /* 살짝 진한 연두 */
   --card: #ffffff;
-  --border: #e8e4d8;
-  --border-strong: #d8d2c0;
-  --text: #2d2a26;
-  --text-soft: #6b6357;
-  --text-muted: #998f80;
-  --accent: #c9763d;
-  --accent-hover: #b3662f;
-  --accent-soft: #f6e9dd;
-  --warn: #d4a017;
-  --warn-bg: #fdf6dc;
+  --border: #dfe8d1;          /* 옅은 초록 보더 */
+  --border-strong: #c8d5b3;
+  --text: #1f2d1a;            /* 초록 기미 살짝 있는 다크 */
+  --text-soft: #4b5a44;
+  --text-muted: #8a9484;
+  --accent: #5a8a3a;          /* 은은한 초록 - 채도 낮춘 자연스러운 톤 */
+  --accent-hover: #4a7530;
+  --accent-soft: #e4f0d4;     /* 액센트 배경 (연두) */
+  --warn: #b78b1c;            /* 여름 노랑 */
+  --warn-bg: #fbf3d0;
   --danger: #c0392b;
   --danger-bg: #fbeae7;
   --ok: #4a7c59;
-  --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+  --shadow: 0 1px 3px rgba(20,60,15,0.05), 0 1px 2px rgba(20,60,15,0.03);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -283,17 +284,18 @@ body {
 /* ================= 로그인 화면 (Claude-inspired) ================= */
 .login-overlay {
   position: fixed; inset: 0;
+  /* 🌿 여름 연두-초록 그라디언트 */
   background:
-    radial-gradient(1200px 700px at 15% -10%, #fbe7d0 0%, transparent 55%),
-    radial-gradient(900px 600px at 110% 110%, #f6d9b8 0%, transparent 55%),
-    linear-gradient(180deg, #faf4e9 0%, #f5e8d3 100%);
+    radial-gradient(1200px 700px at 15% -10%, #d9edc4 0%, transparent 55%),
+    radial-gradient(900px 600px at 110% 110%, #c4e5b0 0%, transparent 55%),
+    linear-gradient(180deg, #f4faec 0%, #e5f0d5 100%);
   display: flex; align-items: center; justify-content: center;
   z-index: 1000;
   overflow: hidden;
   padding: 24px;
 }
 
-/* 앰비언트 오브 (배경 장식) */
+/* 앰비언트 오브 (배경 장식) - 여름 초록 톤 */
 .login-orbs { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .login-orb {
   position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.55;
@@ -301,19 +303,19 @@ body {
 }
 .login-orb-1 {
   width: 360px; height: 360px;
-  background: radial-gradient(circle, #f0b58a 0%, transparent 70%);
+  background: radial-gradient(circle, #a8d68a 0%, transparent 70%);
   top: -80px; left: -80px;
   animation-delay: 0s;
 }
 .login-orb-2 {
   width: 440px; height: 440px;
-  background: radial-gradient(circle, #ecc89d 0%, transparent 70%);
+  background: radial-gradient(circle, #b8dea0 0%, transparent 70%);
   bottom: -120px; right: -120px;
   animation-delay: 4s;
 }
 .login-orb-3 {
   width: 240px; height: 240px;
-  background: radial-gradient(circle, #f7d6b5 0%, transparent 70%);
+  background: radial-gradient(circle, #c9e5b0 0%, transparent 70%);
   top: 50%; left: 50%; transform: translate(-50%, -50%);
   opacity: 0.35;
   animation-delay: 8s;
@@ -349,14 +351,14 @@ body {
 .login-mark {
   display: inline-flex; align-items: center; justify-content: center;
   width: 64px; height: 64px;
-  background: linear-gradient(135deg, #fff 0%, #fef5e8 100%);
-  border: 1px solid #f1ddc1;
+  background: linear-gradient(135deg, #fff 0%, #eef8e0 100%);
+  border: 1px solid #d0e2b8;
   border-radius: 18px;
   margin-bottom: 16px;
-  box-shadow: 0 6px 14px -6px rgba(201, 118, 61, 0.25);
+  box-shadow: 0 6px 14px -6px rgba(90, 138, 58, 0.25);
 }
 .login-mark svg {
-  filter: drop-shadow(0 2px 4px rgba(201, 118, 61, 0.2));
+  filter: drop-shadow(0 2px 4px rgba(90, 138, 58, 0.2));
   animation: markPulse 3s ease-in-out infinite;
 }
 @keyframes markPulse {
@@ -368,13 +370,13 @@ body {
   font-family: 'Noto Serif KR', 'Pretendard', serif;
   font-size: 22px;
   font-weight: 800;
-  color: #2d2419;
+  color: #1f2d1a;
   letter-spacing: -0.02em;
   margin-bottom: 6px;
 }
 .login-sub {
   font-size: 12.5px;
-  color: #8b7a64;
+  color: #6a7663;
   margin-bottom: 26px;
   letter-spacing: 0.01em;
 }
@@ -384,7 +386,7 @@ body {
   display: block;
   font-size: 11.5px;
   font-weight: 700;
-  color: #8b7a64;
+  color: #6a7663;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 6px;
@@ -394,22 +396,22 @@ body {
 .login-input {
   width: 100%;
   padding: 13px 16px;
-  border: 1.5px solid #ecd9bb;
+  border: 1.5px solid #d5e2c1;
   border-radius: 12px;
   font-size: 14.5px;
   font-family: inherit;
   background: rgba(255, 255, 255, 0.85);
-  color: #2d2419;
+  color: #1f2d1a;
   margin-bottom: 0;
   box-sizing: border-box;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.login-input::placeholder { color: #c8b89e; }
+.login-input::placeholder { color: #a8b5a0; }
 .login-input:focus {
   outline: none;
-  border-color: #c9763d;
+  border-color: #5a8a3a;
   background: #fff;
-  box-shadow: 0 0 0 4px rgba(201, 118, 61, 0.12);
+  box-shadow: 0 0 0 4px rgba(90, 138, 58, 0.12);
 }
 
 /* 드롭다운 커스텀 */
@@ -423,7 +425,7 @@ body {
   position: absolute; right: 14px; top: 50%;
   transform: translateY(-50%);
   font-size: 14px;
-  color: #c9763d;
+  color: #5a8a3a;
   pointer-events: none;
   font-weight: 700;
 }
@@ -431,7 +433,7 @@ body {
 .login-btn {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #d18556 0%, #c9763d 100%);
+  background: linear-gradient(135deg, #7ba851 0%, #5a8a3a 100%);
   color: #fff;
   border: none;
   border-radius: 12px;
@@ -445,7 +447,7 @@ body {
   letter-spacing: 0.01em;
   box-shadow:
     0 1px 0 rgba(255,255,255,0.25) inset,
-    0 6px 14px -4px rgba(201, 118, 61, 0.45);
+    0 6px 14px -4px rgba(90, 138, 58, 0.4);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative; overflow: hidden;
 }
@@ -453,7 +455,7 @@ body {
   transform: translateY(-1px);
   box-shadow:
     0 1px 0 rgba(255,255,255,0.3) inset,
-    0 10px 22px -6px rgba(201, 118, 61, 0.55);
+    0 10px 22px -6px rgba(90, 138, 58, 0.5);
 }
 .login-btn:active { transform: translateY(0); }
 .login-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
@@ -475,10 +477,10 @@ body {
   padding: 10px 12px; line-height: 1.5;
 }
 .login-hint {
-  margin-top: 14px; font-size: 11.5px; color: #a89478;
+  margin-top: 14px; font-size: 11.5px; color: #8a9484;
   text-align: center; line-height: 1.5;
 }
-.login-hint-dot { color: #c9763d; font-weight: 700; }
+.login-hint-dot { color: #5a8a3a; font-weight: 700; }
 
 .login-warn {
   font-size: 12px;
@@ -494,11 +496,11 @@ body {
 .recent-users {
   margin-top: 22px;
   padding-top: 18px;
-  border-top: 1px solid rgba(201, 118, 61, 0.12);
+  border-top: 1px solid rgba(90, 138, 58, 0.12);
 }
 .recent-users-label {
   font-size: 11px; font-weight: 700;
-  color: #8b7a64;
+  color: #6a7663;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 8px;
@@ -513,22 +515,22 @@ body {
   cursor: pointer;
   font-size: 12.5px;
   font-weight: 600;
-  color: #6b5945;
-  border: 1px solid rgba(201, 118, 61, 0.18);
+  color: #4b5a44;
+  border: 1px solid rgba(90, 138, 58, 0.2);
   transition: all 0.15s ease;
 }
 .recent-user-chip:hover {
-  background: #c9763d;
-  border-color: #c9763d;
+  background: #5a8a3a;
+  border-color: #5a8a3a;
   color: #fff;
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px -4px rgba(201, 118, 61, 0.4);
+  box-shadow: 0 4px 10px -4px rgba(90, 138, 58, 0.4);
 }
 
 .login-foot {
   margin-top: 18px;
   font-size: 10.5px;
-  color: #b8a98e;
+  color: #a8b5a0;
   letter-spacing: 0.05em;
 }
 
@@ -602,7 +604,7 @@ body {
 }
 .digital-clock .dc-sec {
   font-size: 13px;
-  color: #c9763d;
+  color: #5a8a3a;
   font-weight: 600;
   min-width: 22px;
   text-align: right;
@@ -653,7 +655,7 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #c9763d;
+  background: #5a8a3a;
   box-shadow: 0 0 0 2px #fff, 0 0 6px rgba(201, 118, 61, 0.5);
 }
 .notice-header {
@@ -675,7 +677,7 @@ body {
 }
 .notice-edit-icon {
   font-size: 11px;
-  color: #c9763d;
+  color: #5a8a3a;
   font-weight: 600;
 }
 .notice-content {
@@ -749,7 +751,7 @@ body {
   box-sizing: border-box;
 }
 .notice-textarea:focus {
-  border-color: #c9763d;
+  border-color: #5a8a3a;
   box-shadow: 0 0 0 3px rgba(201, 118, 61, 0.12);
 }
 .notice-readonly-hint {
@@ -1293,7 +1295,7 @@ body {
   transition: all 0.12s;
   user-select: none;
 }
-.chip:hover { border-color: #c9763d; background: #fff5e1; }
+.chip:hover { border-color: #5a8a3a; background: #fff5e1; }
 .chip-ico { font-size: 11px; opacity: 0.85; }
 .chip-val { font-weight: 600; }
 .chip-del {
@@ -1311,12 +1313,12 @@ body {
   padding: 0;
 }
 .chip-del:hover { background: #fee2e2; color: #991b1b; }
-.chip[data-field="name"] { border-color: #c9763d; background: #fff5e1; }
+.chip[data-field="name"] { border-color: #5a8a3a; background: #fff5e1; }
 .chip[data-field="spec"] { border-color: #0d9488; background: #f0fdfa; color: #134e4a; }
 .chip[data-field="qty"]  { border-color: #6366f1; background: #eef2ff; color: #312e81; }
 .chip[data-field="note"] { border-color: #991b1b; background: #fef2f2; color: #7f1d1d; }
 
-.autocomplete-item.ac-tmpl { background: #fffaf0; border-left: 3px solid #c9763d; }
+.autocomplete-item.ac-tmpl { background: #fffaf0; border-left: 3px solid #5a8a3a; }
 .autocomplete-item.ac-tmpl .autocomplete-name { color: #78350f; font-weight: 700; }
 .ac-tmpl-row { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: 6px; vertical-align: middle; }
 .ac-tmpl-part {
@@ -1861,7 +1863,7 @@ body.pdf-rendering .a4-page {
 .ret-stat-done { color: #065f46; background: #d1fae5; border-color: #6ee7b7; }
 .ret-empty { padding: 30px; text-align: center; color: var(--text-muted); font-size: 12px; background: #fafafa; border: 1px dashed var(--border); border-radius: 8px; }
 .ret-platform-card { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #fff; }
-.ret-platform-card.direct { border-color: #c9763d; }
+.ret-platform-card.direct { border-color: #5a8a3a; }
 .ret-platform-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: linear-gradient(90deg, #fffaf0 0%, #fff4e0 100%); border-bottom: 1px solid var(--border); }
 .ret-platform-card.direct .ret-platform-head { background: linear-gradient(90deg, #fff5e1 0%, #ffebc9 100%); }
 .ret-platform-name { font-weight: 700; font-size: 13px; color: #5d4a33; }
@@ -1897,7 +1899,7 @@ body.pdf-rendering .a4-page {
   display: flex; justify-content: flex-end; align-items: center;
   gap: 12px; padding: 10px 16px; margin-top: 10px;
   background: linear-gradient(90deg, #fffaf0 0%, #fff4e0 100%);
-  border-top: 2px solid #c9763d; border-radius: 0 0 6px 6px;
+  border-top: 2px solid #5a8a3a; border-radius: 0 0 6px 6px;
 }
 .a4-total-label { font-size: 12px; color: #5d4a33; font-weight: 600; }
 .a4-total-value { font-size: 16px; color: #065f46; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: 0.3px; }
@@ -2673,14 +2675,15 @@ body.pdf-rendering .a4-page {
       <svg viewBox="0 0 48 48" width="44" height="44" fill="none">
         <defs>
           <linearGradient id="markGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#e89b6f"/>
-            <stop offset="100%" stop-color="#c9763d"/>
+            <stop offset="0%" stop-color="#8bc060"/>
+            <stop offset="100%" stop-color="#5a8a3a"/>
           </linearGradient>
         </defs>
+        <!-- 🌿 잎사귀 스타일 (여름 테마) -->
         <path d="M24 4 L27 18 L41 21 L27 24 L24 38 L21 24 L7 21 L21 18 Z"
               fill="url(#markGrad)"/>
-        <circle cx="38" cy="10" r="2.4" fill="#e89b6f" opacity="0.85"/>
-        <circle cx="10" cy="38" r="1.6" fill="#e89b6f" opacity="0.7"/>
+        <circle cx="38" cy="10" r="2.4" fill="#8bc060" opacity="0.85"/>
+        <circle cx="10" cy="38" r="1.6" fill="#8bc060" opacity="0.7"/>
       </svg>
     </div>
 
@@ -2732,7 +2735,7 @@ body.pdf-rendering .a4-page {
       <div class="recent-users-list" id="recentUsersList"></div>
     </div>
 
-    <div class="login-foot">충대대령약국 · 2014년부터</div>
+    <div class="login-foot">🌿 충대대령약국 · 2014년부터</div>
   </div>
 </div>
 
@@ -3176,7 +3179,7 @@ body.pdf-rendering .a4-page {
           <h3>업데이트 및 데이터 안내</h3>
           <p style="display:flex;align-items:center;gap:8px;font-size:12px;">
             <b>앱 버전:</b>
-            <span style="background:#c9763d;color:#fff;padding:3px 9px;border-radius:12px;font-family:monospace;font-weight:700;font-size:11px;">v26.04.23-meddict</span>
+            <span style="background:#5a8a3a;color:#fff;padding:3px 9px;border-radius:12px;font-family:monospace;font-weight:700;font-size:11px;">v26.04.23-meddict</span>
             <span style="color:var(--text-muted);font-size:11px;">약품 사전 · 변형 피커 · 칩 UI</span>
           </p>
           <p>이 앱은 단일 HTML 파일로 동작합니다. 기능 추가/개선 시 새 파일로 교체해도 Firebase 설정과 데이터는 유지됩니다.</p>
@@ -4875,14 +4878,14 @@ function renderMonthlyChart() {
     const isToday = dStr === today;
     const dow = new Date(y, m-1, d.day).getDay();
     const isSun = dow === 0, isSat = dow === 6;
-    const fill = isToday ? '#c9763d' : (isSun ? '#f87171' : (isSat ? '#60a5fa' : '#10b981'));
+    const fill = isToday ? '#5a8a3a' : (isSun ? '#f87171' : (isSat ? '#60a5fa' : '#10b981'));
     if (d.total > 0) {
       const tooltip = dStr + ' · ' + (typeof fmtWon==='function'?fmtWon(d.total):'₩'+Math.round(d.total).toLocaleString());
       svg += '<rect x="' + x + '" y="' + yPos + '" width="' + barW + '" height="' + h + '" fill="' + fill + '" rx="2"><title>' + tooltip + '</title></rect>';
     }
     // X축 라벨 (5의 배수 + 1, last day, today)
     if (d.day === 1 || d.day % 5 === 0 || d.day === daysInMonth || isToday) {
-      svg += '<text x="' + (x + barW/2) + '" y="' + (H - padB + 14) + '" font-size="9" fill="' + (isToday ? '#c9763d' : '#6b7280') + '" font-weight="' + (isToday ? '700' : '500') + '" text-anchor="middle">' + d.day + '</text>';
+      svg += '<text x="' + (x + barW/2) + '" y="' + (H - padB + 14) + '" font-size="9" fill="' + (isToday ? '#5a8a3a' : '#6b7280') + '" font-weight="' + (isToday ? '700' : '500') + '" text-anchor="middle">' + d.day + '</text>';
     }
   });
   // 범례
@@ -4890,7 +4893,7 @@ function renderMonthlyChart() {
   svg += '<rect x="0" y="-7" width="9" height="9" fill="#10b981" rx="1"/><text x="13" y="0">평일</text>';
   svg += '<rect x="46" y="-7" width="9" height="9" fill="#60a5fa" rx="1"/><text x="59" y="0">토</text>';
   svg += '<rect x="78" y="-7" width="9" height="9" fill="#f87171" rx="1"/><text x="91" y="0">일</text>';
-  svg += '<rect x="108" y="-7" width="9" height="9" fill="#c9763d" rx="1"/><text x="121" y="0">오늘</text>';
+  svg += '<rect x="108" y="-7" width="9" height="9" fill="#5a8a3a" rx="1"/><text x="121" y="0">오늘</text>';
   svg += '</g>';
   svg += '</svg>';
 
@@ -5421,7 +5424,7 @@ function escapeHtml(s) {
 function colorFromName(name) {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
-  const colors = ['#c9763d','#7c8c5a','#5b7a99','#a64d59','#8e6e3c','#5a8a8a','#9e5b8e','#c97c5b'];
+  const colors = ['#5a8a3a','#7c8c5a','#5b7a99','#a64d59','#8e6e3c','#5a8a8a','#9e5b8e','#c97c5b'];
   return colors[Math.abs(h) % colors.length];
 }
 function dayOfWeek(dStr) {
@@ -7427,19 +7430,19 @@ function renderPharmacyCardChart() {
     const isToday = dStr === today;
     const dow = new Date(y, m-1, d.day).getDay();
     const isSun = dow === 0, isSat = dow === 6;
-    const fill = isToday ? '#c9763d' : (isSun ? '#f87171' : (isSat ? '#60a5fa' : '#0ea5e9'));
+    const fill = isToday ? '#5a8a3a' : (isSun ? '#f87171' : (isSat ? '#60a5fa' : '#0ea5e9'));
     if (d.total > 0) {
       svg += '<rect x="'+x+'" y="'+yPos+'" width="'+barW+'" height="'+h+'" fill="'+fill+'" rx="2"><title>'+dStr+' · '+(typeof fmtWon==='function'?fmtWon(d.total):'₩'+Math.round(d.total).toLocaleString())+' ('+d.cnt+'건)</title></rect>';
     }
     if (d.day === 1 || d.day % 5 === 0 || d.day === daysInMonth || isToday) {
-      svg += '<text x="'+(x+barW/2)+'" y="'+(H-padB+14)+'" font-size="9" fill="'+(isToday?'#c9763d':'#6b7280')+'" font-weight="'+(isToday?'700':'500')+'" text-anchor="middle">'+d.day+'</text>';
+      svg += '<text x="'+(x+barW/2)+'" y="'+(H-padB+14)+'" font-size="9" fill="'+(isToday?'#5a8a3a':'#6b7280')+'" font-weight="'+(isToday?'700':'500')+'" text-anchor="middle">'+d.day+'</text>';
     }
   });
   svg += '<g transform="translate('+padL+','+(H-8)+')" font-size="9" fill="#6b7280">';
   svg += '<rect x="0" y="-7" width="9" height="9" fill="#0ea5e9" rx="1"/><text x="13" y="0">평일</text>';
   svg += '<rect x="46" y="-7" width="9" height="9" fill="#60a5fa" rx="1"/><text x="59" y="0">토</text>';
   svg += '<rect x="78" y="-7" width="9" height="9" fill="#f87171" rx="1"/><text x="91" y="0">일</text>';
-  svg += '<rect x="108" y="-7" width="9" height="9" fill="#c9763d" rx="1"/><text x="121" y="0">오늘</text>';
+  svg += '<rect x="108" y="-7" width="9" height="9" fill="#5a8a3a" rx="1"/><text x="121" y="0">오늘</text>';
   svg += '</g></svg>';
   bodyEl.innerHTML = svg;
 }
@@ -8021,20 +8024,20 @@ function renderPaymentsChart() {
     const isToday = dStr === today;
     const dow = new Date(y, m-1, d.day).getDay();
     const isSun = dow === 0, isSat = dow === 6;
-    const fill = isToday ? '#c9763d' : (isSun ? '#f87171' : (isSat ? '#60a5fa' : '#7c3aed'));
+    const fill = isToday ? '#5a8a3a' : (isSun ? '#f87171' : (isSat ? '#60a5fa' : '#7c3aed'));
     if (d.total > 0) {
       const tooltip = dStr + ' · ' + (typeof fmtWon==='function'?fmtWon(d.total):'₩'+Math.round(d.total).toLocaleString()) + ' (' + d.cnt + '건)';
       svg += '<rect x="' + x + '" y="' + yPos + '" width="' + barW + '" height="' + h + '" fill="' + fill + '" rx="2"><title>' + tooltip + '</title></rect>';
     }
     if (d.day === 1 || d.day % 5 === 0 || d.day === daysInMonth || isToday) {
-      svg += '<text x="' + (x + barW/2) + '" y="' + (H - padB + 14) + '" font-size="9" fill="' + (isToday ? '#c9763d' : '#6b7280') + '" font-weight="' + (isToday ? '700' : '500') + '" text-anchor="middle">' + d.day + '</text>';
+      svg += '<text x="' + (x + barW/2) + '" y="' + (H - padB + 14) + '" font-size="9" fill="' + (isToday ? '#5a8a3a' : '#6b7280') + '" font-weight="' + (isToday ? '700' : '500') + '" text-anchor="middle">' + d.day + '</text>';
     }
   });
   svg += '<g transform="translate(' + padL + ',' + (H - 8) + ')" font-size="9" fill="#6b7280">';
   svg += '<rect x="0" y="-7" width="9" height="9" fill="#7c3aed" rx="1"/><text x="13" y="0">평일</text>';
   svg += '<rect x="46" y="-7" width="9" height="9" fill="#60a5fa" rx="1"/><text x="59" y="0">토</text>';
   svg += '<rect x="78" y="-7" width="9" height="9" fill="#f87171" rx="1"/><text x="91" y="0">일</text>';
-  svg += '<rect x="108" y="-7" width="9" height="9" fill="#c9763d" rx="1"/><text x="121" y="0">오늘</text>';
+  svg += '<rect x="108" y="-7" width="9" height="9" fill="#5a8a3a" rx="1"/><text x="121" y="0">오늘</text>';
   svg += '</g></svg>';
   bodyEl.innerHTML = svg;
 }
@@ -9146,7 +9149,7 @@ function renderEmployeesAdmin() {
   }
   html += '<div class="emp-row head"><div>이름</div><div>역할</div><div>이메일</div><div style="text-align:center;">관리</div></div>';
   entries.forEach(e => {
-    const roleStyle = e.role === '약국장' ? 'color:#c9763d;font-weight:800'
+    const roleStyle = e.role === '약국장' ? 'color:#5a8a3a;font-weight:800'
                     : e.role === '약사' ? 'color:#0d9488;font-weight:700'
                     : 'color:#6b7280;font-weight:600';
     const btns = allowed
@@ -10134,6 +10137,6 @@ setInterval(() => {
 <!-- 단가 매칭 추론 시스템 (Phase 2~6) -->
 <script src="pricematch.js?v=20260508h"></script>
 <!-- 커피주문 탭 (직원 메뉴 받기 + 약국장 결제) -->
-<script src="coffee.js?v=20260522c"></script>
+<script src="coffee.js?v=20260522d"></script>
 </body>
 </html>

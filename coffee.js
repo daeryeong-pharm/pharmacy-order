@@ -65,9 +65,9 @@
       '#panel-coffee .cf-input { width: 100%; padding: 11px 12px; border: 1px solid #d1d5db;',
       '  border-radius: 6px; font-size: 16px; box-sizing: border-box; background: #fff;',
       '  margin-bottom: 8px; font-family: inherit; color: #111827; }',
-      '#panel-coffee .cf-input:focus { outline: 2px solid #c9763d; outline-offset: -1px; border-color: #c9763d; }',
+      '#panel-coffee .cf-input:focus { outline: 2px solid #5a8a3a; outline-offset: -1px; border-color: #5a8a3a; }',
       // 버튼 - gradient/shadow 제거
-      '#panel-coffee .cf-save { width: 100%; padding: 12px; background: #c9763d; color: #fff;',
+      '#panel-coffee .cf-save { width: 100%; padding: 12px; background: #5a8a3a; color: #fff;',
       '  border: none; border-radius: 6px; font-size: 14px; font-weight: 700; cursor: pointer; }',
       '#panel-coffee .cf-save:disabled { opacity: 0.5; }',
       // 상태
