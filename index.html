@@ -2796,6 +2796,7 @@ body.pdf-rendering .a4-page {
     <div class="tab" data-tab="prices">단가</div>
     <div class="tab" data-tab="payments">결제내역</div>
     <div class="tab" data-tab="phcard">약국카드사용내역</div>
+    <div class="tab" data-tab="dispense">조제누락체크</div>
     <div class="tab" data-tab="coffee">커피주문</div>
     <div class="tab" data-tab="settings">설정</div>
     <div class="tab refresh-tab" data-tab="refresh" title="채팅과 리스트를 즉시 동기화">새로고침</div>
@@ -5273,6 +5274,7 @@ function switchTab(name) {
     deferRender(renderPharmacyCardAll);
   }
   if (name === 'coffee') deferRender(() => { if (window.CoffeeOrders && typeof window.CoffeeOrders.render === 'function') window.CoffeeOrders.render(); });
+  if (name === 'dispense') deferRender(() => { if (window.DispenseCheck && typeof window.DispenseCheck.render === 'function') window.DispenseCheck.render(); });
   if (name === 'settings') {
     deferRender(() => {
       updateSettingsFirebaseInfo();
@@ -10138,5 +10140,7 @@ setInterval(() => {
 <script src="pricematch.js?v=20260508h"></script>
 <!-- 커피주문 탭 (직원 메뉴 받기 + 약국장 결제) -->
 <script src="coffee.js?v=20260522d"></script>
+<!-- 조제누락체크 (팜3000 조제내역 ↔ 주문리스트 대조) -->
+<script src="dispense.js?v=20260522a"></script>
 </body>
 </html>
