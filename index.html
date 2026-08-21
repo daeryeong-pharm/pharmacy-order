@@ -3100,6 +3100,8 @@ body.pdf-rendering .a4-page {
     <!-- 설정 탭 -->
     <div class="tab-panel" id="panel-settings">
       <div class="settings-panel">
+        <!-- 손글씨 OCR 설정 (약국장 전용, ocr.js가 채움) -->
+        <div class="settings-card" id="ocrSettingsCard" style="display:none;"></div>
         <div class="settings-card">
           <h3>앱 정보</h3>
           <div class="settings-row"><span>앱 이름</span><span>대령약국 의약품 주문 시스템</span></div>
@@ -5282,6 +5284,7 @@ function switchTab(name) {
       if (typeof renderEmployeesAdmin === 'function') renderEmployeesAdmin();
       if (typeof renderBackupMeta === 'function') renderBackupMeta();
       if (typeof renderDataMgmtCard === 'function') renderDataMgmtCard();
+      if (window.HandwritingOCR && typeof window.HandwritingOCR.renderSettingsCard === 'function') window.HandwritingOCR.renderSettingsCard();
     });
   }
 }
@@ -10140,7 +10143,9 @@ setInterval(() => {
 <script src="pricematch.js?v=20260508h"></script>
 <!-- 커피주문 탭 (직원 메뉴 받기 + 약국장 결제) -->
 <script src="coffee.js?v=20260522d"></script>
+<!-- 손글씨 OCR (Naver CLOVA) -->
+<script src="ocr.js?v=20260522a"></script>
 <!-- 조제누락체크 (팜3000 조제내역 ↔ 주문리스트 대조) -->
-<script src="dispense.js?v=20260522a"></script>
+<script src="dispense.js?v=20260522c"></script>
 </body>
 </html>

@@ -70,11 +70,55 @@
   /* ──────── 상태 ──────── */
   var dispenseItems = [];      // [{name, qty}]  업로드한 조제내역
   var ignoreMap = {};          // 무시목록 (Firebase)
-  var photoUrls = [];          // 사진 objectURL 배열
+  var photoUrls = [];          // [{url, name, dateStr, lastModified}]
   var panelBuilt = false;
   var minQtyFilter = 0;        // 소진량 필터
-  var uploadMeta = null;       // {filename, count, uploadedAt}
+  var uploadMeta = null;       // {filename, count, uploadedAt, fileDate, detectedDate}
   var addedNames = {};         // 이번 세션에서 추가한 약 (중복 방지 표시)
+  var targetDate = null;       // ★ 대조 기준 날짜 (사용자가 선택/확정)
+  var manualList = [];         // ★ b: 수기 주문 목록 (OCR 인식 or 직접 입력)
+  var ocrRunning = false;
+
+  /* ──────── 날짜 유틸 ──────── */
+  function toDateStr(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  // 파일명에서 날짜 추출: 20260819, 2026-08-19, 260819, 08-19 등
+  function extractDateFromFilename(fn) {
+    if (!fn) return '';
+    var s = String(fn);
+    var m;
+    // YYYY-MM-DD or YYYY.MM.DD or YYYY_MM_DD or YYYYMMDD
+    m = s.match(/(20\d{2})[-._]?(\d{2})[-._]?(\d{2})/);
+    if (m) {
+      var y = +m[1], mo = +m[2], da = +m[3];
+      if (mo >= 1 && mo <= 12 && da >= 1 && da <= 31) {
+        return y + '-' + String(mo).padStart(2, '0') + '-' + String(da).padStart(2, '0');
+      }
+    }
+    // YYMMDD (6자리, 앞에 20 붙임)
+    m = s.match(/(?:^|[^0-9])(\d{2})(\d{2})(\d{2})(?:[^0-9]|$)/);
+    if (m) {
+      var y2 = 2000 + (+m[1]), mo2 = +m[2], da2 = +m[3];
+      if (mo2 >= 1 && mo2 <= 12 && da2 >= 1 && da2 <= 31 && y2 >= 2020 && y2 <= 2099) {
+        return y2 + '-' + String(mo2).padStart(2, '0') + '-' + String(da2).padStart(2, '0');
+      }
+    }
+    return '';
+  }
+  function dateLabel(dStr) {
+    if (!dStr) return '-';
+    var dow = ['일', '월', '화', '수', '목', '금', '토'];
+    var d = new Date(dStr + 'T00:00:00');
+    if (isNaN(d.getTime())) return dStr;
+    return dStr + ' (' + dow[d.getDay()] + ')';
+  }
+  function getTargetDate() {
+    return targetDate || getCurrentDate() || getTodayStr();
+  }
 
   /* ──────── 스타일 ──────── */
   function injectStyle() {
@@ -94,6 +138,40 @@
       '#panel-dispense .dp-btn:disabled { opacity:0.5; cursor:not-allowed; }',
       '#panel-dispense .dp-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }',
       '#panel-dispense .dp-meta { font-size:11.5px; color:var(--text-muted,#8a9484); background:#f8faf5; padding:8px 10px; border-radius:6px; margin-top:8px; }',
+      // ★ 날짜 박스
+      '#panel-dispense .dp-datebox { border:2px solid var(--accent,#5a8a3a); background:#f8fcf4; }',
+      '#panel-dispense .dp-date-input { padding:9px 12px; border:1.5px solid var(--border-strong,#c8d5b3); border-radius:7px; font-size:15px; font-family:inherit; color:var(--text,#1f2d1a); background:#fff; }',
+      '#panel-dispense .dp-date-input:focus { outline:none; border-color:var(--accent,#5a8a3a); box-shadow:0 0 0 3px rgba(90,138,58,0.12); }',
+      '#panel-dispense .dp-check-row { display:flex; align-items:center; gap:8px; padding:8px 11px; border-radius:7px; font-size:12.5px; margin-top:6px; }',
+      '#panel-dispense .dp-check-row.ok { background:#dcfce7; color:#166534; }',
+      '#panel-dispense .dp-check-row.warn { background:#fef3c7; color:#92400e; }',
+      '#panel-dispense .dp-check-row.err { background:#fee2e2; color:#991b1b; font-weight:700; }',
+      '#panel-dispense .dp-check-row.idle { background:#f3f4f6; color:#6b7280; }',
+      '#panel-dispense .dp-check-icon { font-size:14px; flex-shrink:0; }',
+      '#panel-dispense .dp-check-label { flex:1; }',
+      '#panel-dispense .dp-check-val { font-weight:700; }',
+      '#panel-dispense .dp-date-fix { border:none; background:rgba(255,255,255,0.7); border-radius:5px; padding:3px 9px; font-size:11px; font-weight:700; cursor:pointer; color:inherit; }',
+      '#panel-dispense .dp-blocked { background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; padding:12px; border-radius:8px; font-size:12.5px; text-align:center; line-height:1.6; }',
+      // ★ 수기 목록 (b)
+      '#panel-dispense .dp-textarea { width:100%; padding:10px 12px; border:1.5px solid var(--border-strong,#c8d5b3); border-radius:7px; font-size:14px; font-family:inherit; resize:vertical; box-sizing:border-box; line-height:1.6; }',
+      '#panel-dispense .dp-textarea:focus { outline:none; border-color:var(--accent,#5a8a3a); box-shadow:0 0 0 3px rgba(90,138,58,0.1); }',
+      '#panel-dispense .dp-mchip { display:inline-flex; align-items:center; gap:5px; background:#ede9fe; border:1px solid #ddd6fe; border-radius:999px; padding:4px 6px 4px 11px; font-size:11.5px; color:#5b21b6; margin:3px 3px 0 0; font-weight:600; }',
+      '#panel-dispense .dp-mchip-x { border:none; background:none; color:#dc2626; cursor:pointer; font-size:12px; padding:0 3px; }',
+      // ★ OCR 결과
+      '#panel-dispense .dp-ocr-box { margin-top:10px; padding:10px; background:#f8faf5; border:1px solid var(--border,#dfe8d1); border-radius:8px; }',
+      '#panel-dispense .dp-ocr-head { font-size:12px; font-weight:700; color:var(--text-soft,#4b5a44); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; }',
+      '#panel-dispense .dp-ocr-line { display:grid; grid-template-columns:22px 1fr auto; gap:8px; align-items:center; padding:7px 4px; border-top:1px solid #eef2e8; font-size:12.5px; }',
+      '#panel-dispense .dp-ocr-line:first-of-type { border-top:none; }',
+      '#panel-dispense .dp-ocr-line input[type=checkbox] { width:16px; height:16px; accent-color:var(--accent,#5a8a3a); }',
+      '#panel-dispense .dp-ocr-matched { font-weight:700; color:var(--text,#1f2d1a); }',
+      '#panel-dispense .dp-ocr-raw { font-size:10.5px; color:#9ca3af; }',
+      '#panel-dispense .dp-ocr-conf { font-size:10px; font-weight:800; padding:2px 7px; border-radius:999px; white-space:nowrap; }',
+      '#panel-dispense .dp-ocr-conf.high { background:#dcfce7; color:#166534; }',
+      '#panel-dispense .dp-ocr-conf.mid { background:#dbeafe; color:#1e40af; }',
+      '#panel-dispense .dp-ocr-conf.low { background:#fef3c7; color:#92400e; }',
+      '#panel-dispense .dp-ocr-conf.none { background:#f3f4f6; color:#9ca3af; }',
+      '#panel-dispense .dp-spinner { display:inline-block; width:13px; height:13px; border:2px solid #d1d5db; border-top-color:var(--accent,#5a8a3a); border-radius:50%; animation:dpspin 0.7s linear infinite; vertical-align:-2px; margin-right:5px; }',
+      '@keyframes dpspin { to { transform:rotate(360deg); } }',
       // 통계 배지
       '#panel-dispense .dp-stats { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }',
       '#panel-dispense .dp-pill { padding:5px 11px; border-radius:999px; font-size:11.5px; font-weight:700; }',
@@ -126,6 +204,9 @@
       '#panel-dispense .dp-photo { position:relative; width:96px; height:96px; border-radius:8px; overflow:hidden; border:1px solid var(--border,#dfe8d1); cursor:pointer; background:#f8faf5; }',
       '#panel-dispense .dp-photo img { width:100%; height:100%; object-fit:cover; display:block; }',
       '#panel-dispense .dp-photo-del { position:absolute; top:3px; right:3px; width:20px; height:20px; border:none; background:rgba(0,0,0,0.6); color:#fff; border-radius:4px; font-size:11px; cursor:pointer; padding:0; line-height:1; }',
+      '#panel-dispense .dp-photo.bad { border:2px solid #dc2626; }',
+      '#panel-dispense .dp-photo-date { position:absolute; bottom:0; left:0; right:0; background:rgba(22,101,52,0.85); color:#fff; font-size:9.5px; font-weight:700; text-align:center; padding:2px 0; }',
+      '#panel-dispense .dp-photo-date.bad { background:rgba(153,27,27,0.9); }',
       // 라이트박스
       '#dpLightbox { display:none; position:fixed; inset:0; z-index:9700; background:rgba(0,0,0,0.88); align-items:center; justify-content:center; padding:16px; }',
       '#dpLightbox.show { display:flex; }',
@@ -158,10 +239,21 @@
     if (panelBuilt) return panel;
 
     panel.innerHTML = [
+      // 0. ★ 날짜 기준 (최상단)
+      '<div class="dp-box dp-datebox" id="dpDateBox">',
+      '  <div class="dp-title">📅 대조 기준 날짜</div>',
+      '  <div class="dp-desc">엑셀 조제내역 · 주문리스트 · 메모사진 <b>모두 같은 날짜</b>여야 정확한 대조가 됩니다.</div>',
+      '  <div class="dp-row" style="align-items:center;">',
+      '    <input type="date" id="dpTargetDate" class="dp-date-input">',
+      '    <button class="dp-btn" type="button" id="dpTodayBtn" style="padding:8px 12px;font-size:12px;">오늘</button>',
+      '    <button class="dp-btn" type="button" id="dpYesterdayBtn" style="padding:8px 12px;font-size:12px;">어제</button>',
+      '  </div>',
+      '  <div id="dpDateCheck"></div>',
+      '</div>',
       // 1. 업로드
       '<div class="dp-box">',
       '  <div class="dp-title">📊 조제내역 업로드 <span id="dpUploadBadge"></span></div>',
-      '  <div class="dp-desc">팜3000에서 추출한 <b>오늘 조제 의약품 사용량</b> 엑셀 파일을 올려주세요.<br>의약품명 · 사용량 컬럼을 자동으로 찾습니다.</div>',
+      '  <div class="dp-desc">팜3000에서 추출한 <b>조제 의약품 사용량</b> 엑셀 파일을 올려주세요.<br>의약품명 · 사용량 컬럼을 자동으로 찾습니다.</div>',
       '  <div class="dp-row">',
       '    <input type="file" id="dpXlsxInput" accept=".xlsx,.xls,.csv" style="display:none;">',
       '    <button class="dp-btn primary" type="button" id="dpUploadBtn">📁 엑셀 파일 선택</button>',
@@ -169,16 +261,29 @@
       '  </div>',
       '  <div id="dpUploadMeta"></div>',
       '</div>',
-      // 2. 사진
+      // 2. 사진 + OCR
       '<div class="dp-box">',
-      '  <div class="dp-title">📷 수기 메모 사진 <span style="font-size:11px;font-weight:400;color:var(--text-muted,#8a9484);">(참고용 · 저장 안 됨)</span></div>',
-      '  <div class="dp-desc">직원들이 손으로 적은 주문 메모를 찍어서 올리면, 아래 누락 리스트와 나란히 보면서 대조할 수 있습니다.</div>',
+      '  <div class="dp-title">📷 수기 메모 사진 <span id="dpOcrBadge" style="font-size:11px;font-weight:400;color:var(--text-muted,#8a9484);">(참고용 · 저장 안 됨)</span></div>',
+      '  <div class="dp-desc">직원들이 손으로 적은 주문 메모를 찍어서 올리면 <b>자동으로 글씨를 읽어</b> 누락 목록에서 제외합니다.</div>',
       '  <div class="dp-row">',
       '    <input type="file" id="dpPhotoInput" accept="image/*" multiple capture="environment" style="display:none;">',
       '    <button class="dp-btn" type="button" id="dpPhotoBtn">📷 사진 추가</button>',
+      '    <button class="dp-btn primary" type="button" id="dpOcrBtn" style="display:none;">🖋 손글씨 자동 인식</button>',
       '    <button class="dp-btn danger" type="button" id="dpPhotoClearBtn" style="display:none;">전체 삭제</button>',
       '  </div>',
       '  <div class="dp-photos" id="dpPhotos"></div>',
+      '  <div id="dpOcrResult"></div>',
+      '</div>',
+      // 2-b. 수기 목록 (b) - OCR 결과 또는 직접 입력
+      '<div class="dp-box" id="dpManualBox">',
+      '  <div class="dp-title">✍️ 수기 주문 목록 (b) <span class="dp-pill" id="dpManualCount" style="background:#ede9fe;color:#5b21b6;">0개</span></div>',
+      '  <div class="dp-desc">사진에서 인식했거나 직접 입력한 목록입니다. 이 약들은 누락 목록에서 자동 제외됩니다.<br>한 줄에 하나씩 입력하세요.</div>',
+      '  <textarea id="dpManualText" class="dp-textarea" rows="4" placeholder="라믹탈100&#10;크레스토10&#10;노바스크5" spellcheck="false"></textarea>',
+      '  <div class="dp-row" style="margin-top:6px;">',
+      '    <button class="dp-btn primary" type="button" id="dpManualApply" style="padding:8px 14px;font-size:12px;">✓ 적용</button>',
+      '    <button class="dp-btn" type="button" id="dpManualClear" style="padding:8px 12px;font-size:12px;">비우기</button>',
+      '  </div>',
+      '  <div id="dpManualChips" style="margin-top:8px;"></div>',
       '</div>',
       // 3. 결과
       '<div class="dp-box">',
@@ -223,6 +328,31 @@
 
   /* ──────── 이벤트 바인딩 (1회) ──────── */
   function bindEvents(panel) {
+    // ★ 날짜 선택
+    var dateInput = panel.querySelector('#dpTargetDate');
+    if (dateInput) {
+      dateInput.value = getCurrentDate() || getTodayStr();
+      targetDate = dateInput.value;
+      dateInput.addEventListener('change', function () {
+        targetDate = dateInput.value || getTodayStr();
+        renderDateCheck();
+        renderResult();
+      });
+    }
+    var todayBtn = panel.querySelector('#dpTodayBtn');
+    if (todayBtn) todayBtn.addEventListener('click', function () {
+      targetDate = getTodayStr();
+      if (dateInput) dateInput.value = targetDate;
+      renderDateCheck(); renderResult();
+    });
+    var yBtn = panel.querySelector('#dpYesterdayBtn');
+    if (yBtn) yBtn.addEventListener('click', function () {
+      var d = new Date(); d.setDate(d.getDate() - 1);
+      targetDate = toDateStr(d.getTime());
+      if (dateInput) dateInput.value = targetDate;
+      renderDateCheck(); renderResult();
+    });
+
     var xlsxInput = panel.querySelector('#dpXlsxInput');
     panel.querySelector('#dpUploadBtn').addEventListener('click', function () { xlsxInput.click(); });
     xlsxInput.addEventListener('change', handleXlsxUpload);
@@ -237,6 +367,22 @@
     panel.querySelector('#dpPhotoBtn').addEventListener('click', function () { photoInput.click(); });
     photoInput.addEventListener('change', handlePhotoUpload);
     panel.querySelector('#dpPhotoClearBtn').addEventListener('click', clearPhotos);
+
+    // ★ OCR 실행
+    var ocrBtn = panel.querySelector('#dpOcrBtn');
+    if (ocrBtn) ocrBtn.addEventListener('click', runOcr);
+
+    // ★ 수기 목록 (b)
+    var mApply = panel.querySelector('#dpManualApply');
+    if (mApply) mApply.addEventListener('click', applyManualText);
+    var mClear = panel.querySelector('#dpManualClear');
+    if (mClear) mClear.addEventListener('click', function () {
+      if (manualList.length && !confirm('수기 목록을 모두 비울까요?')) return;
+      manualList = [];
+      var ta = document.getElementById('dpManualText');
+      if (ta) ta.value = '';
+      renderManualList(); renderResult();
+    });
 
     var minQty = panel.querySelector('#dpMinQty');
     minQty.addEventListener('input', function () {
@@ -278,11 +424,40 @@
           return;
         }
         dispenseItems = parsed;
-        uploadMeta = { filename: file.name, count: parsed.length, uploadedAt: Date.now(), uploader: getCurrentUser() };
+        // ★ 파일명 + 수정일에서 날짜 추출
+        var fnDate = extractDateFromFilename(file.name);
+        var modDate = toDateStr(file.lastModified);
+        uploadMeta = {
+          filename: file.name,
+          count: parsed.length,
+          uploadedAt: Date.now(),
+          uploader: getCurrentUser(),
+          fileDate: fnDate,       // 파일명에서 추출
+          modDate: modDate        // 파일 수정일
+        };
         addedNames = {};
         renderUploadMeta();
+        renderDateCheck();
         renderResult();
-        alert('✅ ' + parsed.length + '개 품목 인식 완료');
+
+        // 날짜 불일치 경고
+        var detected = fnDate || modDate;
+        var tgt = getTargetDate();
+        if (detected && detected !== tgt) {
+          if (confirm('✅ ' + parsed.length + '개 품목 인식 완료\n\n' +
+            '⚠️ 날짜 불일치 감지\n\n' +
+            '파일 날짜: ' + detected + '\n' +
+            '현재 기준: ' + tgt + '\n\n' +
+            '대조 기준 날짜를 [' + detected + ']로 변경할까요?')) {
+            targetDate = detected;
+            var di = document.getElementById('dpTargetDate');
+            if (di) di.value = detected;
+            renderDateCheck();
+            renderResult();
+          }
+        } else {
+          alert('✅ ' + parsed.length + '개 품목 인식 완료' + (detected ? '\n📅 파일 날짜: ' + detected : ''));
+        }
       } catch (err) {
         console.error('[조제누락] 파싱 실패:', err);
         alert('엑셀 읽기 실패: ' + (err.message || err));
@@ -374,50 +549,304 @@
     if (clearBtn) clearBtn.style.display = 'inline-block';
   }
 
-  /* ──────── 사진 (메모리에만) ──────── */
+  /* ──────── 사진 (메모리에만 · 날짜 검증 포함) ──────── */
   function handlePhotoUpload(e) {
     var files = e.target.files;
     if (!files || !files.length) return;
+    var mismatched = [];
+    var tgt = getTargetDate();
     for (var i = 0; i < files.length; i++) {
       if (photoUrls.length >= 8) { alert('사진은 최대 8장까지 가능합니다'); break; }
-      photoUrls.push(URL.createObjectURL(files[i]));
+      var f = files[i];
+      // ★ 파일명 또는 촬영/수정일에서 날짜 추출
+      var fnDate = extractDateFromFilename(f.name);
+      var modDate = toDateStr(f.lastModified);
+      var photoDate = fnDate || modDate;
+      if (photoDate && photoDate !== tgt) mismatched.push(f.name + ' (' + photoDate + ')');
+      photoUrls.push({
+        url: URL.createObjectURL(f),
+        name: f.name,
+        dateStr: photoDate,
+        match: !photoDate || photoDate === tgt
+      });
     }
     renderPhotos();
+    renderDateCheck();
     e.target.value = '';
+    if (mismatched.length) {
+      alert('⚠️ 날짜가 다른 사진이 있습니다\n\n기준: ' + tgt + '\n\n' + mismatched.join('\n') +
+        '\n\n(사진은 참고용이므로 추가는 됩니다. 날짜 확인 후 사용하세요)');
+    }
   }
   function clearPhotos() {
-    photoUrls.forEach(function (u) { try { URL.revokeObjectURL(u); } catch (e) {} });
+    photoUrls.forEach(function (p) { try { URL.revokeObjectURL(p.url || p); } catch (e) {} });
     photoUrls = [];
     renderPhotos();
+    renderDateCheck();
   }
   function renderPhotos() {
     var host = document.getElementById('dpPhotos');
     var clearBtn = document.getElementById('dpPhotoClearBtn');
     if (!host) return;
     if (clearBtn) clearBtn.style.display = photoUrls.length ? 'inline-block' : 'none';
+    if (typeof updateOcrButton === 'function') updateOcrButton();
     if (!photoUrls.length) { host.innerHTML = ''; return; }
-    host.innerHTML = photoUrls.map(function (u, i) {
-      return '<div class="dp-photo" data-idx="' + i + '"><img src="' + u + '" alt="메모"><button class="dp-photo-del" type="button" data-del="' + i + '">✕</button></div>';
+    var tgt = getTargetDate();
+    host.innerHTML = photoUrls.map(function (p, i) {
+      var isMatch = !p.dateStr || p.dateStr === tgt;
+      var badge = p.dateStr
+        ? '<div class="dp-photo-date' + (isMatch ? '' : ' bad') + '">' + (isMatch ? '✓ ' : '⚠ ') + p.dateStr.slice(5) + '</div>'
+        : '';
+      return '<div class="dp-photo' + (isMatch ? '' : ' bad') + '" data-idx="' + i + '">' +
+        '<img src="' + p.url + '" alt="메모">' + badge +
+        '<button class="dp-photo-del" type="button" data-del="' + i + '">✕</button></div>';
     }).join('');
     host.querySelectorAll('.dp-photo').forEach(function (el) {
       el.addEventListener('click', function (e) {
         if (e.target.classList.contains('dp-photo-del')) {
           var idx = parseInt(e.target.getAttribute('data-del'), 10);
-          try { URL.revokeObjectURL(photoUrls[idx]); } catch (er) {}
+          try { URL.revokeObjectURL(photoUrls[idx].url); } catch (er) {}
           photoUrls.splice(idx, 1);
-          renderPhotos();
+          renderPhotos(); renderDateCheck();
           return;
         }
         var lb = document.getElementById('dpLightbox');
         var img = lb && lb.querySelector('img');
-        if (img) { img.src = photoUrls[parseInt(el.getAttribute('data-idx'), 10)]; lb.classList.add('show'); }
+        if (img) { img.src = photoUrls[parseInt(el.getAttribute('data-idx'), 10)].url; lb.classList.add('show'); }
       });
     });
   }
 
-  /* ──────── 대조 로직 ──────── */
+  /* ──────── ★ OCR 실행 ──────── */
+  function runOcr() {
+    if (ocrRunning) return;
+    if (!window.HandwritingOCR) { alert('OCR 모듈 미로드'); return; }
+    if (!window.HandwritingOCR.isReady()) {
+      alert('⚠️ OCR이 설정되지 않았습니다.\n\n설정 탭 → 손글씨 OCR 설정에서\n약국장이 CLOVA OCR 키를 등록해야 합니다.');
+      return;
+    }
+    if (!photoUrls.length) { alert('먼저 사진을 추가해주세요'); return; }
+    if (!dispenseItems.length) {
+      if (!confirm('조제내역 엑셀이 없으면 인식 정확도가 낮습니다.\n\n엑셀을 먼저 업로드하는 것을 권장합니다.\n\n그래도 진행할까요?')) return;
+    }
+
+    ocrRunning = true;
+    var host = document.getElementById('dpOcrResult');
+    var btn = document.getElementById('dpOcrBtn');
+    if (btn) btn.disabled = true;
+    if (host) host.innerHTML = '<div class="dp-ocr-box"><span class="dp-spinner"></span>손글씨 인식 중... (' + photoUrls.length + '장)</div>';
+
+    var allLines = [];
+    var errors = [];
+    var idx = 0;
+
+    var next = function () {
+      if (idx >= photoUrls.length) { finish(); return; }
+      var p = photoUrls[idx];
+      if (host) host.innerHTML = '<div class="dp-ocr-box"><span class="dp-spinner"></span>인식 중... (' + (idx + 1) + '/' + photoUrls.length + ')</div>';
+      // objectURL → File 복원
+      fetch(p.url).then(function (r) { return r.blob(); }).then(function (blob) {
+        var file = new File([blob], p.name || ('photo' + idx + '.jpg'), { type: blob.type || 'image/jpeg' });
+        return window.HandwritingOCR.recognize(file);
+      }).then(function (lines) {
+        allLines = allLines.concat(lines || []);
+      }).catch(function (err) {
+        errors.push((p.name || ('사진' + (idx + 1))) + ': ' + (err.message || err));
+      }).then(function () {
+        idx++;
+        next();
+      });
+    };
+
+    var finish = function () {
+      ocrRunning = false;
+      if (btn) btn.disabled = false;
+      if (!allLines.length) {
+        if (host) host.innerHTML = '<div class="dp-ocr-box" style="color:#991b1b;">❌ 인식된 글씨가 없습니다.' +
+          (errors.length ? '<br><small>' + escHtml(errors.join(' / ').slice(0, 200)) + '</small>' : '') + '</div>';
+        return;
+      }
+      // 조제내역과 fuzzy 매칭
+      var matched = window.HandwritingOCR.matchLines(allLines, dispenseItems);
+      renderOcrResult(matched, errors);
+    };
+
+    next();
+  }
+
+  function renderOcrResult(matched, errors) {
+    var host = document.getElementById('dpOcrResult');
+    if (!host) return;
+    var okCount = matched.filter(function (m) { return m.matched; }).length;
+    var html = '<div class="dp-ocr-box">' +
+      '<div class="dp-ocr-head"><span>🖋 인식 결과 ' + matched.length + '줄 · 매칭 ' + okCount + '개</span>' +
+      '<button class="dp-btn primary" type="button" id="dpOcrApply" style="padding:6px 12px;font-size:11.5px;">✓ 선택 항목 수기목록에 추가</button></div>';
+    matched.forEach(function (m, i) {
+      var conf = m.confidence;
+      var confLabel = conf === 'high' ? Math.round(m.score * 100) + '%' :
+                      conf === 'mid' ? Math.round(m.score * 100) + '%' :
+                      conf === 'low' ? Math.round(m.score * 100) + '%' : '실패';
+      var autoCheck = (conf === 'high' || conf === 'mid') ? ' checked' : '';
+      var display = m.matched
+        ? '<span class="dp-ocr-matched">' + escHtml(m.matched) + '</span>' +
+          (normName(m.raw) !== normName(m.matched) ? '<div class="dp-ocr-raw">원문: ' + escHtml(m.raw) + '</div>' : '')
+        : '<span style="color:#9ca3af;">' + escHtml(m.raw) + '</span><div class="dp-ocr-raw">조제내역에서 못 찾음</div>';
+      html += '<div class="dp-ocr-line">' +
+        '<input type="checkbox" data-ocr-idx="' + i + '"' + autoCheck + (m.matched ? '' : ' disabled') + '>' +
+        '<div>' + display + '</div>' +
+        '<span class="dp-ocr-conf ' + conf + '">' + confLabel + '</span>' +
+        '</div>';
+    });
+    if (errors && errors.length) {
+      html += '<div style="margin-top:8px;font-size:11px;color:#991b1b;">⚠ ' + escHtml(errors.join(' / ').slice(0, 200)) + '</div>';
+    }
+    html += '</div>';
+    host.innerHTML = html;
+
+    var applyBtn = document.getElementById('dpOcrApply');
+    if (applyBtn) applyBtn.addEventListener('click', function () {
+      var boxes = host.querySelectorAll('[data-ocr-idx]');
+      var added = 0;
+      for (var i = 0; i < boxes.length; i++) {
+        if (boxes[i].checked && !boxes[i].disabled) {
+          var m = matched[parseInt(boxes[i].getAttribute('data-ocr-idx'), 10)];
+          if (m && m.matched && manualList.indexOf(m.matched) === -1) {
+            manualList.push(m.matched);
+            added++;
+          }
+        }
+      }
+      syncManualTextarea();
+      renderManualList();
+      renderResult();
+      alert(added ? ('✅ ' + added + '개를 수기 목록에 추가했습니다') : '추가된 항목이 없습니다');
+    });
+  }
+
+  /* ──────── ★ 수기 목록 (b) 관리 ──────── */
+  function applyManualText() {
+    var ta = document.getElementById('dpManualText');
+    if (!ta) return;
+    var lines = (ta.value || '').split(/[\n,;]/).map(function (s) { return s.trim(); }).filter(Boolean);
+    // 중복 제거
+    var seen = {};
+    manualList = lines.filter(function (l) {
+      var k = normName(l);
+      if (!k || seen[k]) return false;
+      seen[k] = true;
+      return true;
+    });
+    renderManualList();
+    renderResult();
+  }
+  function syncManualTextarea() {
+    var ta = document.getElementById('dpManualText');
+    if (ta) ta.value = manualList.join('\n');
+  }
+  function renderManualList() {
+    var host = document.getElementById('dpManualChips');
+    var cnt = document.getElementById('dpManualCount');
+    if (cnt) cnt.textContent = manualList.length + '개';
+    if (!host) return;
+    if (!manualList.length) { host.innerHTML = ''; return; }
+    host.innerHTML = manualList.map(function (n, i) {
+      return '<span class="dp-mchip">' + escHtml(n) + '<button class="dp-mchip-x" type="button" data-mrm="' + i + '">✕</button></span>';
+    }).join('');
+    host.querySelectorAll('[data-mrm]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        manualList.splice(parseInt(b.getAttribute('data-mrm'), 10), 1);
+        syncManualTextarea(); renderManualList(); renderResult();
+      });
+    });
+  }
+  // b 목록에 있는지 판정 (fuzzy)
+  function isInManual(name) {
+    if (!manualList.length) return false;
+    var n = normName(name), s = stripName(name);
+    for (var i = 0; i < manualList.length; i++) {
+      var mn = normName(manualList[i]), ms = stripName(manualList[i]);
+      if (mn === n) return true;
+      if (ms && s && ms === s) return true;
+      if (ms && s && Math.min(ms.length, s.length) >= 3 && (ms.indexOf(s) !== -1 || s.indexOf(ms) !== -1)) return true;
+    }
+    return false;
+  }
+
+  /* ──────── ★ 날짜 일치 검증 UI ──────── */
+  function renderDateCheck() {
+    var host = document.getElementById('dpDateCheck');
+    if (!host) return;
+    var tgt = getTargetDate();
+    var rows = '';
+
+    // ① 엑셀 조제내역
+    if (!dispenseItems.length) {
+      rows += checkRow('idle', '📊', '조제내역 엑셀', '미업로드', '');
+    } else {
+      var xDate = uploadMeta && (uploadMeta.fileDate || uploadMeta.modDate);
+      if (!xDate) {
+        rows += checkRow('warn', '📊', '조제내역 엑셀', '날짜 미확인 (' + uploadMeta.count + '품목)', '');
+      } else if (xDate === tgt) {
+        rows += checkRow('ok', '📊', '조제내역 엑셀', xDate + ' · ' + uploadMeta.count + '품목', '');
+      } else {
+        rows += checkRow('err', '📊', '조제내역 엑셀', xDate + ' ✕ 불일치',
+          '<button class="dp-date-fix" type="button" data-fix="' + xDate + '">이 날짜로 맞추기</button>');
+      }
+    }
+
+    // ② 주문리스트
+    var day = getAllData()[tgt];
+    var orderCnt = (day && Array.isArray(day.items)) ? day.items.length : 0;
+    if (orderCnt === 0) {
+      rows += checkRow('warn', '📋', '주문리스트', tgt + ' · 0건 (비어있음)', '');
+    } else {
+      rows += checkRow('ok', '📋', '주문리스트', tgt + ' · ' + orderCnt + '건', '');
+    }
+
+    // ③ 메모 사진
+    if (!photoUrls.length) {
+      rows += checkRow('idle', '📷', '메모 사진', '없음 (선택사항)', '');
+    } else {
+      var bad = photoUrls.filter(function (p) { return p.dateStr && p.dateStr !== tgt; });
+      if (bad.length) {
+        rows += checkRow('err', '📷', '메모 사진', photoUrls.length + '장 중 ' + bad.length + '장 날짜 불일치', '');
+      } else {
+        rows += checkRow('ok', '📷', '메모 사진', photoUrls.length + '장 · 날짜 일치', '');
+      }
+    }
+
+    host.innerHTML = rows;
+    host.querySelectorAll('[data-fix]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        targetDate = b.getAttribute('data-fix');
+        var di = document.getElementById('dpTargetDate');
+        if (di) di.value = targetDate;
+        renderDateCheck();
+        renderResult();
+      });
+    });
+  }
+  function checkRow(status, icon, label, value, action) {
+    var mark = status === 'ok' ? '✓' : (status === 'err' ? '✕' : (status === 'warn' ? '⚠' : '·'));
+    return '<div class="dp-check-row ' + status + '">' +
+      '<span class="dp-check-icon">' + icon + '</span>' +
+      '<span class="dp-check-label">' + label + '</span>' +
+      '<span class="dp-check-val">' + mark + ' ' + escHtml(value) + '</span>' +
+      (action || '') + '</div>';
+  }
+  // 날짜 불일치가 있으면 true
+  function hasDateMismatch() {
+    var tgt = getTargetDate();
+    if (dispenseItems.length && uploadMeta) {
+      var xDate = uploadMeta.fileDate || uploadMeta.modDate;
+      if (xDate && xDate !== tgt) return true;
+    }
+    return false;
+  }
+
+  /* ──────── 대조 로직 (targetDate 기준) ──────── */
   function getTodayOrderedKeys() {
-    var d = getCurrentDate();
+    var d = getTargetDate();
     var day = getAllData()[d];
     var keys = { norm: {}, strip: {} };
     if (!day || !Array.isArray(day.items)) return keys;
@@ -480,12 +909,28 @@
       return;
     }
 
+    // ★ 날짜 불일치면 결과 차단
+    if (hasDateMismatch()) {
+      var xd = uploadMeta && (uploadMeta.fileDate || uploadMeta.modDate);
+      host.innerHTML = '<div class="dp-blocked">🚫 <b>날짜 불일치로 대조를 중단했습니다</b><br><br>' +
+        '엑셀 조제내역: <b>' + escHtml(xd || '?') + '</b><br>' +
+        '대조 기준 날짜: <b>' + escHtml(getTargetDate()) + '</b><br><br>' +
+        '위 📅 날짜 박스에서 날짜를 맞춰주세요.</div>';
+      if (statsEl) statsEl.innerHTML = '';
+      if (filterRow) filterRow.style.display = 'none';
+      if (bulkRow) bulkRow.style.display = 'none';
+      if (exportBtn) exportBtn.style.display = 'none';
+      return;
+    }
+
     var orderedKeys = getTodayOrderedKeys();
-    var cntOrdered = 0, cntFloor2 = 0, cntIgnored = 0;
+    var cntOrdered = 0, cntFloor2 = 0, cntIgnored = 0, cntManual = 0;
     var missing = [];
 
+    // ★ a − b − c − (2층재고) − (무시목록)
     dispenseItems.forEach(function (it) {
-      if (isOrdered(it.name, orderedKeys)) { cntOrdered++; return; }
+      if (isOrdered(it.name, orderedKeys)) { cntOrdered++; return; }   // c: 앱 주문리스트
+      if (isInManual(it.name)) { cntManual++; return; }                 // b: 수기 목록
       if (isFloor2(it.name)) { cntFloor2++; return; }
       if (isIgnored(it.name)) { cntIgnored++; return; }
       missing.push(it);
@@ -494,9 +939,11 @@
     // 통계
     if (statsEl) {
       statsEl.innerHTML =
+        '<span class="dp-pill" style="background:var(--accent-soft,#e4f0d4);color:var(--accent,#5a8a3a);">📅 ' + dateLabel(getTargetDate()) + '</span>' +
         '<span class="dp-pill total">조제 ' + dispenseItems.length + '</span>' +
         '<span class="dp-pill missing">⚠ 누락의심 ' + missing.length + '</span>' +
-        '<span class="dp-pill ordered">✓ 주문됨 ' + cntOrdered + '</span>' +
+        '<span class="dp-pill ordered">✓ 앱주문 ' + cntOrdered + '</span>' +
+        (cntManual ? '<span class="dp-pill" style="background:#ede9fe;color:#5b21b6;">✍️ 수기 ' + cntManual + '</span>' : '') +
         (cntFloor2 ? '<span class="dp-pill floor2">2층재고 ' + cntFloor2 + '</span>' : '') +
         (cntIgnored ? '<span class="dp-pill ignored">무시 ' + cntIgnored + '</span>' : '');
     }
@@ -565,7 +1012,11 @@
     var user = getCurrentUser();
     if (!fbDbRef) { alert('Firebase 연결 안 됨'); return; }
     if (!uid || !user) { alert('로그인 정보 없음'); return; }
-    var date = getCurrentDate();
+    var date = getTargetDate();
+    // ★ 오늘이 아닌 날짜에 추가할 때 확인
+    if (date !== getTodayStr()) {
+      if (!confirm('⚠️ 오늘이 아닌 날짜에 주문을 추가합니다\n\n대상 날짜: ' + date + '\n오늘: ' + getTodayStr() + '\n\n계속할까요?')) return;
+    }
     var now = Date.now();
     var payload = {
       name: String(name || ''),
@@ -596,12 +1047,13 @@
       }
     });
     if (!checked.length) { alert('선택된 항목이 없습니다'); return; }
-    if (!confirm(checked.length + '개 품목을 오늘 주문리스트에 추가할까요?')) return;
+    var date = getTargetDate();
+    var dateWarn = (date !== getTodayStr()) ? '\n\n⚠️ 오늘(' + getTodayStr() + ')이 아닌 날짜입니다!' : '';
+    if (!confirm(checked.length + '개 품목을 [' + date + '] 주문리스트에 추가할까요?' + dateWarn)) return;
 
     var fbDbRef = getFbDb();
     var uid = getCurrentAuthUid(), user = getCurrentUser();
     if (!fbDbRef || !uid) { alert('로그인 정보 없음'); return; }
-    var date = getCurrentDate();
     var updates = {};
     var base = Date.now();
     checked.forEach(function (c, i) {
@@ -668,7 +1120,7 @@
     if (typeof XLSX === 'undefined') { alert('엑셀 라이브러리 없음'); return; }
     var orderedKeys = getTodayOrderedKeys();
     var missing = dispenseItems.filter(function (it) {
-      return !isOrdered(it.name, orderedKeys) && !isFloor2(it.name) && !isIgnored(it.name);
+      return !isOrdered(it.name, orderedKeys) && !isInManual(it.name) && !isFloor2(it.name) && !isIgnored(it.name);
     });
     if (!missing.length) { alert('내보낼 항목이 없습니다'); return; }
     missing.sort(function (a, b) { return (b.qty || 0) - (a.qty || 0); });
@@ -687,7 +1139,7 @@
     ws['!cols'] = [{ wch: 42 }, { wch: 9 }, { wch: 10 }, { wch: 10 }];
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '조제누락');
-    XLSX.writeFile(wb, '조제누락_' + getCurrentDate() + '.xlsx');
+    XLSX.writeFile(wb, '조제누락_' + getTargetDate() + '.xlsx');
   }
 
   /* ──────── Firebase 무시목록 리스너 ──────── */
@@ -712,11 +1164,34 @@
   /* ──────── 메인 렌더 ──────── */
   function renderAll() {
     ensurePanel();
+    // 탭 진입 시 앱의 현재 날짜와 동기화 (사용자가 직접 바꾼 적 없으면)
+    var di = document.getElementById('dpTargetDate');
+    if (di && !targetDate) {
+      targetDate = getCurrentDate() || getTodayStr();
+      di.value = targetDate;
+    }
+    renderDateCheck();
     renderUploadMeta();
     renderPhotos();
+    renderManualList();
     renderResult();
     renderIgnoreList();
     setupIgnoreListener();
+    updateOcrButton();
+  }
+
+  // OCR 버튼 표시 여부 갱신
+  function updateOcrButton() {
+    var btn = document.getElementById('dpOcrBtn');
+    var badge = document.getElementById('dpOcrBadge');
+    if (!btn) return;
+    var ready = !!(window.HandwritingOCR && window.HandwritingOCR.isReady());
+    btn.style.display = (ready && photoUrls.length) ? 'inline-block' : 'none';
+    if (badge) {
+      badge.innerHTML = ready
+        ? '<span style="color:#166534;font-weight:700;">🖋 OCR 활성</span>'
+        : '<span style="color:#92400e;">OCR 미설정 (설정 탭에서 등록)</span>';
+    }
   }
 
   /* ──────── 글로벌 노출 ──────── */
